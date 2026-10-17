@@ -1,0 +1,266 @@
+{
+  "seed": 0,
+  "reps": 2000,
+  "eligible_prs": 18058,
+  "prs_total": 34905,
+  "size_bin_edges": [
+    23.0,
+    99.0
+  ],
+  "U_levels_eligible_prs": {
+    "0.0": 14651,
+    "0.25": 1803,
+    "0.5": 398,
+    "1.0": 1206
+  },
+  "runs": {
+    "primary_N20": {
+      "min_repo_prs": 20,
+      "reviewed_min_u": 0.5,
+      "matching": {
+        "n_pairs": 163,
+        "n_repos": 38,
+        "eligible_prs": 18058,
+        "unreviewed_in_big_repos": 11925,
+        "reviewed_in_big_repos": 725,
+        "repos_meeting_threshold": 112
+      },
+      "balance": {
+        "mean_additions_unreviewed": 780.9447852760736,
+        "mean_additions_reviewed": 1338.3496932515338,
+        "median_abs_days_apart": 9.430752314814814,
+        "same_agent_share": 1.0
+      },
+      "fix90": {
+        "n_pairs": 163,
+        "n_repos": 38,
+        "both_fix": 65,
+        "neither_fix": 56,
+        "only_unreviewed_fix_b": 21,
+        "only_reviewed_fix_c": 21,
+        "discordant": 42,
+        "rate_unreviewed": 0.5276073619631901,
+        "rate_reviewed": 0.5276073619631901,
+        "odds_ratio_b_over_c": 1.0,
+        "or_ci95": [
+          0.5416666666666666,
+          2.0
+        ],
+        "risk_difference": 0.0,
+        "rd_ci95": [
+          -0.07144141829393627,
+          0.0847699757869248
+        ],
+        "mcnemar_exact_p_unclustered": 1.0
+      },
+      "fix30": {
+        "n_pairs": 163,
+        "n_repos": 38,
+        "both_fix": 48,
+        "neither_fix": 69,
+        "only_unreviewed_fix_b": 23,
+        "only_reviewed_fix_c": 23,
+        "discordant": 46,
+        "rate_unreviewed": 0.43558282208588955,
+        "rate_reviewed": 0.43558282208588955,
+        "odds_ratio_b_over_c": 1.0,
+        "or_ci95": [
+          0.5356547619047619,
+          2.125
+        ],
+        "risk_difference": 0.0,
+        "rd_ci95": [
+          -0.08547149122807017,
+          0.10259740259740241
+        ],
+        "mcnemar_exact_p_unclustered": 1.0
+      }
+    },
+    "sens_N10": {
+      "min_repo_prs": 10,
+      "reviewed_min_u": 0.5,
+      "matching": {
+        "n_pairs": 187,
+        "n_repos": 56,
+        "eligible_prs": 18058,
+        "unreviewed_in_big_repos": 12802,
+        "reviewed_in_big_repos": 959,
+        "repos_meeting_threshold": 215
+      },
+      "balance": {
+        "mean_additions_unreviewed": 776.3529411764706,
+        "mean_additions_reviewed": 1802.2620320855615,
+        "median_abs_days_apart": 7.767569444444445,
+        "same_agent_share": 1.0
+      },
+      "fix90": {
+        "n_pairs": 187,
+        "n_repos": 56,
+        "both_fix": 75,
+        "neither_fix": 66,
+        "only_unreviewed_fix_b": 24,
+        "only_reviewed_fix_c": 22,
+        "discordant": 46,
+        "rate_unreviewed": 0.5294117647058824,
+        "rate_reviewed": 0.5187165775401069,
+        "odds_ratio_b_over_c": 1.0909090909090908,
+        "or_ci95": [
+          0.6206896551724138,
+          2.1
+        ],
+        "risk_difference": 0.0106951871657754,
+        "rd_ci95": [
+          -0.05303433268858801,
+          0.08486543062200948
+        ],
+        "mcnemar_exact_p_unclustered": 0.8829959121223965
+      },
+      "fix30": {
+        "n_pairs": 187,
+        "n_repos": 56,
+        "both_fix": 57,
+        "neither_fix": 79,
+        "only_unreviewed_fix_b": 27,
+        "only_reviewed_fix_c": 24,
+        "discordant": 51,
+        "rate_unreviewed": 0.44919786096256686,
+        "rate_reviewed": 0.43315508021390375,
+        "odds_ratio_b_over_c": 1.125,
+        "or_ci95": [
+          0.6296031746031746,
+          2.357142857142857
+        ],
+        "risk_difference": 0.016042780748663103,
+        "rd_ci95": [
+          -0.06136356996786445,
+          0.1090935214211076
+        ],
+        "mcnemar_exact_p_unclustered": 0.7797679305530743
+      }
+    },
+    "sens_N50": {
+      "min_repo_prs": 50,
+      "reviewed_min_u": 0.5,
+      "matching": {
+        "n_pairs": 105,
+        "n_repos": 14,
+        "eligible_prs": 18058,
+        "unreviewed_in_big_repos": 10611,
+        "reviewed_in_big_repos": 370,
+        "repos_meeting_threshold": 40
+      },
+      "balance": {
+        "mean_additions_unreviewed": 607.9333333333333,
+        "mean_additions_reviewed": 1280.647619047619,
+        "median_abs_days_apart": 12.586215277777777,
+        "same_agent_share": 1.0
+      },
+      "fix90": {
+        "n_pairs": 105,
+        "n_repos": 14,
+        "both_fix": 47,
+        "neither_fix": 26,
+        "only_unreviewed_fix_b": 13,
+        "only_reviewed_fix_c": 19,
+        "discordant": 32,
+        "rate_unreviewed": 0.5714285714285714,
+        "rate_reviewed": 0.6285714285714286,
+        "odds_ratio_b_over_c": 0.6842105263157895,
+        "or_ci95": [
+          0.29151785714285716,
+          1.3333333333333333
+        ],
+        "risk_difference": -0.05714285714285714,
+        "rd_ci95": [
+          -0.16092880978865406,
+          0.04257631822386666
+        ],
+        "mcnemar_exact_p_unclustered": 0.37708558747544885
+      },
+      "fix30": {
+        "n_pairs": 105,
+        "n_repos": 14,
+        "both_fix": 35,
+        "neither_fix": 37,
+        "only_unreviewed_fix_b": 14,
+        "only_reviewed_fix_c": 19,
+        "discordant": 33,
+        "rate_unreviewed": 0.4666666666666667,
+        "rate_reviewed": 0.5142857142857142,
+        "odds_ratio_b_over_c": 0.7368421052631579,
+        "or_ci95": [
+          0.34615384615384615,
+          1.6666666666666667
+        ],
+        "risk_difference": -0.047619047619047616,
+        "rd_ci95": [
+          -0.16514303257964316,
+          0.07548363983759249
+        ],
+        "mcnemar_exact_p_unclustered": 0.48685024166479707
+      }
+    },
+    "dose_U1_N20": {
+      "min_repo_prs": 20,
+      "reviewed_min_u": 1.0,
+      "matching": {
+        "n_pairs": 139,
+        "n_repos": 32,
+        "eligible_prs": 18058,
+        "unreviewed_in_big_repos": 11925,
+        "reviewed_in_big_repos": 561,
+        "repos_meeting_threshold": 112
+      },
+      "balance": {
+        "mean_additions_unreviewed": 864.6258992805756,
+        "mean_additions_reviewed": 1504.841726618705,
+        "median_abs_days_apart": 10.461215277777777,
+        "same_agent_share": 1.0
+      },
+      "fix90": {
+        "n_pairs": 139,
+        "n_repos": 32,
+        "both_fix": 60,
+        "neither_fix": 47,
+        "only_unreviewed_fix_b": 14,
+        "only_reviewed_fix_c": 18,
+        "discordant": 32,
+        "rate_unreviewed": 0.5323741007194245,
+        "rate_reviewed": 0.5611510791366906,
+        "odds_ratio_b_over_c": 0.7777777777777778,
+        "or_ci95": [
+          0.3888440860215054,
+          1.7860714285714268
+        ],
+        "risk_difference": -0.02877697841726619,
+        "rd_ci95": [
+          -0.10528644620400558,
+          0.05813953488372093
+        ],
+        "mcnemar_exact_p_unclustered": 0.5966148958541453
+      },
+      "fix30": {
+        "n_pairs": 139,
+        "n_repos": 32,
+        "both_fix": 45,
+        "neither_fix": 57,
+        "only_unreviewed_fix_b": 16,
+        "only_reviewed_fix_c": 21,
+        "discordant": 37,
+        "rate_unreviewed": 0.43884892086330934,
+        "rate_reviewed": 0.4748201438848921,
+        "odds_ratio_b_over_c": 0.7619047619047619,
+        "or_ci95": [
+          0.36837719298245614,
+          1.75
+        ],
+        "risk_difference": -0.03597122302158273,
+        "rd_ci95": [
+          -0.1276635738281875,
+          0.0649510325739833
+        ],
+        "mcnemar_exact_p_unclustered": 0.5113757815852296
+      }
+    }
+  }
+}

@@ -8,3 +8,4 @@ dist/
 .cdebt/cache/
 data/
 .cdebt-backtest.log
+.cdebt-matched.log
