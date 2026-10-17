@@ -18,7 +18,7 @@ def _rate(y: np.ndarray) -> dict[str, Any]:
 
 
 def _reindex(a: np.ndarray) -> np.ndarray:
-    return np.unique(a, return_inverse=True)[1]
+    return np.asarray(np.unique(a, return_inverse=True)[1], dtype=int)
 
 
 def _rr(

@@ -386,8 +386,13 @@ def run_in_sandbox(
         argv = ["sandbox-exec", "-p", _sbx_profile(str(root)), *argv]
         isolation += "+sandbox-exec"
 
+    client_only = docker_name is not None  # the docker CLI is only a client; limits live in the
+    # container (a Go binary also cannot run under RLIMIT_AS: "failed to reserve page summary")
+
     def preexec() -> None:
         os.setsid()
+        if client_only:
+            return
         for name, val in (
             ("RLIMIT_CPU", int(timeout) + 2),
             ("RLIMIT_NOFILE", 256),

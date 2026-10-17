@@ -114,7 +114,7 @@ def pair_stats(
     yu, yr = t[outcome][p[:, 0]] > 0, t[outcome][p[:, 1]] > 0
     b_i, c_i = (yu & ~yr).astype(float), (~yu & yr).astype(float)
     repo = t["repo"][p[:, 0]]
-    cl = np.unique(repo, return_inverse=True)[1]
+    cl = np.asarray(np.unique(repo, return_inverse=True)[1], dtype=int)
     k = int(cl.max()) + 1
     bk, ck, nk = np.bincount(cl, b_i, k), np.bincount(cl, c_i, k), np.bincount(cl, minlength=k)
     b, c, n = int(b_i.sum()), int(c_i.sum()), len(p)
