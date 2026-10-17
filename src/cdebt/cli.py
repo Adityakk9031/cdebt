@@ -288,7 +288,11 @@ def backtest_cmd(
     revision: str = "main",
 ) -> None:
     """Does the (proxy) debt score predict later fixes and reverts on AIDev? Reproducible."""
-    from cdebt.backtest import aidev, analysis, report
+    try:
+        from cdebt.backtest import aidev, analysis, report
+    except ImportError:
+        typer.echo("error: backtest needs extras: pip install 'cdebt[backtest]'", err=True)
+        raise typer.Exit(2) from None
 
     if fetch:
         console.print(f"fetching AIDev@{revision} columns into {data} ...")

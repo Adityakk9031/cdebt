@@ -109,8 +109,6 @@ name = "cdebt"
 version = "0.1.0"
 source = { editable = "." }
 dependencies = [
-    { name = "numpy", version = "2.4.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.12'" },
-    { name = "numpy", version = "2.5.4", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.12'" },
     { name = "pydantic" },
     { name = "rich" },
     { name = "tree-sitter" },
@@ -122,6 +120,8 @@ dependencies = [
 [package.optional-dependencies]
 backtest = [
     { name = "huggingface-hub" },
+    { name = "numpy", version = "2.4.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.12'" },
+    { name = "numpy", version = "2.5.4", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.12'" },
     { name = "pyarrow" },
 ]
 history = [
@@ -143,7 +143,7 @@ dev = [
 requires-dist = [
     { name = "huggingface-hub", marker = "extra == 'backtest'", specifier = ">=0.23" },
     { name = "mutmut", marker = "extra == 'mutation'", specifier = ">=3" },
-    { name = "numpy", specifier = ">=1.26" },
+    { name = "numpy", marker = "extra == 'backtest'", specifier = ">=1.26" },
     { name = "pyarrow", marker = "extra == 'backtest'", specifier = ">=15" },
     { name = "pydantic", specifier = ">=2.6" },
     { name = "pydriller", marker = "extra == 'history'", specifier = ">=2.6" },

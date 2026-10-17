@@ -1,5 +1,10 @@
 from __future__ import annotations
 
+import pytest
+
+pytest.importorskip("numpy")
+pytest.importorskip("pyarrow")
+
 import math
 from pathlib import Path
 

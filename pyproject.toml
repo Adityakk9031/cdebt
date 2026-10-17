@@ -16,13 +16,12 @@ dependencies = [
   "tree-sitter>=0.23",
   "tree-sitter-python>=0.23",
   "tree-sitter-typescript>=0.23",
-  "numpy>=1.26",
 ]
 
 [project.optional-dependencies]
 mutation = ["mutmut>=3"]
 history = ["pydriller>=2.6"]
-backtest = ["pyarrow>=15", "huggingface_hub>=0.23"]
+backtest = ["numpy>=1.26", "pyarrow>=15", "huggingface_hub>=0.23"]
 
 [dependency-groups]
 dev = ["pytest>=8", "ruff>=0.5", "mypy>=1.10", "pytest-timeout>=2.3"]
