@@ -1,0 +1,50 @@
+# Changelog
+
+## 0.1.2 (unreleased until tagged)
+
+- **Understanding now has three states**: *verified* (execution-verified probes), *attested*
+  (a human signed off with `cdebt attest`; **NON-VERIFIED**, hash-bound, expires on change,
+  counts at `attested_weight` = 0.5 in the debt score) and *none*. Labelled NON-VERIFIED in map,
+  gate, plan and the PR comment.
+- `cdebt gate --require verified|attested`. Default: attested is accepted for module-level code
+  and for functions quiz cannot verify; verified is required for functions quiz could verify.
+- New `constant` probes: "what is the value of NAME?" for top-level constants, evaluated in the
+  sandbox twice. Verifies constant values only, not other top-level statements.
+- New `cdebt coverage`: per top-N debt files, what share of AI lines can be verified, only
+  attested, or are in languages with no quiz support (TypeScript/JavaScript).
+- **Sandbox timeout is now a hard guarantee** (see `docs/VERIFICATION.md`): deadline on its own
+  timer instead of sharing a loop with `ps`; the Docker container is killed at the deadline (not
+  just the client); the whole process tree is killed (children that `setsid` used to survive);
+  group kill refuses a reused PID; docker cleanup has timeouts; orphaned `cdebt-*` containers are
+  reaped; `elapsed` is measured at kill time.
+- Fixed: `quiz` printed noisy skip lists, a literal `None` answer was graded wrong,
+  runtime probes were rejected at file level (now function level).
+- Test suite is repeated 20 times in CI and was run 20 times locally with zero failures.
+
+## 0.1.1
+
+- `cdebt[backtest]` extra (numpy, pyarrow, huggingface_hub) keeps the core install light.
+- Git AI notes parser verified against real 1.0.0-1.7.5 output; fixed a crash on empty
+  attestation sections; unsupported or malformed notes yield no claims.
+- Docker sandbox path (docker cp, no bind mounts), verified locally and on a GitHub runner.
+- mutmut removed; cdebt's own mutator is the only mutation backend.
+- Matched-pairs backtest (`docs/PREREGISTRATION.md`, `docs/RESULTS_MATCHED.md`): null.
+- Pilot on three real repos (`docs/CASE_STUDIES.md`), `docs/VERIFICATION.md`.
+- Restored `tests/test_probes.py`, which was never created in 0.1.0 (see below).
+
+## 0.1.0
+
+- First release: map, quiz, gate, plan, backtest; Git AI / Agent Trace / trailer attribution;
+  hash-bound expiring understanding; sandboxed execution; AIDev backtest (mostly null).
+
+## History notes (git history is not rewritten)
+
+- **Commit `66aa50b`** is titled "Pre-registration for matched-pairs analysis (committed before
+  code or run)" but also contains unrelated work staged with `git add -A`: the Docker sandbox
+  rewrite, the Git AI parser changes, the mutmut removal, the CI job and the Git AI version
+  fixtures. The pre-registration file itself (`docs/PREREGISTRATION.md`) was still committed
+  before any matched-pairs code existed: that code first appears in `bb15606`, two commits later,
+  and the analysis was first run after that.
+- **`tests/test_probes.py` was missing in 0.1.0**: the command that was supposed to create it was
+  chained after a failing `sed`, so the call-graph and mutation probes had no tests when 0.1.0
+  was described as verified. The tests were written in 0.1.1 (13 passed; later grown).

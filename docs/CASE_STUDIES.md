@@ -148,7 +148,7 @@ agent-meta SCIP: `cdebt index` 0m15.676s (npx cache warm; the first run took abo
 
 1. **Quiz coverage is narrow.** Only 10/25 and 7/25 of the top files yield any runtime probe; the dominant skip reason by far is `unsupported signature` (no return annotation, keyword-only, `*args`, or non-simple parameter types), then functions that use `pathlib`/`os`/`sys`. With a SCIP index, call-graph probes raise agent-meta to 11/25. TypeScript (`hive`) cannot be quizzed at all, so every plan item there is `review`.
 2. **The screen was first far too strict.** The initial file-level static screen rejected any file that imported `os`/`sys`/`pathlib`: **1/25 and 0/25** files produced probes. Moving to function-level screening (the audit hook and OS sandbox still contain actual side effects) raised that to the numbers above. This was found only by running on real code.
-3. **Module-level code can never be cleared.** The top gate violations are often `<module>` units (imports, constants, top-level statements, test modules), and `quiz` has no probes for them. Those lines keep failing the gate until the code changes or `--max-ai-lines` is raised. The gate now prints a note about this. A real fix needs a different mechanism (for example an explicit, clearly labelled non-verified attestation); that is a design decision and is **not implemented**.
+3. **Module-level code can never be cleared.** The top gate violations are often `<module>` units (imports, constants, top-level statements, test modules), and `quiz` has no probes for them. Those lines keep failing the gate until the code changes or `--max-ai-lines` is raised. The gate now prints a note about this. Addressed in round 2 (section 7): module constants can now be verified, and everything else can be attested (`cdebt attest`, NON-VERIFIED).
 4. **Docker lowers coverage.** When Docker is available it is used automatically, but `python:3.11-slim` lacks the project's dependencies: on agent-meta 4/25 files had probes under Docker vs 7/25 with the host sandbox (`CDEBT_NO_DOCKER=1`). The quiz now prints which sandbox was used.
 5. **Trailer attribution is coarse and lopsided.** 96-100% AI per file in the top rows is an upper bound (human edits in trailered commits count as AI), while 43-54% of lines in two repos are `unknown` because their last-touching commit had no trailer. Neither number says how much a human actually understands.
 6. **Gate windows are huge on agent-driven repos.** 25 commits changed 20k-190k lines, so a gate with `--base HEAD~25` is effectively a whole-repo audit (tens of thousands of AI lines, thousands of violating units). Per-PR gating, the intended use, was tested separately on a scratch PR (see `docs/VERIFICATION.md`), not on these repos.
@@ -156,3 +156,39 @@ agent-meta SCIP: `cdebt index` 0m15.676s (npx cache warm; the first run took abo
 8. **`plan` and `map` repeat the same work.** `plan` recomputes attribution (git blame over every file), so it takes about 1.5x the time of `map` (up to 70 s here). Not a correctness issue.
 9. **Noisy skip output.** The first quiz run printed ~30 skip lines per file. The default is now a one-line count; `--verbose` lists them.
 10. **Nothing here validates the score.** These runs show the tool operating on real repos, not that high-score files are actually riskier; see the backtest results for that (mostly null).
+
+## 7. Round 2: attestation, module-level probes, `cdebt coverage`
+
+Re-run on the same three clones (pinned HEADs above) with the new code. `CDEBT_NO_DOCKER=1` (host sandbox); the SCIP index exists only for agent-meta, so `hive` (TypeScript) and `space_chassis` have no call-graph probes.
+
+### 7.1 What can be cleared, per `cdebt coverage --top-n 25`
+
+Top-25 files by debt score (the ranking uses SCIP blast radius where an index exists, so the agent-meta list differs from section 1). AI lines are classified per unit:
+
+| repo | files: verifiable / partly / attest-only / no-quiz | AI lines verifiable | AI lines attest-only | AI lines in no-quiz files | probe kinds seen (files) |
+|---|---|---|---|---|---|
+| space_chassis | 0 / 18 / 7 / 0 | 19% | 81% | 0% | {'constant': 18, 'runtime': 10} |
+| hive | 0 / 0 / 0 / 25 | 0% | 0% | 100% | - |
+| agent-meta | 1 / 24 / 0 / 0 | 77% | 23% | 0% | {'callgraph': 25, 'constant': 19, 'runtime': 9} |
+
+**Before / after for module-level code.** Before this round the module-level (`<module>`) unit could never be cleared (section 6, item 3). Now (a) module-level *constants* can be verified by a new `constant` probe ("what is the value of NAME?", evaluated in the sandbox twice), and (b) the rest can be signed off with `cdebt attest` (NON-VERIFIED). Constant probes were available for the `<module>` unit in **18/25 (space_chassis) and 19/25 (agent-meta)** of the top files, 0 for TypeScript (Python-only). This verifies the *values of constants*, not the behaviour of other top-level statements; the record and docs say so.
+
+Coverage over the same files, runtime+call-graph only (round 1, section 4) vs all kinds now (runtime + call-graph + constant): space_chassis 10/25 -> 18/25 files with at least one verifiable unit; agent-meta 7/25 (no index) / 11/25 (index, old ranking) -> 25/25 (index, new ranking). hive stays at 0/25: TypeScript cannot be quizzed without a TS call-graph index.
+
+### 7.2 Simulated attestation of the top-25 files, then the gate (`--base HEAD~25`)
+
+In a throwaway copy of each clone, `cdebt attest <file> --note "pilot simulation: not a real review"` was run on each top-25 file (this is a simulation of the workflow, NOT a review). Functions that quiz could verify were refused (`attest_refused`); everything else was attested. The gate was then run under three policies. AI lines are repo-wide for the 25-commit range, so only a fraction sit in the 25 attested files.
+
+| repo | units attested | refused (quizzable) | before: AI lines failing / units | default policy | `--require verified` | `--require attested` |
+|---|---|---|---|---|---|---|
+| space_chassis | 754 | 42 | 62,412 / 3,250 | 43,604 / 2,335 (accepted on attestation: 18,808 lines, NON-VERIFIED) | 62,412 / 3,250 | 43,604 / 2,335 (accepted on attestation: 18,808 lines, NON-VERIFIED) |
+| hive | 629 | 0 | 5,657 / 224 | 4,359 / 159 (accepted on attestation: 1,298 lines, NON-VERIFIED) | 5,657 / 224 | 4,359 / 159 (accepted on attestation: 1,298 lines, NON-VERIFIED) |
+| agent-meta | 182 | 229 | 17,180 / 1,348 | 16,465 / 1,305 (accepted on attestation: 715 lines, NON-VERIFIED) | 17,180 / 1,348 | 16,465 / 1,305 (accepted on attestation: 715 lines, NON-VERIFIED) |
+
+Reading: attestation moves the module-level and unquizzable lines from "failing" to "accepted, NON-VERIFIED" and the gate shows both numbers; `--require verified` ignores attestation entirely. `--require attested` equals the default here because every quizzable function was refused rather than force-attested. `space_chassis` and `hive` still fail the gate (repo-wide 25-commit window), as they should: one round of attesting 25 files is not a review of 190k changed lines.
+
+Things this round showed that are worth knowing:
+
+- **Refusals are common where an index exists**: in agent-meta 229 functions in the top files were refused because a call-graph probe exists for them, i.e. the tool pushes people toward `cdebt quiz` rather than a sign-off. In space_chassis it refused 42; in hive 0 (nothing is quizzable in TypeScript).
+- **Attestation is cheap to over-use.** Nothing stops a reviewer from attesting hundreds of units with one note (the simulation did exactly that). It is hash-bound and labelled everywhere, but it is a sign-off, not evidence. The `attested_weight` (default 0.5) and `--require verified` are the levers for teams that want it to count less or not at all.
+- **Hive/TypeScript remains unverifiable**: 100% of the top-25 files' AI lines are `no-quiz`; the only way to clear them today is attestation.
