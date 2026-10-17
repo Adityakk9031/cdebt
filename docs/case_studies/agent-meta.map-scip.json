@@ -1,0 +1,503 @@
+{
+ "summary": {
+  "rev": "8457634f1ed8",
+  "files": 509,
+  "total_lines": 140429,
+  "ai_lines": 64734,
+  "human_lines": 0,
+  "unknown_lines": 75695,
+  "ai_share": 0.4609731608143617,
+  "unknown_share": 0.5390268391856383,
+  "understood_ai_lines": 0,
+  "understood_ai_share": 0.0,
+  "units_with_ai": 3960,
+  "units_understood": 0,
+  "understood_units_ci95": [
+   0.0,
+   0.0009691252592075577
+  ],
+  "attribution_sources": {
+   "trailer": 64734
+  },
+  "blast_source": "scip",
+  "coarse_attribution": true
+ },
+ "files": [
+  {
+   "path": "scripts/lib/consistency/report.py",
+   "total_lines": 115,
+   "ai_lines": 110,
+   "human_lines": 0,
+   "unknown_lines": 5,
+   "understood_ai_lines": 0,
+   "ai_share": 0.9565217391304348,
+   "understood_share": 0.0,
+   "churn": 0.014492753623188406,
+   "blast_radius": 7.343880434126331,
+   "blast_source": "scip",
+   "score": 7.126386810683397,
+   "attribution_source": "trailer",
+   "source_counts": {
+    "trailer": 110
+   },
+   "coarse": true
+  },
+  {
+   "path": "scripts/lib/log.py",
+   "total_lines": 183,
+   "ai_lines": 147,
+   "human_lines": 0,
+   "unknown_lines": 36,
+   "understood_ai_lines": 0,
+   "ai_share": 0.8032786885245902,
+   "understood_share": 0.0,
+   "churn": 0.10144927536231885,
+   "blast_radius": 7.8501261661455,
+   "blast_source": "scip",
+   "score": 6.945561853819398,
+   "attribution_source": "trailer",
+   "source_counts": {
+    "trailer": 147
+   },
+   "coarse": true
+  },
+  {
+   "path": "scripts/lib/external_tools.py",
+   "total_lines": 408,
+   "ai_lines": 408,
+   "human_lines": 0,
+   "unknown_lines": 0,
+   "understood_ai_lines": 0,
+   "ai_share": 1.0,
+   "understood_share": 0.0,
+   "churn": 0.11594202898550725,
+   "blast_radius": 5.74493212836325,
+   "blast_source": "scip",
+   "score": 6.411011215709714,
+   "attribution_source": "trailer",
+   "source_counts": {
+    "trailer": 408
+   },
+   "coarse": true
+  },
+  {
+   "path": "scripts/lib/cli_commands.py",
+   "total_lines": 1522,
+   "ai_lines": 1363,
+   "human_lines": 0,
+   "unknown_lines": 159,
+   "understood_ai_lines": 0,
+   "ai_share": 0.8955321944809461,
+   "understood_share": 0.0,
+   "churn": 0.34782608695652173,
+   "blast_radius": 5.143134726391533,
+   "blast_source": "scip",
+   "score": 6.207874981266681,
+   "attribution_source": "trailer",
+   "source_counts": {
+    "trailer": 1363
+   },
+   "coarse": true
+  },
+  {
+   "path": "scripts/lib/config_audit_types.py",
+   "total_lines": 95,
+   "ai_lines": 95,
+   "human_lines": 0,
+   "unknown_lines": 0,
+   "understood_ai_lines": 0,
+   "ai_share": 1.0,
+   "understood_share": 0.0,
+   "churn": 0.014492753623188406,
+   "blast_radius": 6.0689042022202315,
+   "blast_source": "scip",
+   "score": 6.156859335585742,
+   "attribution_source": "trailer",
+   "source_counts": {
+    "trailer": 95
+   },
+   "coarse": true
+  },
+  {
+   "path": "scripts/lib/orchestration.py",
+   "total_lines": 609,
+   "ai_lines": 520,
+   "human_lines": 0,
+   "unknown_lines": 89,
+   "understood_ai_lines": 0,
+   "ai_share": 0.8538587848932676,
+   "understood_share": 0.0,
+   "churn": 0.057971014492753624,
+   "blast_radius": 6.5053315359323625,
+   "blast_source": "scip",
+   "score": 5.876642276575819,
+   "attribution_source": "trailer",
+   "source_counts": {
+    "trailer": 520
+   },
+   "coarse": true
+  },
+  {
+   "path": "scripts/lib/doctor_predicates.py",
+   "total_lines": 267,
+   "ai_lines": 267,
+   "human_lines": 0,
+   "unknown_lines": 0,
+   "understood_ai_lines": 0,
+   "ai_share": 1.0,
+   "understood_share": 0.0,
+   "churn": 0.014492753623188406,
+   "blast_radius": 5.74493212836325,
+   "blast_source": "scip",
+   "score": 5.828192014281559,
+   "attribution_source": "trailer",
+   "source_counts": {
+    "trailer": 267
+   },
+   "coarse": true
+  },
+  {
+   "path": "scripts/lib/registry_query.py",
+   "total_lines": 318,
+   "ai_lines": 316,
+   "human_lines": 0,
+   "unknown_lines": 2,
+   "understood_ai_lines": 0,
+   "ai_share": 0.9937106918238994,
+   "understood_share": 0.0,
+   "churn": 0.028985507246376812,
+   "blast_radius": 5.68213122712422,
+   "blast_source": "scip",
+   "score": 5.810058162964132,
+   "attribution_source": "trailer",
+   "source_counts": {
+    "trailer": 316
+   },
+   "coarse": true
+  },
+  {
+   "path": "scripts/lib/io.py",
+   "total_lines": 660,
+   "ai_lines": 456,
+   "human_lines": 0,
+   "unknown_lines": 204,
+   "understood_ai_lines": 0,
+   "ai_share": 0.6909090909090909,
+   "understood_share": 0.0,
+   "churn": 0.17391304347826086,
+   "blast_radius": 7.159095388491933,
+   "blast_source": "scip",
+   "score": 5.806507406002153,
+   "attribution_source": "trailer",
+   "source_counts": {
+    "trailer": 456
+   },
+   "coarse": true
+  },
+  {
+   "path": "tests/active_set_render.py",
+   "total_lines": 149,
+   "ai_lines": 149,
+   "human_lines": 0,
+   "unknown_lines": 0,
+   "understood_ai_lines": 0,
+   "ai_share": 1.0,
+   "understood_share": 0.0,
+   "churn": 0.028985507246376812,
+   "blast_radius": 5.59511985013459,
+   "blast_source": "scip",
+   "score": 5.757297237095012,
+   "attribution_source": "trailer",
+   "source_counts": {
+    "trailer": 149
+   },
+   "coarse": true
+  },
+  {
+   "path": "scripts/lib/consistency/se_cascade.py",
+   "total_lines": 611,
+   "ai_lines": 611,
+   "human_lines": 0,
+   "unknown_lines": 0,
+   "understood_ai_lines": 0,
+   "ai_share": 1.0,
+   "understood_share": 0.0,
+   "churn": 0.014492753623188406,
+   "blast_radius": 5.653960350157523,
+   "blast_source": "scip",
+   "score": 5.735901804507632,
+   "attribution_source": "trailer",
+   "source_counts": {
+    "trailer": 611
+   },
+   "coarse": true
+  },
+  {
+   "path": "scripts/lib/skill_channel.py",
+   "total_lines": 210,
+   "ai_lines": 209,
+   "human_lines": 0,
+   "unknown_lines": 1,
+   "understood_ai_lines": 0,
+   "ai_share": 0.9952380952380953,
+   "understood_share": 0.0,
+   "churn": 0.08695652173913043,
+   "blast_radius": 5.04305126783455,
+   "blast_source": "scip",
+   "score": 5.455474715204042,
+   "attribution_source": "trailer",
+   "source_counts": {
+    "trailer": 209
+   },
+   "coarse": true
+  },
+  {
+   "path": "scripts/lib/agents.py",
+   "total_lines": 442,
+   "ai_lines": 314,
+   "human_lines": 0,
+   "unknown_lines": 128,
+   "understood_ai_lines": 0,
+   "ai_share": 0.7104072398190046,
+   "understood_share": 0.0,
+   "churn": 0.4927536231884058,
+   "blast_radius": 5.143134726391533,
+   "blast_source": "scip",
+   "score": 5.454103984554887,
+   "attribution_source": "trailer",
+   "source_counts": {
+    "trailer": 314
+   },
+   "coarse": true
+  },
+  {
+   "path": "scripts/lib/harnesses.py",
+   "total_lines": 318,
+   "ai_lines": 318,
+   "human_lines": 0,
+   "unknown_lines": 0,
+   "understood_ai_lines": 0,
+   "ai_share": 1.0,
+   "understood_share": 0.0,
+   "churn": 0.014492753623188406,
+   "blast_radius": 5.31748811353631,
+   "blast_source": "scip",
+   "score": 5.394553158660025,
+   "attribution_source": "trailer",
+   "source_counts": {
+    "trailer": 318
+   },
+   "coarse": true
+  },
+  {
+   "path": "scripts/lib/rules.py",
+   "total_lines": 837,
+   "ai_lines": 632,
+   "human_lines": 0,
+   "unknown_lines": 205,
+   "understood_ai_lines": 0,
+   "ai_share": 0.7550776583034647,
+   "understood_share": 0.0,
+   "churn": 0.2753623188405797,
+   "blast_radius": 5.5217885770490405,
+   "blast_source": "scip",
+   "score": 5.317469109849868,
+   "attribution_source": "trailer",
+   "source_counts": {
+    "trailer": 632
+   },
+   "coarse": true
+  },
+  {
+   "path": "scripts/lib/config.py",
+   "total_lines": 2232,
+   "ai_lines": 941,
+   "human_lines": 0,
+   "unknown_lines": 1291,
+   "understood_ai_lines": 0,
+   "ai_share": 0.42159498207885304,
+   "understood_share": 0.0,
+   "churn": 1.0,
+   "blast_radius": 6.236441962829949,
+   "blast_source": "scip",
+   "score": 5.258505275110199,
+   "attribution_source": "trailer",
+   "source_counts": {
+    "trailer": 941
+   },
+   "coarse": true
+  },
+  {
+   "path": "scripts/hermes_export.py",
+   "total_lines": 666,
+   "ai_lines": 664,
+   "human_lines": 0,
+   "unknown_lines": 2,
+   "understood_ai_lines": 0,
+   "ai_share": 0.996996996996997,
+   "understood_share": 0.0,
+   "churn": 0.028985507246376812,
+   "blast_radius": 5.04305126783455,
+   "blast_source": "scip",
+   "score": 5.1736434036382475,
+   "attribution_source": "trailer",
+   "source_counts": {
+    "trailer": 664
+   },
+   "coarse": true
+  },
+  {
+   "path": "scripts/lib/active_set.py",
+   "total_lines": 190,
+   "ai_lines": 169,
+   "human_lines": 0,
+   "unknown_lines": 21,
+   "understood_ai_lines": 0,
+   "ai_share": 0.8894736842105263,
+   "understood_share": 0.0,
+   "churn": 0.028985507246376812,
+   "blast_radius": 5.543294782270004,
+   "blast_source": "scip",
+   "score": 5.073531204611577,
+   "attribution_source": "trailer",
+   "source_counts": {
+    "trailer": 169
+   },
+   "coarse": true
+  },
+  {
+   "path": "scripts/lib/model_discovery.py",
+   "total_lines": 808,
+   "ai_lines": 750,
+   "human_lines": 0,
+   "unknown_lines": 58,
+   "understood_ai_lines": 0,
+   "ai_share": 0.9282178217821783,
+   "understood_share": 0.0,
+   "churn": 0.07246376811594203,
+   "blast_radius": 4.970291913552122,
+   "blast_source": "scip",
+   "score": 4.947826108518848,
+   "attribution_source": "trailer",
+   "source_counts": {
+    "trailer": 750
+   },
+   "coarse": true
+  },
+  {
+   "path": "scripts/lib/toml_writer.py",
+   "total_lines": 210,
+   "ai_lines": 210,
+   "human_lines": 0,
+   "unknown_lines": 0,
+   "understood_ai_lines": 0,
+   "ai_share": 1.0,
+   "understood_share": 0.0,
+   "churn": 0.014492753623188406,
+   "blast_radius": 4.828641396489095,
+   "blast_source": "scip",
+   "score": 4.89862170658314,
+   "attribution_source": "trailer",
+   "source_counts": {
+    "trailer": 210
+   },
+   "coarse": true
+  },
+  {
+   "path": "scripts/lib/mcp_provider_config.py",
+   "total_lines": 780,
+   "ai_lines": 622,
+   "human_lines": 0,
+   "unknown_lines": 158,
+   "understood_ai_lines": 0,
+   "ai_share": 0.7974358974358975,
+   "understood_share": 0.0,
+   "churn": 0.14492753623188406,
+   "blast_radius": 5.290459441148391,
+   "blast_source": "scip",
+   "score": 4.830222891474352,
+   "attribution_source": "trailer",
+   "source_counts": {
+    "trailer": 622
+   },
+   "coarse": true
+  },
+  {
+   "path": "scripts/lib/se_export/markdown_adapter.py",
+   "total_lines": 235,
+   "ai_lines": 232,
+   "human_lines": 0,
+   "unknown_lines": 3,
+   "understood_ai_lines": 0,
+   "ai_share": 0.9872340425531915,
+   "understood_share": 0.0,
+   "churn": 0.028985507246376812,
+   "blast_radius": 4.637586159726386,
+   "blast_source": "scip",
+   "score": 4.711089683812089,
+   "attribution_source": "trailer",
+   "source_counts": {
+    "trailer": 232
+   },
+   "coarse": true
+  },
+  {
+   "path": "scripts/lib/delegation_syntax.py",
+   "total_lines": 657,
+   "ai_lines": 455,
+   "human_lines": 0,
+   "unknown_lines": 202,
+   "understood_ai_lines": 0,
+   "ai_share": 0.6925418569254186,
+   "understood_share": 0.0,
+   "churn": 0.10144927536231885,
+   "blast_radius": 6.135798437050262,
+   "blast_source": "scip",
+   "score": 4.680385369448262,
+   "attribution_source": "trailer",
+   "source_counts": {
+    "trailer": 455
+   },
+   "coarse": true
+  },
+  {
+   "path": "scripts/lib/se_export/github_issues_adapter.py",
+   "total_lines": 297,
+   "ai_lines": 291,
+   "human_lines": 0,
+   "unknown_lines": 6,
+   "understood_ai_lines": 0,
+   "ai_share": 0.9797979797979798,
+   "understood_share": 0.0,
+   "churn": 0.028985507246376812,
+   "blast_radius": 4.555348061489413,
+   "blast_source": "scip",
+   "score": 4.592692446124665,
+   "attribution_source": "trailer",
+   "source_counts": {
+    "trailer": 291
+   },
+   "coarse": true
+  },
+  {
+   "path": "scripts/lib/context_report.py",
+   "total_lines": 293,
+   "ai_lines": 293,
+   "human_lines": 0,
+   "unknown_lines": 0,
+   "understood_ai_lines": 0,
+   "ai_share": 1.0,
+   "understood_share": 0.0,
+   "churn": 0.028985507246376812,
+   "blast_radius": 4.367295829986475,
+   "blast_source": "scip",
+   "score": 4.493884114913619,
+   "attribution_source": "trailer",
+   "source_counts": {
+    "trailer": 293
+   },
+   "coarse": true
+  }
+ ],
+ "files_total": 509
+}

@@ -1,0 +1,105 @@
+{
+  "space_chassis": {
+    "files_checked": 25,
+    "files_with_probes": 10,
+    "probes_by_kind": {
+      "runtime": 37
+    },
+    "seconds": 20,
+    "top_skip_reasons": [
+      [
+        "unsupported signature",
+        339
+      ],
+      [
+        "skipped",
+        184
+      ],
+      [
+        "type Any",
+        36
+      ],
+      [
+        "missing type hint",
+        10
+      ],
+      [
+        "type SmokeStack",
+        8
+      ],
+      [
+        "type World",
+        7
+      ]
+    ]
+  },
+  "agent-meta": {
+    "files_checked": 25,
+    "files_with_probes": 7,
+    "probes_by_kind": {
+      "runtime": 25
+    },
+    "seconds": 13,
+    "top_skip_reasons": [
+      [
+        "unsupported signature",
+        226
+      ],
+      [
+        "skipped",
+        89
+      ],
+      [
+        "type dict",
+        15
+      ],
+      [
+        "type SEDoc",
+        14
+      ],
+      [
+        "type SEInventory",
+        5
+      ],
+      [
+        "missing type hint",
+        5
+      ]
+    ]
+  },
+  "agent-meta+scip": {
+    "files_checked": 25,
+    "files_with_probes": 11,
+    "probes_by_kind": {
+      "runtime": 21,
+      "callgraph": 28
+    },
+    "seconds": 25,
+    "top_skip_reasons": [
+      [
+        "no references in index",
+        396
+      ],
+      [
+        "unsupported signature",
+        226
+      ],
+      [
+        "skipped",
+        89
+      ],
+      [
+        "type dict",
+        15
+      ],
+      [
+        "type SEDoc",
+        14
+      ],
+      [
+        "type SEInventory",
+        5
+      ]
+    ]
+  }
+}

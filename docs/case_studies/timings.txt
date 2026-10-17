@@ -1,0 +1,15 @@
+== space_chassis
+map real	0m24.938s
+gate real	0m12.415s
+plan real	0m36.978s
+== hive
+map real	0m29.395s
+gate real	0m3.899s
+plan real	0m42.157s
+== agent-meta
+map real	0m53.689s
+gate real	0m9.851s
+plan real	1m9.698s
+== agent-meta scip
+index real	0m15.676s
+map-scip real	0m27.877s

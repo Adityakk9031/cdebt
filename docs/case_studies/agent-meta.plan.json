@@ -1,0 +1,135 @@
+[
+  {
+    "rank": 1,
+    "path": "scripts/_migrations/2026-09-08-inject-auto-commit-block.py",
+    "action": "review",
+    "reason": "module-level or non-Python code cannot be quizzed: needs a human read-through",
+    "score": 6.647741327753887,
+    "effort_min": 8.3,
+    "priority": 0.8009326900908297,
+    "units": [
+      "<module>",
+      "_bump_minor",
+      "main"
+    ],
+    "unquizzable_ai_lines": 39,
+    "attribution_source": "trailer"
+  },
+  {
+    "rank": 2,
+    "path": "tests/test_context_user_notes_preserved.py",
+    "action": "quiz",
+    "reason": "5 unit(s) can be verified with `cdebt quiz tests/test_context_user_notes_preserved.py`",
+    "score": 8.910517118022067,
+    "effort_min": 12.1,
+    "priority": 0.7343832789578627,
+    "units": [
+      "<module>",
+      "project",
+      "test_editing_only_the_notes_is_not_reported_as_drift",
+      "test_user_notes_survive_repeated_syncs",
+      "test_user_notes_survive_sync"
+    ],
+    "unquizzable_ai_lines": 30,
+    "attribution_source": "trailer"
+  },
+  {
+    "rank": 3,
+    "path": "tests/manual/measure_tokens.py",
+    "action": "quiz",
+    "reason": "4 unit(s) can be verified with `cdebt quiz tests/manual/measure_tokens.py`",
+    "score": 7.223490135167631,
+    "effort_min": 10.6,
+    "priority": 0.6793250910815954,
+    "units": [
+      "<module>",
+      "_load_encoder",
+      "_print_report",
+      "main"
+    ],
+    "unquizzable_ai_lines": 36,
+    "attribution_source": "trailer"
+  },
+  {
+    "rank": 4,
+    "path": "tests/routing-llm-eval/list_cases.py",
+    "action": "quiz",
+    "reason": "3 unit(s) can be verified with `cdebt quiz tests/routing-llm-eval/list_cases.py`",
+    "score": 4.9059877386870605,
+    "effort_min": 8.5,
+    "priority": 0.5794473707110701,
+    "units": [
+      "<module>",
+      "load_cases",
+      "main"
+    ],
+    "unquizzable_ai_lines": 36,
+    "attribution_source": "trailer"
+  },
+  {
+    "rank": 5,
+    "path": "tests/test_frontmatter_collision_warning.py",
+    "action": "quiz",
+    "reason": "5 unit(s) can be verified with `cdebt quiz tests/test_frontmatter_collision_warning.py`",
+    "score": 6.720017759900199,
+    "effort_min": 11.9,
+    "priority": 0.5647073747815293,
+    "units": [
+      "<module>",
+      "_write",
+      "test_collision_between_two_platforms_is_warned",
+      "test_log_is_optional_and_call_sites_are_unaffected",
+      "test_no_collision_when_only_one_platform_active"
+    ],
+    "unquizzable_ai_lines": 20,
+    "attribution_source": "trailer"
+  },
+  {
+    "rank": 6,
+    "path": "scripts/lib/se_export/__init__.py",
+    "action": "quiz",
+    "reason": "2 unit(s) can be verified with `cdebt quiz scripts/lib/se_export/__init__.py`",
+    "score": 3.125613486671245,
+    "effort_min": 5.8,
+    "priority": 0.5420138994227592,
+    "units": [
+      "<module>",
+      "get_adapter"
+    ],
+    "unquizzable_ai_lines": 23,
+    "attribution_source": "trailer"
+  },
+  {
+    "rank": 7,
+    "path": "scripts/lib/config_audit_apply.py",
+    "action": "quiz",
+    "reason": "2 unit(s) can be verified with `cdebt quiz scripts/lib/config_audit_apply.py`",
+    "score": 3.8819391199858613,
+    "effort_min": 7.2,
+    "priority": 0.5391582111091474,
+    "units": [
+      "<module>",
+      "apply_audit"
+    ],
+    "unquizzable_ai_lines": 32,
+    "attribution_source": "trailer"
+  },
+  {
+    "rank": 8,
+    "path": "tests/test_progress_chat_push_variable.py",
+    "action": "review",
+    "reason": "module-level or non-Python code cannot be quizzed: needs a human read-through",
+    "score": 5.928885450030455,
+    "effort_min": 11.1,
+    "priority": 0.534133824327068,
+    "units": [
+      "<module>",
+      "_config",
+      "test_false_for_mixed_claude_and_opencode",
+      "test_false_for_opencode_only",
+      "test_true_for_claude_only"
+    ],
+    "unquizzable_ai_lines": 18,
+    "attribution_source": "trailer"
+  }
+]

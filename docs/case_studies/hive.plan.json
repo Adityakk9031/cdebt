@@ -1,0 +1,121 @@
+[
+  {
+    "rank": 1,
+    "path": "cmd/hivegui/frontend/test/fixtures/plugins/ui-hang-activate/ui.mjs",
+    "action": "review",
+    "reason": "module-level or non-Python code cannot be quizzed: needs a human read-through",
+    "score": 5.113872189173587,
+    "effort_min": 2.1,
+    "priority": 2.435177232939803,
+    "units": [
+      "activate"
+    ],
+    "unquizzable_ai_lines": 0,
+    "attribution_source": "trailer"
+  },
+  {
+    "rank": 2,
+    "path": "scripts/workflow-proto/emit.test.ts",
+    "action": "review",
+    "reason": "module-level or non-Python code cannot be quizzed: needs a human read-through",
+    "score": 7.349559960300786,
+    "effort_min": 5.2,
+    "priority": 1.4224954761872488,
+    "units": [
+      "<module>",
+      "run"
+    ],
+    "unquizzable_ai_lines": 34,
+    "attribution_source": "trailer"
+  },
+  {
+    "rank": 3,
+    "path": "cmd/hivegui/frontend/test/fixtures/plugins/ui-throws/ui.mjs",
+    "action": "review",
+    "reason": "module-level or non-Python code cannot be quizzed: needs a human read-through",
+    "score": 5.693321850386433,
+    "effort_min": 4.5,
+    "priority": 1.2746242948626343,
+    "units": [
+      "activate",
+      "boom"
+    ],
+    "unquizzable_ai_lines": 0,
+    "attribution_source": "trailer"
+  },
+  {
+    "rank": 4,
+    "path": "cmd/hivegui/frontend/src/components/Kbd.tsx",
+    "action": "review",
+    "reason": "module-level or non-Python code cannot be quizzed: needs a human read-through",
+    "score": 5.284480616063629,
+    "effort_min": 4.2,
+    "priority": 1.2582096704913401,
+    "units": [
+      "<module>",
+      "Kbd"
+    ],
+    "unquizzable_ai_lines": 3,
+    "attribution_source": "trailer"
+  },
+  {
+    "rank": 5,
+    "path": "cmd/hivegui/frontend/test/fixtures/plugins/ui-hang-import/ui.mjs",
+    "action": "review",
+    "reason": "module-level or non-Python code cannot be quizzed: needs a human read-through",
+    "score": 5.113872189173587,
+    "effort_min": 4.1,
+    "priority": 1.2372271425419967,
+    "units": [
+      "<module>",
+      "activate"
+    ],
+    "unquizzable_ai_lines": 1,
+    "attribution_source": "trailer"
+  },
+  {
+    "rank": 6,
+    "path": "cmd/hivegui/frontend/test/fixtures/plugins/ui-hang-render/ui.mjs",
+    "action": "review",
+    "reason": "module-level or non-Python code cannot be quizzed: needs a human read-through",
+    "score": 5.113872189173587,
+    "effort_min": 4.3,
+    "priority": 1.1985637943375593,
+    "units": [
+      "<module>",
+      "activate"
+    ],
+    "unquizzable_ai_lines": 1,
+    "attribution_source": "trailer"
+  },
+  {
+    "rank": 7,
+    "path": "cmd/hivegui/frontend/test/e2e/help-modal.spec.ts",
+    "action": "review",
+    "reason": "module-level or non-Python code cannot be quizzed: needs a human read-through",
+    "score": 7.349559960300786,
+    "effort_min": 6.1,
+    "priority": 1.1982978196142586,
+    "units": [
+      "<module>",
+      "boot"
+    ],
+    "unquizzable_ai_lines": 60,
+    "attribution_source": "trailer"
+  },
+  {
+    "rank": 8,
+    "path": "cmd/hivegui/frontend/test/e2e/banner-visibility.spec.ts",
+    "action": "review",
+    "reason": "module-level or non-Python code cannot be quizzed: needs a human read-through",
+    "score": 7.5047969597473,
+    "effort_min": 6.3,
+    "priority": 1.1912376126583017,
+    "units": [
+      "<module>",
+      "boot"
+    ],
+    "unquizzable_ai_lines": 63,
+    "attribution_source": "trailer"
+  }
+]

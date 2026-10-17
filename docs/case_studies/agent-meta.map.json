@@ -1,0 +1,503 @@
+{
+ "summary": {
+  "rev": "8457634f1ed8",
+  "files": 509,
+  "total_lines": 140429,
+  "ai_lines": 64734,
+  "human_lines": 0,
+  "unknown_lines": 75695,
+  "ai_share": 0.4609731608143617,
+  "unknown_share": 0.5390268391856383,
+  "understood_ai_lines": 0,
+  "understood_ai_share": 0.0,
+  "units_with_ai": 3960,
+  "units_understood": 0,
+  "understood_units_ci95": [
+   0.0,
+   0.0009691252592075577
+  ],
+  "attribution_sources": {
+   "trailer": 64734
+  },
+  "blast_source": "approx",
+  "coarse_attribution": true
+ },
+ "files": [
+  {
+   "path": "tests/test_release_gate_checksums.py",
+   "total_lines": 369,
+   "ai_lines": 369,
+   "human_lines": 0,
+   "unknown_lines": 0,
+   "understood_ai_lines": 0,
+   "ai_share": 1.0,
+   "understood_share": 0.0,
+   "churn": 0.028985507246376812,
+   "blast_radius": 9.37216741936598,
+   "blast_source": "approx",
+   "score": 9.643824446014268,
+   "attribution_source": "trailer",
+   "source_counts": {
+    "trailer": 369
+   },
+   "coarse": true
+  },
+  {
+   "path": "tests/test_antigravity_hooks_registration.py",
+   "total_lines": 393,
+   "ai_lines": 390,
+   "human_lines": 0,
+   "unknown_lines": 3,
+   "understood_ai_lines": 0,
+   "ai_share": 0.9923664122137404,
+   "understood_share": 0.0,
+   "churn": 0.028985507246376812,
+   "blast_radius": 9.36822903827628,
+   "blast_source": "approx",
+   "score": 9.566185863844458,
+   "attribution_source": "trailer",
+   "source_counts": {
+    "trailer": 390
+   },
+   "coarse": true
+  },
+  {
+   "path": "scripts/lib/consistency/se_cascade.py",
+   "total_lines": 611,
+   "ai_lines": 611,
+   "human_lines": 0,
+   "unknown_lines": 0,
+   "understood_ai_lines": 0,
+   "ai_share": 1.0,
+   "understood_share": 0.0,
+   "churn": 0.014492753623188406,
+   "blast_radius": 8.982757702011114,
+   "blast_source": "approx",
+   "score": 9.11294259624316,
+   "attribution_source": "trailer",
+   "source_counts": {
+    "trailer": 611
+   },
+   "coarse": true
+  },
+  {
+   "path": "tests/test_doctor_cli.py",
+   "total_lines": 469,
+   "ai_lines": 465,
+   "human_lines": 0,
+   "unknown_lines": 4,
+   "understood_ai_lines": 0,
+   "ai_share": 0.9914712153518124,
+   "understood_share": 0.0,
+   "churn": 0.028985507246376812,
+   "blast_radius": 8.77779262633883,
+   "blast_source": "approx",
+   "score": 8.955187526917475,
+   "attribution_source": "trailer",
+   "source_counts": {
+    "trailer": 465
+   },
+   "coarse": true
+  },
+  {
+   "path": "tests/test_doctor_runner.py",
+   "total_lines": 907,
+   "ai_lines": 901,
+   "human_lines": 0,
+   "unknown_lines": 6,
+   "understood_ai_lines": 0,
+   "ai_share": 0.9933847850055126,
+   "understood_share": 0.0,
+   "churn": 0.028985507246376812,
+   "blast_radius": 8.725330037917136,
+   "blast_source": "approx",
+   "score": 8.918845179291452,
+   "attribution_source": "trailer",
+   "source_counts": {
+    "trailer": 901
+   },
+   "coarse": true
+  },
+  {
+   "path": "tests/test_context_user_notes_preserved.py",
+   "total_lines": 64,
+   "ai_lines": 64,
+   "human_lines": 0,
+   "unknown_lines": 0,
+   "understood_ai_lines": 0,
+   "ai_share": 1.0,
+   "understood_share": 0.0,
+   "churn": 0.014492753623188406,
+   "blast_radius": 8.783224016336037,
+   "blast_source": "approx",
+   "score": 8.910517118022067,
+   "attribution_source": "trailer",
+   "source_counts": {
+    "trailer": 64
+   },
+   "coarse": true
+  },
+  {
+   "path": "tests/test_cli_smoke_multi_provider.py",
+   "total_lines": 114,
+   "ai_lines": 107,
+   "human_lines": 0,
+   "unknown_lines": 7,
+   "understood_ai_lines": 0,
+   "ai_share": 0.9385964912280702,
+   "understood_share": 0.0,
+   "churn": 0.028985507246376812,
+   "blast_radius": 8.80954132465341,
+   "blast_source": "approx",
+   "score": 8.50827427452224,
+   "attribution_source": "trailer",
+   "source_counts": {
+    "trailer": 107
+   },
+   "coarse": true
+  },
+  {
+   "path": "scripts/lib/config_audit_types.py",
+   "total_lines": 95,
+   "ai_lines": 95,
+   "human_lines": 0,
+   "unknown_lines": 0,
+   "understood_ai_lines": 0,
+   "ai_share": 1.0,
+   "understood_share": 0.0,
+   "churn": 0.014492753623188406,
+   "blast_radius": 8.207118856207757,
+   "blast_source": "approx",
+   "score": 8.326062607747,
+   "attribution_source": "trailer",
+   "source_counts": {
+    "trailer": 95
+   },
+   "coarse": true
+  },
+  {
+   "path": "tests/test_known_issues_registry.py",
+   "total_lines": 377,
+   "ai_lines": 377,
+   "human_lines": 0,
+   "unknown_lines": 0,
+   "understood_ai_lines": 0,
+   "ai_share": 1.0,
+   "understood_share": 0.0,
+   "churn": 0.014492753623188406,
+   "blast_radius": 8.185387015580417,
+   "blast_source": "approx",
+   "score": 8.30401581290767,
+   "attribution_source": "trailer",
+   "source_counts": {
+    "trailer": 377
+   },
+   "coarse": true
+  },
+  {
+   "path": "tests/test_role_routing_eval_catalog.py",
+   "total_lines": 269,
+   "ai_lines": 269,
+   "human_lines": 0,
+   "unknown_lines": 0,
+   "understood_ai_lines": 0,
+   "ai_share": 1.0,
+   "understood_share": 0.0,
+   "churn": 0.014492753623188406,
+   "blast_radius": 7.9782137426306985,
+   "blast_source": "approx",
+   "score": 8.093840028755782,
+   "attribution_source": "trailer",
+   "source_counts": {
+    "trailer": 269
+   },
+   "coarse": true
+  },
+  {
+   "path": "scripts/lib/log.py",
+   "total_lines": 183,
+   "ai_lines": 147,
+   "human_lines": 0,
+   "unknown_lines": 36,
+   "understood_ai_lines": 0,
+   "ai_share": 0.8032786885245902,
+   "understood_share": 0.0,
+   "churn": 0.10144927536231885,
+   "blast_radius": 8.75190533307861,
+   "blast_source": "approx",
+   "score": 7.7434296650949745,
+   "attribution_source": "trailer",
+   "source_counts": {
+    "trailer": 147
+   },
+   "coarse": true
+  },
+  {
+   "path": "scripts/measure_context.py",
+   "total_lines": 286,
+   "ai_lines": 286,
+   "human_lines": 0,
+   "unknown_lines": 0,
+   "understood_ai_lines": 0,
+   "ai_share": 1.0,
+   "understood_share": 0.0,
+   "churn": 0.028985507246376812,
+   "blast_radius": 7.198478716492308,
+   "blast_source": "approx",
+   "score": 7.4071302734920845,
+   "attribution_source": "trailer",
+   "source_counts": {
+    "trailer": 286
+   },
+   "coarse": true
+  },
+  {
+   "path": "scripts/hermes_export.py",
+   "total_lines": 666,
+   "ai_lines": 664,
+   "human_lines": 0,
+   "unknown_lines": 2,
+   "understood_ai_lines": 0,
+   "ai_share": 0.996996996996997,
+   "understood_share": 0.0,
+   "churn": 0.028985507246376812,
+   "blast_radius": 7.218600119691729,
+   "blast_source": "approx",
+   "score": 7.405529095241912,
+   "attribution_source": "trailer",
+   "source_counts": {
+    "trailer": 664
+   },
+   "coarse": true
+  },
+  {
+   "path": "tests/test_embed_rules_channel.py",
+   "total_lines": 381,
+   "ai_lines": 373,
+   "human_lines": 0,
+   "unknown_lines": 8,
+   "understood_ai_lines": 0,
+   "ai_share": 0.979002624671916,
+   "understood_share": 0.0,
+   "churn": 0.043478260869565216,
+   "blast_radius": 7.230481447578482,
+   "blast_source": "approx",
+   "score": 7.386428154595752,
+   "attribution_source": "trailer",
+   "source_counts": {
+    "trailer": 373
+   },
+   "coarse": true
+  },
+  {
+   "path": "tests/test_context_anchors.py",
+   "total_lines": 105,
+   "ai_lines": 105,
+   "human_lines": 0,
+   "unknown_lines": 0,
+   "understood_ai_lines": 0,
+   "ai_share": 1.0,
+   "understood_share": 0.0,
+   "churn": 0.014492753623188406,
+   "blast_radius": 7.267200548541362,
+   "blast_source": "approx",
+   "score": 7.372522295621673,
+   "attribution_source": "trailer",
+   "source_counts": {
+    "trailer": 105
+   },
+   "coarse": true
+  },
+  {
+   "path": "tests/active_set_render.py",
+   "total_lines": 149,
+   "ai_lines": 149,
+   "human_lines": 0,
+   "unknown_lines": 0,
+   "understood_ai_lines": 0,
+   "ai_share": 1.0,
+   "understood_share": 0.0,
+   "churn": 0.028985507246376812,
+   "blast_radius": 7.161207321695077,
+   "blast_source": "approx",
+   "score": 7.368778548410876,
+   "attribution_source": "trailer",
+   "source_counts": {
+    "trailer": 149
+   },
+   "coarse": true
+  },
+  {
+   "path": "scripts/gen_routing_llm_eval_catalog.py",
+   "total_lines": 214,
+   "ai_lines": 214,
+   "human_lines": 0,
+   "unknown_lines": 0,
+   "understood_ai_lines": 0,
+   "ai_share": 1.0,
+   "understood_share": 0.0,
+   "churn": 0.028985507246376812,
+   "blast_radius": 7.12029741895095,
+   "blast_source": "approx",
+   "score": 7.3266828513843105,
+   "attribution_source": "trailer",
+   "source_counts": {
+    "trailer": 214
+   },
+   "coarse": true
+  },
+  {
+   "path": "tests/test_context_report.py",
+   "total_lines": 229,
+   "ai_lines": 229,
+   "human_lines": 0,
+   "unknown_lines": 0,
+   "understood_ai_lines": 0,
+   "ai_share": 1.0,
+   "understood_share": 0.0,
+   "churn": 0.028985507246376812,
+   "blast_radius": 7.104793232414985,
+   "blast_source": "approx",
+   "score": 7.310729268137158,
+   "attribution_source": "trailer",
+   "source_counts": {
+    "trailer": 229
+   },
+   "coarse": true
+  },
+  {
+   "path": "scripts/lib/auto_github_release.py",
+   "total_lines": 284,
+   "ai_lines": 284,
+   "human_lines": 0,
+   "unknown_lines": 0,
+   "understood_ai_lines": 0,
+   "ai_share": 1.0,
+   "understood_share": 0.0,
+   "churn": 0.014492753623188406,
+   "blast_radius": 7.186208623900494,
+   "blast_source": "approx",
+   "score": 7.290356574971516,
+   "attribution_source": "trailer",
+   "source_counts": {
+    "trailer": 284
+   },
+   "coarse": true
+  },
+  {
+   "path": "scripts/gen_role_routing_eval_catalog.py",
+   "total_lines": 279,
+   "ai_lines": 279,
+   "human_lines": 0,
+   "unknown_lines": 0,
+   "understood_ai_lines": 0,
+   "ai_share": 1.0,
+   "understood_share": 0.0,
+   "churn": 0.014492753623188406,
+   "blast_radius": 7.180016653652572,
+   "blast_source": "approx",
+   "score": 7.2840748660243495,
+   "attribution_source": "trailer",
+   "source_counts": {
+    "trailer": 279
+   },
+   "coarse": true
+  },
+  {
+   "path": "scripts/consistency-check.py",
+   "total_lines": 291,
+   "ai_lines": 247,
+   "human_lines": 0,
+   "unknown_lines": 44,
+   "understood_ai_lines": 0,
+   "ai_share": 0.8487972508591065,
+   "understood_share": 0.0,
+   "churn": 0.18840579710144928,
+   "blast_radius": 7.192362489474872,
+   "blast_source": "approx",
+   "score": 7.255048053280744,
+   "attribution_source": "trailer",
+   "source_counts": {
+    "trailer": 247
+   },
+   "coarse": true
+  },
+  {
+   "path": "tests/manual/measure_tokens.py",
+   "total_lines": 79,
+   "ai_lines": 79,
+   "human_lines": 0,
+   "unknown_lines": 0,
+   "understood_ai_lines": 0,
+   "ai_share": 1.0,
+   "understood_share": 0.0,
+   "churn": 0.014492753623188406,
+   "blast_radius": 7.12029741895095,
+   "blast_source": "approx",
+   "score": 7.223490135167631,
+   "attribution_source": "trailer",
+   "source_counts": {
+    "trailer": 79
+   },
+   "coarse": true
+  },
+  {
+   "path": "tests/test_mcp_stale_cleanup.py",
+   "total_lines": 293,
+   "ai_lines": 292,
+   "human_lines": 0,
+   "unknown_lines": 1,
+   "understood_ai_lines": 0,
+   "ai_share": 0.9965870307167235,
+   "understood_share": 0.0,
+   "churn": 0.057971014492753624,
+   "blast_radius": 6.6240175061873385,
+   "blast_source": "approx",
+   "score": 6.984100369089841,
+   "attribution_source": "trailer",
+   "source_counts": {
+    "trailer": 292
+   },
+   "coarse": true
+  },
+  {
+   "path": "scripts/migrate-config.py",
+   "total_lines": 276,
+   "ai_lines": 263,
+   "human_lines": 0,
+   "unknown_lines": 13,
+   "understood_ai_lines": 0,
+   "ai_share": 0.9528985507246377,
+   "understood_share": 0.0,
+   "churn": 0.028985507246376812,
+   "blast_radius": 7.115892125483034,
+   "blast_source": "approx",
+   "score": 6.977265997644649,
+   "attribution_source": "trailer",
+   "source_counts": {
+    "trailer": 263
+   },
+   "coarse": true
+  },
+  {
+   "path": "tests/test_rules_skill_channel.py",
+   "total_lines": 231,
+   "ai_lines": 231,
+   "human_lines": 0,
+   "unknown_lines": 0,
+   "understood_ai_lines": 0,
+   "ai_share": 1.0,
+   "understood_share": 0.0,
+   "churn": 0.043478260869565216,
+   "blast_radius": 6.627621113690637,
+   "blast_source": "approx",
+   "score": 6.915778553416317,
+   "attribution_source": "trailer",
+   "source_counts": {
+    "trailer": 231
+   },
+   "coarse": true
+  }
+ ],
+ "files_total": 509
+}

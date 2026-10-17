@@ -1,0 +1,195 @@
+{
+ "passed": false,
+ "base": "HEAD~25",
+ "head": "d6620e62268f",
+ "ai_lines_unverified": 5657,
+ "max_ai_lines": 0,
+ "strict_unknown": false,
+ "violations": [
+  {
+   "path": "scripts/workflow-proto/dsl.test.ts",
+   "symbol": "<module>",
+   "ai_lines": 383,
+   "status": "none",
+   "attribution_source": "trailer"
+  },
+  {
+   "path": "cmd/hivegui/frontend/test/dom/archived-sessions.test.tsx",
+   "symbol": "<module>",
+   "ai_lines": 293,
+   "status": "none",
+   "attribution_source": "trailer"
+  },
+  {
+   "path": "cmd/hivegui/frontend/test/dom/message-session.test.tsx",
+   "symbol": "<module>",
+   "ai_lines": 250,
+   "status": "none",
+   "attribution_source": "trailer"
+  },
+  {
+   "path": "internal/agent/pi/hive.test.ts",
+   "symbol": "<module>",
+   "ai_lines": 211,
+   "status": "none",
+   "attribution_source": "trailer"
+  },
+  {
+   "path": "scripts/workflow-proto/dsl.ts",
+   "symbol": "validate",
+   "ai_lines": 193,
+   "status": "none",
+   "attribution_source": "trailer"
+  },
+  {
+   "path": "scripts/workflow-proto/dsl.ts",
+   "symbol": "<module>",
+   "ai_lines": 188,
+   "status": "none",
+   "attribution_source": "trailer"
+  },
+  {
+   "path": "cmd/hivegui/frontend/test/dom/message-events.test.ts",
+   "symbol": "<module>",
+   "ai_lines": 176,
+   "status": "none",
+   "attribution_source": "trailer"
+  },
+  {
+   "path": "cmd/hivegui/frontend/test/e2e/archive.spec.ts",
+   "symbol": "<module>",
+   "ai_lines": 133,
+   "status": "none",
+   "attribution_source": "trailer"
+  },
+  {
+   "path": "cmd/hivegui/frontend/src/components/modals/MessageSession.tsx",
+   "symbol": "MessageSheet",
+   "ai_lines": 126,
+   "status": "none",
+   "attribution_source": "trailer"
+  },
+  {
+   "path": "cmd/hivegui/frontend/src/components/modals/ArchivedSessions.tsx",
+   "symbol": "ArchivedPanel",
+   "ai_lines": 121,
+   "status": "none",
+   "attribution_source": "trailer"
+  },
+  {
+   "path": "cmd/hivegui/frontend/test/e2e/message-session.spec.ts",
+   "symbol": "<module>",
+   "ai_lines": 116,
+   "status": "none",
+   "attribution_source": "trailer"
+  },
+  {
+   "path": "internal/agent/pi/hive.ts",
+   "symbol": "<module>",
+   "ai_lines": 101,
+   "status": "none",
+   "attribution_source": "trailer"
+  },
+  {
+   "path": "scripts/workflow-proto/check-doc.test.ts",
+   "symbol": "<module>",
+   "ai_lines": 100,
+   "status": "none",
+   "attribution_source": "trailer"
+  },
+  {
+   "path": "scripts/workflow-proto/library.test.ts",
+   "symbol": "<module>",
+   "ai_lines": 98,
+   "status": "none",
+   "attribution_source": "trailer"
+  },
+  {
+   "path": "scripts/workflow-proto/ir-schema.ts",
+   "symbol": "irSchema",
+   "ai_lines": 95,
+   "status": "none",
+   "attribution_source": "trailer"
+  },
+  {
+   "path": "cmd/hivegui/frontend/test/e2e-real/archive.spec.ts",
+   "symbol": "<module>",
+   "ai_lines": 94,
+   "status": "none",
+   "attribution_source": "trailer"
+  },
+  {
+   "path": "scripts/workflow-proto/examples.ts",
+   "symbol": "<module>",
+   "ai_lines": 89,
+   "status": "none",
+   "attribution_source": "trailer"
+  },
+  {
+   "path": "cmd/hivegui/frontend/test/unit/archived.test.ts",
+   "symbol": "<module>",
+   "ai_lines": 72,
+   "status": "none",
+   "attribution_source": "trailer"
+  },
+  {
+   "path": "cmd/hivegui/frontend/src/app/archive.ts",
+   "symbol": "<module>",
+   "ai_lines": 70,
+   "status": "none",
+   "attribution_source": "trailer"
+  },
+  {
+   "path": "cmd/hivegui/frontend/src/app/events.ts",
+   "symbol": "wireDaemonEvents",
+   "ai_lines": 69,
+   "status": "none",
+   "attribution_source": "trailer"
+  },
+  {
+   "path": "internal/agent/pi/hive.ts",
+   "symbol": "startInbox",
+   "ai_lines": 62,
+   "status": "none",
+   "attribution_source": "trailer"
+  },
+  {
+   "path": "scripts/workflow-proto/node-shim.d.ts",
+   "symbol": "<module>",
+   "ai_lines": 61,
+   "status": "none",
+   "attribution_source": "trailer"
+  },
+  {
+   "path": "cmd/hivegui/frontend/test/dom/settings.test.tsx",
+   "symbol": "<module>",
+   "ai_lines": 57,
+   "status": "none",
+   "attribution_source": "trailer"
+  },
+  {
+   "path": "scripts/workflow-proto/check-doc.ts",
+   "symbol": "<module>",
+   "ai_lines": 56,
+   "status": "none",
+   "attribution_source": "trailer"
+  },
+  {
+   "path": "cmd/hivegui/frontend/test/dom/session-row-bell.test.tsx",
+   "symbol": "<module>",
+   "ai_lines": 54,
+   "status": "none",
+   "attribution_source": "trailer"
+  }
+ ],
+ "unknown_files": [],
+ "unknown_changed_lines": 0,
+ "attribution_sources": {
+  "trailer": 5657
+ },
+ "notes": [
+  "72 violating unit(s) are module-level (<module>/<file>) code, which `cdebt quiz` cannot cover: they stay failing until the code changes or the limit is raised. See docs/CASE_STUDIES.md.",
+  "Some attribution is from commit trailers: coarse, commit-level."
+ ],
+ "violations_total": 224
+}

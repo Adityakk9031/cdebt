@@ -1,0 +1,143 @@
+[
+  {
+    "rank": 1,
+    "path": "aurora/tests/trace_console.py",
+    "action": "quiz",
+    "reason": "2 unit(s) can be verified with `cdebt quiz aurora/tests/trace_console.py`",
+    "score": 6.964775903266804,
+    "effort_min": 7.5,
+    "priority": 0.9245277747699298,
+    "units": [
+      "<module>",
+      "main"
+    ],
+    "unquizzable_ai_lines": 37,
+    "attribution_source": "trailer"
+  },
+  {
+    "rank": 2,
+    "path": "aurora/tests/read_probe_trace.py",
+    "action": "quiz",
+    "reason": "3 unit(s) can be verified with `cdebt quiz aurora/tests/read_probe_trace.py`",
+    "score": 7.704027229203643,
+    "effort_min": 9.2,
+    "priority": 0.8404393340949429,
+    "units": [
+      "<module>",
+      "load",
+      "main"
+    ],
+    "unquizzable_ai_lines": 28,
+    "attribution_source": "trailer"
+  },
+  {
+    "rank": 3,
+    "path": "vehicle/tests/test_keyed_states.py",
+    "action": "review",
+    "reason": "module-level or non-Python code cannot be quizzed: needs a human read-through",
+    "score": 8.225316352614193,
+    "effort_min": 10.8,
+    "priority": 0.7592599710105409,
+    "units": [
+      "<module>",
+      "definition",
+      "test_a_domain_rule_reads_a_keyed_state_element_by_element",
+      "test_set_load_moves_one_element_and_the_tick_holds_the_rest"
+    ],
+    "unquizzable_ai_lines": 47,
+    "attribution_source": "trailer"
+  },
+  {
+    "rank": 4,
+    "path": "vehicle/tests/test_state_level.py",
+    "action": "review",
+    "reason": "module-level or non-Python code cannot be quizzed: needs a human read-through",
+    "score": 9.007689699916451,
+    "effort_min": 13.8,
+    "priority": 0.6527311376751052,
+    "units": [
+      "<module>",
+      "by_id",
+      "test_a_shared_state_with_no_value_of_its_own_reads_none_not_its_sibling_s",
+      "test_a_state_alone_on_its_node_still_reads_the_node_key",
+      "test_the_world_marks_exactly_the_states_on_crowded_nodes",
+      "world"
+    ],
+    "unquizzable_ai_lines": 28,
+    "attribution_source": "trailer"
+  },
+  {
+    "rank": 5,
+    "path": "aurora/scripts/build_console_seed.py",
+    "action": "quiz",
+    "reason": "5 unit(s) can be verified with `cdebt quiz aurora/scripts/build_console_seed.py`",
+    "score": 7.6354802084844104,
+    "effort_min": 14.4,
+    "priority": 0.5290171045139315,
+    "units": [
+      "<module>",
+      "build",
+      "declarations",
+      "main",
+      "split_models"
+    ],
+    "unquizzable_ai_lines": 53,
+    "attribution_source": "trailer"
+  },
+  {
+    "rank": 6,
+    "path": "aurora/scripts/env_file.py",
+    "action": "quiz",
+    "reason": "4 unit(s) can be verified with `cdebt quiz aurora/scripts/env_file.py`",
+    "score": 4.553824696498258,
+    "effort_min": 9.5,
+    "priority": 0.47934996805244817,
+    "units": [
+      "<module>",
+      "_value_text",
+      "env_value",
+      "source_path"
+    ],
+    "unquizzable_ai_lines": 21,
+    "attribution_source": "trailer"
+  },
+  {
+    "rank": 7,
+    "path": "vehicle/tests/test_scenario.py",
+    "action": "quiz",
+    "reason": "8 unit(s) can be verified with `cdebt quiz vehicle/tests/test_scenario.py`",
+    "score": 9.01373867759565,
+    "effort_min": 20.0,
+    "priority": 0.4499370388150908,
+    "units": [
+      "<module>",
+      "scenario_file",
+      "test_a_resumed_run_reaches_the_same_state_as_an_uninterrupted_one",
+      "test_a_scenario_that_names_what_the_vehicle_does_not_have_is_refused",
+      "test_a_verb_outside_the_allow_list_is_refused",
+      "test_initial_conditions_replace_the_declared_ones",
+      "test_the_script_applies_each_effect_at_its_tick",
+      "world"
+    ],
+    "unquizzable_ai_lines": 44,
+    "attribution_source": "trailer"
+  },
+  {
+    "rank": 8,
+    "path": "vehicle/domains/comms/rules.py",
+    "action": "quiz",
+    "reason": "5 unit(s) can be verified with `cdebt quiz vehicle/domains/comms/rules.py`",
+    "score": 5.179349950748997,
+    "effort_min": 11.6,
+    "priority": 0.4452163281446129,
+    "units": [
+      "<module>",
+      "amp_dissipation_w",
+      "link_ok",
+      "playback_rate",
+      "tx_power"
+    ],
+    "unquizzable_ai_lines": 22,
+    "attribution_source": "trailer"
+  }
+]

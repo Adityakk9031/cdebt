@@ -1,0 +1,207 @@
+{
+ "passed": false,
+ "base": "HEAD~25",
+ "head": "8457634f1ed8",
+ "ai_lines_unverified": 17180,
+ "max_ai_lines": 0,
+ "strict_unknown": false,
+ "violations": [
+  {
+   "path": "tests/test_dod_push_check_hook.py",
+   "symbol": "<module>",
+   "ai_lines": 355,
+   "status": "none",
+   "attribution_source": "trailer"
+  },
+  {
+   "path": "tests/test_doctor_runner.py",
+   "symbol": "<module>",
+   "ai_lines": 240,
+   "status": "none",
+   "attribution_source": "trailer"
+  },
+  {
+   "path": "scripts/lib/consistency/context_budget.py",
+   "symbol": "<module>",
+   "ai_lines": 167,
+   "status": "none",
+   "attribution_source": "trailer"
+  },
+  {
+   "path": "scripts/lib/doctor_detectors.py",
+   "symbol": "<module>",
+   "ai_lines": 164,
+   "status": "none",
+   "attribution_source": "trailer"
+  },
+  {
+   "path": "tests/test_no_role_routes_in_templates.py",
+   "symbol": "<module>",
+   "ai_lines": 155,
+   "status": "none",
+   "attribution_source": "trailer"
+  },
+  {
+   "path": "tests/test_ac01_render_identity.py",
+   "symbol": "<module>",
+   "ai_lines": 152,
+   "status": "none",
+   "attribution_source": "trailer"
+  },
+  {
+   "path": "tests/test_doctor_fixtures.py",
+   "symbol": "<module>",
+   "ai_lines": 150,
+   "status": "none",
+   "attribution_source": "trailer"
+  },
+  {
+   "path": "scripts/lib/doctor_registry.py",
+   "symbol": "_validate_detector",
+   "ai_lines": 147,
+   "status": "none",
+   "attribution_source": "trailer"
+  },
+  {
+   "path": "tests/test_context_budget_checks.py",
+   "symbol": "<module>",
+   "ai_lines": 135,
+   "status": "none",
+   "attribution_source": "trailer"
+  },
+  {
+   "path": "tests/test_doctor_cli.py",
+   "symbol": "<module>",
+   "ai_lines": 133,
+   "status": "none",
+   "attribution_source": "trailer"
+  },
+  {
+   "path": "tests/test_orchestrator_guard_hook.py",
+   "symbol": "<module>",
+   "ai_lines": 130,
+   "status": "none",
+   "attribution_source": "trailer"
+  },
+  {
+   "path": "tests/test_known_issues_registry.py",
+   "symbol": "<module>",
+   "ai_lines": 114,
+   "status": "none",
+   "attribution_source": "trailer"
+  },
+  {
+   "path": "scripts/lib/eval_gate.py",
+   "symbol": "<module>",
+   "ai_lines": 110,
+   "status": "none",
+   "attribution_source": "trailer"
+  },
+  {
+   "path": "scripts/lib/consistency/active_set_refs.py",
+   "symbol": "<module>",
+   "ai_lines": 109,
+   "status": "none",
+   "attribution_source": "trailer"
+  },
+  {
+   "path": "scripts/lib/doctor.py",
+   "symbol": "<module>",
+   "ai_lines": 107,
+   "status": "none",
+   "attribution_source": "trailer"
+  },
+  {
+   "path": "tests/test_meta_doctor_role.py",
+   "symbol": "<module>",
+   "ai_lines": 107,
+   "status": "none",
+   "attribution_source": "trailer"
+  },
+  {
+   "path": "tests/test_active_set_single_source.py",
+   "symbol": "<module>",
+   "ai_lines": 102,
+   "status": "none",
+   "attribution_source": "trailer"
+  },
+  {
+   "path": "scripts/gen_role_routing_eval_catalog.py",
+   "symbol": "<module>",
+   "ai_lines": 98,
+   "status": "none",
+   "attribution_source": "trailer"
+  },
+  {
+   "path": "tests/test_context_budgets.py",
+   "symbol": "<module>",
+   "ai_lines": 93,
+   "status": "none",
+   "attribution_source": "trailer"
+  },
+  {
+   "path": "tests/test_active_set_dangling.py",
+   "symbol": "<module>",
+   "ai_lines": 87,
+   "status": "none",
+   "attribution_source": "trailer"
+  },
+  {
+   "path": "tests/test_pipeline_active_set_filter.py",
+   "symbol": "<module>",
+   "ai_lines": 85,
+   "status": "none",
+   "attribution_source": "trailer"
+  },
+  {
+   "path": "tests/test_eval_gate.py",
+   "symbol": "<module>",
+   "ai_lines": 84,
+   "status": "none",
+   "attribution_source": "trailer"
+  },
+  {
+   "path": "scripts/lib/context_report.py",
+   "symbol": "<module>",
+   "ai_lines": 82,
+   "status": "none",
+   "attribution_source": "trailer"
+  },
+  {
+   "path": "tests/test_commands_requires_roles.py",
+   "symbol": "<module>",
+   "ai_lines": 82,
+   "status": "none",
+   "attribution_source": "trailer"
+  },
+  {
+   "path": "scripts/lib/doctor_predicates.py",
+   "symbol": "<module>",
+   "ai_lines": 81,
+   "status": "none",
+   "attribution_source": "trailer"
+  }
+ ],
+ "unknown_files": [
+  "scripts/consistency-check.py",
+  "scripts/hermes_export.py",
+  "scripts/lib/active_set.py",
+  "scripts/lib/agent_sync.py",
+  "scripts/lib/artifact_validate.py",
+  "scripts/lib/bootstrap.py",
+  "scripts/lib/cli_commands.py",
+  "scripts/lib/config.py",
+  "scripts/lib/consistency/context_budget.py",
+  "scripts/lib/consistency/frontmatter.py"
+ ],
+ "unknown_changed_lines": 3205,
+ "attribution_sources": {
+  "trailer": 17180
+ },
+ "notes": [
+  "3205 changed line(s) have unknown attribution and were not gated (unknown is not human-written).",
+  "111 violating unit(s) are module-level (<module>/<file>) code, which `cdebt quiz` cannot cover: they stay failing until the code changes or the limit is raised. See docs/CASE_STUDIES.md.",
+  "Some attribution is from commit trailers: coarse, commit-level."
+ ],
+ "violations_total": 1348
+}

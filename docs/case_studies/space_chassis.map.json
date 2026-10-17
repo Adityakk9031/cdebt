@@ -1,0 +1,503 @@
+{
+ "summary": {
+  "rev": "9a0430a37c40",
+  "files": 135,
+  "total_lines": 109942,
+  "ai_lines": 62412,
+  "human_lines": 0,
+  "unknown_lines": 47530,
+  "ai_share": 0.5676811409652363,
+  "unknown_share": 0.4323188590347638,
+  "understood_ai_lines": 0,
+  "understood_ai_share": 0.0,
+  "units_with_ai": 3250,
+  "units_understood": 0,
+  "understood_units_ci95": [
+   0.0,
+   0.0011805919033980017
+  ],
+  "attribution_sources": {
+   "trailer": 62412
+  },
+  "blast_source": "approx",
+  "coarse_attribution": true
+ },
+ "files": [
+  {
+   "path": "vehicle/tools/console.py",
+   "total_lines": 7462,
+   "ai_lines": 7128,
+   "human_lines": 0,
+   "unknown_lines": 334,
+   "understood_ai_lines": 0,
+   "ai_share": 0.9552398820691503,
+   "understood_share": 0.0,
+   "churn": 0.32432432432432434,
+   "blast_radius": 10.01724094201035,
+   "blast_source": "approx",
+   "score": 12.672284722948847,
+   "attribution_source": "trailer",
+   "source_counts": {
+    "trailer": 7128
+   },
+   "coarse": true
+  },
+  {
+   "path": "vehicle/tools/episode_eval.py",
+   "total_lines": 1027,
+   "ai_lines": 1027,
+   "human_lines": 0,
+   "unknown_lines": 0,
+   "understood_ai_lines": 0,
+   "ai_share": 1.0,
+   "understood_share": 0.0,
+   "churn": 0.16216216216216217,
+   "blast_radius": 9.54830418644129,
+   "blast_source": "approx",
+   "score": 11.096677838296637,
+   "attribution_source": "trailer",
+   "source_counts": {
+    "trailer": 1027
+   },
+   "coarse": true
+  },
+  {
+   "path": "vehicle/tests/test_rules_seam.py",
+   "total_lines": 270,
+   "ai_lines": 270,
+   "human_lines": 0,
+   "unknown_lines": 0,
+   "understood_ai_lines": 0,
+   "ai_share": 1.0,
+   "understood_share": 0.0,
+   "churn": 0.1891891891891892,
+   "blast_radius": 9.261009786023827,
+   "blast_source": "approx",
+   "score": 11.013092718514821,
+   "attribution_source": "trailer",
+   "source_counts": {
+    "trailer": 270
+   },
+   "coarse": true
+  },
+  {
+   "path": "vehicle/tests/test_interlocks.py",
+   "total_lines": 378,
+   "ai_lines": 378,
+   "human_lines": 0,
+   "unknown_lines": 0,
+   "understood_ai_lines": 0,
+   "ai_share": 1.0,
+   "understood_share": 0.0,
+   "churn": 0.13513513513513514,
+   "blast_radius": 9.674196940225903,
+   "blast_source": "approx",
+   "score": 10.981520851067241,
+   "attribution_source": "trailer",
+   "source_counts": {
+    "trailer": 378
+   },
+   "coarse": true
+  },
+  {
+   "path": "vehicle/tests/test_quiet_coast.py",
+   "total_lines": 489,
+   "ai_lines": 489,
+   "human_lines": 0,
+   "unknown_lines": 0,
+   "understood_ai_lines": 0,
+   "ai_share": 1.0,
+   "understood_share": 0.0,
+   "churn": 0.1891891891891892,
+   "blast_radius": 9.036249942132116,
+   "blast_source": "approx",
+   "score": 10.74581074199495,
+   "attribution_source": "trailer",
+   "source_counts": {
+    "trailer": 489
+   },
+   "coarse": true
+  },
+  {
+   "path": "aurora/live/stack.py",
+   "total_lines": 596,
+   "ai_lines": 596,
+   "human_lines": 0,
+   "unknown_lines": 0,
+   "understood_ai_lines": 0,
+   "ai_share": 1.0,
+   "understood_share": 0.0,
+   "churn": 0.13513513513513514,
+   "blast_radius": 9.098034756176071,
+   "blast_source": "approx",
+   "score": 10.32749891241608,
+   "attribution_source": "trailer",
+   "source_counts": {
+    "trailer": 596
+   },
+   "coarse": true
+  },
+  {
+   "path": "vehicle/tests/test_power_rules.py",
+   "total_lines": 370,
+   "ai_lines": 370,
+   "human_lines": 0,
+   "unknown_lines": 0,
+   "understood_ai_lines": 0,
+   "ai_share": 1.0,
+   "understood_share": 0.0,
+   "churn": 0.05405405405405406,
+   "blast_radius": 9.621373010325902,
+   "blast_source": "approx",
+   "score": 10.141447227100274,
+   "attribution_source": "trailer",
+   "source_counts": {
+    "trailer": 370
+   },
+   "coarse": true
+  },
+  {
+   "path": "vehicle/tests/test_thermal_rules.py",
+   "total_lines": 538,
+   "ai_lines": 538,
+   "human_lines": 0,
+   "unknown_lines": 0,
+   "understood_ai_lines": 0,
+   "ai_share": 1.0,
+   "understood_share": 0.0,
+   "churn": 0.08108108108108109,
+   "blast_radius": 9.224431573221159,
+   "blast_source": "approx",
+   "score": 9.972358457536389,
+   "attribution_source": "trailer",
+   "source_counts": {
+    "trailer": 538
+   },
+   "coarse": true
+  },
+  {
+   "path": "aurora/recorder/recorder_streams.py",
+   "total_lines": 1023,
+   "ai_lines": 1023,
+   "human_lines": 0,
+   "unknown_lines": 0,
+   "understood_ai_lines": 0,
+   "ai_share": 1.0,
+   "understood_share": 0.0,
+   "churn": 0.02702702702702703,
+   "blast_radius": 9.675904882571059,
+   "blast_source": "approx",
+   "score": 9.93741582534325,
+   "attribution_source": "trailer",
+   "source_counts": {
+    "trailer": 1023
+   },
+   "coarse": true
+  },
+  {
+   "path": "aurora/tests/test_agent_entrypoint.py",
+   "total_lines": 318,
+   "ai_lines": 318,
+   "human_lines": 0,
+   "unknown_lines": 0,
+   "understood_ai_lines": 0,
+   "ai_share": 1.0,
+   "understood_share": 0.0,
+   "churn": 0.02702702702702703,
+   "blast_radius": 9.57130251706327,
+   "blast_source": "approx",
+   "score": 9.82998636887579,
+   "attribution_source": "trailer",
+   "source_counts": {
+    "trailer": 318
+   },
+   "coarse": true
+  },
+  {
+   "path": "aurora/scripts/volume_images.py",
+   "total_lines": 767,
+   "ai_lines": 767,
+   "human_lines": 0,
+   "unknown_lines": 0,
+   "understood_ai_lines": 0,
+   "ai_share": 1.0,
+   "understood_share": 0.0,
+   "churn": 0.05405405405405406,
+   "blast_radius": 9.183118079394745,
+   "blast_source": "approx",
+   "score": 9.679502840443108,
+   "attribution_source": "trailer",
+   "source_counts": {
+    "trailer": 767
+   },
+   "coarse": true
+  },
+  {
+   "path": "vehicle/tests/test_eclss_rules.py",
+   "total_lines": 163,
+   "ai_lines": 163,
+   "human_lines": 0,
+   "unknown_lines": 0,
+   "understood_ai_lines": 0,
+   "ai_share": 1.0,
+   "understood_share": 0.0,
+   "churn": 0.08108108108108109,
+   "blast_radius": 8.822845290279773,
+   "blast_source": "approx",
+   "score": 9.538211124626782,
+   "attribution_source": "trailer",
+   "source_counts": {
+    "trailer": 163
+   },
+   "coarse": true
+  },
+  {
+   "path": "aurora/tests/test_quiet_coast_window.py",
+   "total_lines": 468,
+   "ai_lines": 468,
+   "human_lines": 0,
+   "unknown_lines": 0,
+   "understood_ai_lines": 0,
+   "ai_share": 1.0,
+   "understood_share": 0.0,
+   "churn": 0.16216216216216217,
+   "blast_radius": 8.206377291472252,
+   "blast_source": "approx",
+   "score": 9.537141176575862,
+   "attribution_source": "trailer",
+   "source_counts": {
+    "trailer": 468
+   },
+   "coarse": true
+  },
+  {
+   "path": "vehicle/tests/test_quiet_coast_scenario.py",
+   "total_lines": 128,
+   "ai_lines": 128,
+   "human_lines": 0,
+   "unknown_lines": 0,
+   "understood_ai_lines": 0,
+   "ai_share": 1.0,
+   "understood_share": 0.0,
+   "churn": 0.02702702702702703,
+   "blast_radius": 9.281723990411392,
+   "blast_source": "approx",
+   "score": 9.532581395557646,
+   "attribution_source": "trailer",
+   "source_counts": {
+    "trailer": 128
+   },
+   "coarse": true
+  },
+  {
+   "path": "vehicle/tests/test_comms_rules.py",
+   "total_lines": 199,
+   "ai_lines": 199,
+   "human_lines": 0,
+   "unknown_lines": 0,
+   "understood_ai_lines": 0,
+   "ai_share": 1.0,
+   "understood_share": 0.0,
+   "churn": 0.02702702702702703,
+   "blast_radius": 9.27614021955846,
+   "blast_source": "approx",
+   "score": 9.526846711978958,
+   "attribution_source": "trailer",
+   "source_counts": {
+    "trailer": 199
+   },
+   "coarse": true
+  },
+  {
+   "path": "vehicle/tests/test_console_scenario.py",
+   "total_lines": 418,
+   "ai_lines": 418,
+   "human_lines": 0,
+   "unknown_lines": 0,
+   "understood_ai_lines": 0,
+   "ai_share": 1.0,
+   "understood_share": 0.0,
+   "churn": 0.05405405405405406,
+   "blast_radius": 9.011686729127847,
+   "blast_source": "approx",
+   "score": 9.498804930702324,
+   "attribution_source": "trailer",
+   "source_counts": {
+    "trailer": 418
+   },
+   "coarse": true
+  },
+  {
+   "path": "aurora/recorder/tests/test_proxy.py",
+   "total_lines": 1801,
+   "ai_lines": 1801,
+   "human_lines": 0,
+   "unknown_lines": 0,
+   "understood_ai_lines": 0,
+   "ai_share": 1.0,
+   "understood_share": 0.0,
+   "churn": 0.02702702702702703,
+   "blast_radius": 9.064636475774222,
+   "blast_source": "approx",
+   "score": 9.309626650795146,
+   "attribution_source": "trailer",
+   "source_counts": {
+    "trailer": 1801
+   },
+   "coarse": true
+  },
+  {
+   "path": "aurora/tests/test_verify_containment.py",
+   "total_lines": 427,
+   "ai_lines": 427,
+   "human_lines": 0,
+   "unknown_lines": 0,
+   "understood_ai_lines": 0,
+   "ai_share": 1.0,
+   "understood_share": 0.0,
+   "churn": 0.16216216216216217,
+   "blast_radius": 7.977281341630747,
+   "blast_source": "approx",
+   "score": 9.270894532165464,
+   "attribution_source": "trailer",
+   "source_counts": {
+    "trailer": 427
+   },
+   "coarse": true
+  },
+  {
+   "path": "vehicle/tools/trajectory.py",
+   "total_lines": 454,
+   "ai_lines": 454,
+   "human_lines": 0,
+   "unknown_lines": 0,
+   "understood_ai_lines": 0,
+   "ai_share": 1.0,
+   "understood_share": 0.0,
+   "churn": 0.02702702702702703,
+   "blast_radius": 9.020270472819238,
+   "blast_source": "approx",
+   "score": 9.264061566679217,
+   "attribution_source": "trailer",
+   "source_counts": {
+    "trailer": 454
+   },
+   "coarse": true
+  },
+  {
+   "path": "aurora/tests/test_journal.py",
+   "total_lines": 566,
+   "ai_lines": 566,
+   "human_lines": 0,
+   "unknown_lines": 0,
+   "understood_ai_lines": 0,
+   "ai_share": 1.0,
+   "understood_share": 0.0,
+   "churn": 0.02702702702702703,
+   "blast_radius": 8.989560449333865,
+   "blast_source": "approx",
+   "score": 9.232521542559104,
+   "attribution_source": "trailer",
+   "source_counts": {
+    "trailer": 566
+   },
+   "coarse": true
+  },
+  {
+   "path": "aurora/pump/pump.py",
+   "total_lines": 955,
+   "ai_lines": 955,
+   "human_lines": 0,
+   "unknown_lines": 0,
+   "understood_ai_lines": 0,
+   "ai_share": 1.0,
+   "understood_share": 0.0,
+   "churn": 0.02702702702702703,
+   "blast_radius": 8.90801944463247,
+   "blast_source": "approx",
+   "score": 9.148776726919834,
+   "attribution_source": "trailer",
+   "source_counts": {
+    "trailer": 955
+   },
+   "coarse": true
+  },
+  {
+   "path": "aurora/tests/test_health.py",
+   "total_lines": 452,
+   "ai_lines": 452,
+   "human_lines": 0,
+   "unknown_lines": 0,
+   "understood_ai_lines": 0,
+   "ai_share": 1.0,
+   "understood_share": 0.0,
+   "churn": 0.02702702702702703,
+   "blast_radius": 8.879669914604289,
+   "blast_source": "approx",
+   "score": 9.119660993377378,
+   "attribution_source": "trailer",
+   "source_counts": {
+    "trailer": 452
+   },
+   "coarse": true
+  },
+  {
+   "path": "vehicle/tests/test_scenario.py",
+   "total_lines": 121,
+   "ai_lines": 121,
+   "human_lines": 0,
+   "unknown_lines": 0,
+   "understood_ai_lines": 0,
+   "ai_share": 1.0,
+   "understood_share": 0.0,
+   "churn": 0.02702702702702703,
+   "blast_radius": 8.77653502818524,
+   "blast_source": "approx",
+   "score": 9.01373867759565,
+   "attribution_source": "trailer",
+   "source_counts": {
+    "trailer": 121
+   },
+   "coarse": true
+  },
+  {
+   "path": "vehicle/tests/test_state_level.py",
+   "total_lines": 54,
+   "ai_lines": 54,
+   "human_lines": 0,
+   "unknown_lines": 0,
+   "understood_ai_lines": 0,
+   "ai_share": 1.0,
+   "understood_share": 0.0,
+   "churn": 0.02702702702702703,
+   "blast_radius": 8.770645234129177,
+   "blast_source": "approx",
+   "score": 9.007689699916451,
+   "attribution_source": "trailer",
+   "source_counts": {
+    "trailer": 54
+   },
+   "coarse": true
+  },
+  {
+   "path": "aurora/live/probes.py",
+   "total_lines": 102,
+   "ai_lines": 102,
+   "human_lines": 0,
+   "unknown_lines": 0,
+   "understood_ai_lines": 0,
+   "ai_share": 1.0,
+   "understood_share": 0.0,
+   "churn": 0.02702702702702703,
+   "blast_radius": 8.769800996003896,
+   "blast_source": "approx",
+   "score": 9.006822644544542,
+   "attribution_source": "trailer",
+   "source_counts": {
+    "trailer": 102
+   },
+   "coarse": true
+  }
+ ],
+ "files_total": 135
+}

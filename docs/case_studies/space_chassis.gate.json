@@ -1,0 +1,207 @@
+{
+ "passed": false,
+ "base": "HEAD~25",
+ "head": "9a0430a37c40",
+ "ai_lines_unverified": 62412,
+ "max_ai_lines": 0,
+ "strict_unknown": false,
+ "violations": [
+  {
+   "path": "vehicle/tools/console.py",
+   "symbol": "<module>",
+   "ai_lines": 986,
+   "status": "none",
+   "attribution_source": "trailer"
+  },
+  {
+   "path": "vehicle/tests/test_vehicle_config.py",
+   "symbol": "<module>",
+   "ai_lines": 904,
+   "status": "none",
+   "attribution_source": "trailer"
+  },
+  {
+   "path": "vehicle/tools/console.py",
+   "symbol": "main",
+   "ai_lines": 787,
+   "status": "none",
+   "attribution_source": "trailer"
+  },
+  {
+   "path": "vehicle/tools/checkpoint.py",
+   "symbol": "<module>",
+   "ai_lines": 429,
+   "status": "none",
+   "attribution_source": "trailer"
+  },
+  {
+   "path": "vehicle/tools/plant.py",
+   "symbol": "<module>",
+   "ai_lines": 372,
+   "status": "none",
+   "attribution_source": "trailer"
+  },
+  {
+   "path": "aurora/recorder/proxy.py",
+   "symbol": "ProxyHTTPRequestHandler.do_POST",
+   "ai_lines": 345,
+   "status": "none",
+   "attribution_source": "trailer"
+  },
+  {
+   "path": "aurora/recorder/proxy.py",
+   "symbol": "<module>",
+   "ai_lines": 314,
+   "status": "none",
+   "attribution_source": "trailer"
+  },
+  {
+   "path": "aurora/recorder/tests/test_proxy.py",
+   "symbol": "<module>",
+   "ai_lines": 298,
+   "status": "none",
+   "attribution_source": "trailer"
+  },
+  {
+   "path": "aurora/scripts/volume_images.py",
+   "symbol": "<module>",
+   "ai_lines": 286,
+   "status": "none",
+   "attribution_source": "trailer"
+  },
+  {
+   "path": "aurora/tests/test_volume_images.py",
+   "symbol": "<module>",
+   "ai_lines": 284,
+   "status": "none",
+   "attribution_source": "trailer"
+  },
+  {
+   "path": "aurora/recorder/tests/test_recorder_streams.py",
+   "symbol": "<module>",
+   "ai_lines": 282,
+   "status": "none",
+   "attribution_source": "trailer"
+  },
+  {
+   "path": "vehicle/tools/episode_eval.py",
+   "symbol": "evaluate",
+   "ai_lines": 275,
+   "status": "none",
+   "attribution_source": "trailer"
+  },
+  {
+   "path": "vehicle/tools/console.py",
+   "symbol": "_resume",
+   "ai_lines": 273,
+   "status": "none",
+   "attribution_source": "trailer"
+  },
+  {
+   "path": "vehicle/tools/console.py",
+   "symbol": "Executive.validate",
+   "ai_lines": 247,
+   "status": "none",
+   "attribution_source": "trailer"
+  },
+  {
+   "path": "aurora/pump/tests/test_pump.py",
+   "symbol": "<module>",
+   "ai_lines": 237,
+   "status": "none",
+   "attribution_source": "trailer"
+  },
+  {
+   "path": "aurora/pump/pump.py",
+   "symbol": "<module>",
+   "ai_lines": 210,
+   "status": "none",
+   "attribution_source": "trailer"
+  },
+  {
+   "path": "aurora/recorder/recorder_streams.py",
+   "symbol": "<module>",
+   "ai_lines": 200,
+   "status": "none",
+   "attribution_source": "trailer"
+  },
+  {
+   "path": "aurora/harness/command_runtime.py",
+   "symbol": "run_command",
+   "ai_lines": 192,
+   "status": "none",
+   "attribution_source": "trailer"
+  },
+  {
+   "path": "vehicle/tools/measure_clock.py",
+   "symbol": "<module>",
+   "ai_lines": 191,
+   "status": "none",
+   "attribution_source": "trailer"
+  },
+  {
+   "path": "vehicle/tests/test_thermal_rules.py",
+   "symbol": "<module>",
+   "ai_lines": 186,
+   "status": "none",
+   "attribution_source": "trailer"
+  },
+  {
+   "path": "aurora/recorder/proxy.py",
+   "symbol": "ProxyHTTPRequestHandler.log_transcript",
+   "ai_lines": 176,
+   "status": "none",
+   "attribution_source": "trailer"
+  },
+  {
+   "path": "vehicle/tests/test_vehicle_config.py",
+   "symbol": "test_one_world_per_directory_is_enforced_by_a_lock_and_a_binding",
+   "ai_lines": 176,
+   "status": "none",
+   "attribution_source": "trailer"
+  },
+  {
+   "path": "aurora/tests/test_journal.py",
+   "symbol": "<module>",
+   "ai_lines": 173,
+   "status": "none",
+   "attribution_source": "trailer"
+  },
+  {
+   "path": "vehicle/tools/episode_eval.py",
+   "symbol": "<module>",
+   "ai_lines": 171,
+   "status": "none",
+   "attribution_source": "trailer"
+  },
+  {
+   "path": "vehicle/tools/console.py",
+   "symbol": "Executive._construct",
+   "ai_lines": 163,
+   "status": "none",
+   "attribution_source": "trailer"
+  }
+ ],
+ "unknown_files": [
+  "aurora/contract/diode_probe.py",
+  "aurora/contract/fake_diode.py",
+  "aurora/scripts/roster.py",
+  "aurora/scripts/status.py",
+  "aurora/services/common.py",
+  "aurora/services/fleet_monitor.py",
+  "aurora/services/review.py",
+  "aurora/tests/conftest.py",
+  "aurora/tests/test_observer.py",
+  "aurora/tests/test_review.py"
+ ],
+ "unknown_changed_lines": 47530,
+ "attribution_sources": {
+  "trailer": 62412
+ },
+ "notes": [
+  "47530 changed line(s) have unknown attribution and were not gated (unknown is not human-written).",
+  "133 violating unit(s) are module-level (<module>/<file>) code, which `cdebt quiz` cannot cover: they stay failing until the code changes or the limit is raised. See docs/CASE_STUDIES.md.",
+  "Some attribution is from commit trailers: coarse, commit-level."
+ ],
+ "violations_total": 3250
+}

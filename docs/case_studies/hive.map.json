@@ -1,0 +1,503 @@
+{
+ "summary": {
+  "rev": "d6620e62268f",
+  "files": 434,
+  "total_lines": 100974,
+  "ai_lines": 97791,
+  "human_lines": 0,
+  "unknown_lines": 3183,
+  "ai_share": 0.9684770336918415,
+  "unknown_share": 0.03152296630815853,
+  "understood_ai_lines": 0,
+  "understood_ai_share": 0.0,
+  "units_with_ai": 2432,
+  "units_understood": 0,
+  "understood_units_ci95": [
+   0.0,
+   0.001577056202606987
+  ],
+  "attribution_sources": {
+   "trailer": 97791
+  },
+  "blast_source": "approx",
+  "coarse_attribution": true
+ },
+ "files": [
+  {
+   "path": "cmd/hivegui/frontend/test/e2e/wails-mock.ts",
+   "total_lines": 2358,
+   "ai_lines": 2268,
+   "human_lines": 0,
+   "unknown_lines": 90,
+   "understood_ai_lines": 0,
+   "ai_share": 0.9618320610687023,
+   "understood_share": 0.0,
+   "churn": 1.0,
+   "blast_radius": 8.969703583278655,
+   "blast_source": "approx",
+   "score": 17.254696969360467,
+   "attribution_source": "trailer",
+   "source_counts": {
+    "trailer": 2268
+   },
+   "coarse": true
+  },
+  {
+   "path": "cmd/hivegui/frontend/test/e2e-real/wails-bridge.ts",
+   "total_lines": 653,
+   "ai_lines": 642,
+   "human_lines": 0,
+   "unknown_lines": 11,
+   "understood_ai_lines": 0,
+   "ai_share": 0.9831546707503829,
+   "understood_share": 0.0,
+   "churn": 0.6595744680851063,
+   "blast_radius": 8.989221408815276,
+   "blast_source": "approx",
+   "score": 14.666978960210932,
+   "attribution_source": "trailer",
+   "source_counts": {
+    "trailer": 642
+   },
+   "coarse": true
+  },
+  {
+   "path": "cmd/hivegui/frontend/test/dom/settings.test.tsx",
+   "total_lines": 1627,
+   "ai_lines": 1627,
+   "human_lines": 0,
+   "unknown_lines": 0,
+   "understood_ai_lines": 0,
+   "ai_share": 1.0,
+   "understood_share": 0.0,
+   "churn": 0.3829787234042553,
+   "blast_radius": 9.145549631783584,
+   "blast_source": "approx",
+   "score": 12.648100554594318,
+   "attribution_source": "trailer",
+   "source_counts": {
+    "trailer": 1627
+   },
+   "coarse": true
+  },
+  {
+   "path": "cmd/hivegui/frontend/src/app/events.ts",
+   "total_lines": 1464,
+   "ai_lines": 1426,
+   "human_lines": 0,
+   "unknown_lines": 38,
+   "understood_ai_lines": 0,
+   "ai_share": 0.9740437158469946,
+   "understood_share": 0.0,
+   "churn": 0.9148936170212766,
+   "blast_radius": 6.777652323222656,
+   "blast_source": "approx",
+   "score": 12.641609975037724,
+   "attribution_source": "trailer",
+   "source_counts": {
+    "trailer": 1426
+   },
+   "coarse": true
+  },
+  {
+   "path": "cmd/hivegui/frontend/src/store/store.ts",
+   "total_lines": 1599,
+   "ai_lines": 1540,
+   "human_lines": 0,
+   "unknown_lines": 59,
+   "understood_ai_lines": 0,
+   "ai_share": 0.9631019387116948,
+   "understood_share": 0.0,
+   "churn": 0.5531914893617021,
+   "blast_radius": 8.375882148215013,
+   "blast_source": "approx",
+   "score": 12.529329116633159,
+   "attribution_source": "trailer",
+   "source_counts": {
+    "trailer": 1540
+   },
+   "coarse": true
+  },
+  {
+   "path": "cmd/hivegui/frontend/src/app/session-term.ts",
+   "total_lines": 1902,
+   "ai_lines": 1778,
+   "human_lines": 0,
+   "unknown_lines": 124,
+   "understood_ai_lines": 0,
+   "ai_share": 0.9348054679284963,
+   "understood_share": 0.0,
+   "churn": 0.6382978723404256,
+   "blast_radius": 7.756932389247553,
+   "blast_source": "approx",
+   "score": 11.879662904471502,
+   "attribution_source": "trailer",
+   "source_counts": {
+    "trailer": 1778
+   },
+   "coarse": true
+  },
+  {
+   "path": "cmd/hivegui/frontend/src/lib/shortcuts.ts",
+   "total_lines": 443,
+   "ai_lines": 443,
+   "human_lines": 0,
+   "unknown_lines": 0,
+   "understood_ai_lines": 0,
+   "ai_share": 1.0,
+   "understood_share": 0.0,
+   "churn": 0.44680851063829785,
+   "blast_radius": 7.922643891475888,
+   "blast_source": "approx",
+   "score": 11.462548608943836,
+   "attribution_source": "trailer",
+   "source_counts": {
+    "trailer": 443
+   },
+   "coarse": true
+  },
+  {
+   "path": "cmd/hivegui/frontend/src/app/keyboard.ts",
+   "total_lines": 117,
+   "ai_lines": 117,
+   "human_lines": 0,
+   "unknown_lines": 0,
+   "understood_ai_lines": 0,
+   "ai_share": 1.0,
+   "understood_share": 0.0,
+   "churn": 0.7021276595744681,
+   "blast_radius": 6.5254529391317835,
+   "blast_source": "approx",
+   "score": 11.107153938947716,
+   "attribution_source": "trailer",
+   "source_counts": {
+    "trailer": 117
+   },
+   "coarse": true
+  },
+  {
+   "path": "cmd/hivegui/frontend/src/app/view.ts",
+   "total_lines": 476,
+   "ai_lines": 476,
+   "human_lines": 0,
+   "unknown_lines": 0,
+   "understood_ai_lines": 0,
+   "ai_share": 1.0,
+   "understood_share": 0.0,
+   "churn": 0.44680851063829785,
+   "blast_radius": 7.610696044717759,
+   "blast_source": "approx",
+   "score": 11.011219809378884,
+   "attribution_source": "trailer",
+   "source_counts": {
+    "trailer": 476
+   },
+   "coarse": true
+  },
+  {
+   "path": "cmd/hivegui/frontend/test/dom/nav-history.test.ts",
+   "total_lines": 354,
+   "ai_lines": 354,
+   "human_lines": 0,
+   "unknown_lines": 0,
+   "understood_ai_lines": 0,
+   "ai_share": 1.0,
+   "understood_share": 0.0,
+   "churn": 0.1702127659574468,
+   "blast_radius": 9.003697339094368,
+   "blast_source": "approx",
+   "score": 10.536241567025323,
+   "attribution_source": "trailer",
+   "source_counts": {
+    "trailer": 354
+   },
+   "coarse": true
+  },
+  {
+   "path": "cmd/hivegui/frontend/test/dom/launcher.test.tsx",
+   "total_lines": 1249,
+   "ai_lines": 1249,
+   "human_lines": 0,
+   "unknown_lines": 0,
+   "understood_ai_lines": 0,
+   "ai_share": 1.0,
+   "understood_share": 0.0,
+   "churn": 0.14893617021276595,
+   "blast_radius": 9.148734808937169,
+   "blast_source": "approx",
+   "score": 10.511312333672493,
+   "attribution_source": "trailer",
+   "source_counts": {
+    "trailer": 1249
+   },
+   "coarse": true
+  },
+  {
+   "path": "cmd/hivegui/frontend/test/dom/message-session.test.tsx",
+   "total_lines": 266,
+   "ai_lines": 266,
+   "human_lines": 0,
+   "unknown_lines": 0,
+   "understood_ai_lines": 0,
+   "ai_share": 1.0,
+   "understood_share": 0.0,
+   "churn": 0.06382978723404255,
+   "blast_radius": 9.637284671674058,
+   "blast_source": "approx",
+   "score": 10.252430501780912,
+   "attribution_source": "trailer",
+   "source_counts": {
+    "trailer": 266
+   },
+   "coarse": true
+  },
+  {
+   "path": "cmd/hivegui/frontend/test/dom/settings-updates.test.tsx",
+   "total_lines": 358,
+   "ai_lines": 358,
+   "human_lines": 0,
+   "unknown_lines": 0,
+   "understood_ai_lines": 0,
+   "ai_share": 1.0,
+   "understood_share": 0.0,
+   "churn": 0.2553191489361702,
+   "blast_radius": 8.103322062526113,
+   "blast_source": "approx",
+   "score": 10.172255355085971,
+   "attribution_source": "trailer",
+   "source_counts": {
+    "trailer": 358
+   },
+   "coarse": true
+  },
+  {
+   "path": "scripts/workflow-proto/dsl.ts",
+   "total_lines": 554,
+   "ai_lines": 554,
+   "human_lines": 0,
+   "unknown_lines": 0,
+   "understood_ai_lines": 0,
+   "ai_share": 1.0,
+   "understood_share": 0.0,
+   "churn": 0.02127659574468085,
+   "blast_radius": 9.849944227235596,
+   "blast_source": "approx",
+   "score": 10.05951750866614,
+   "attribution_source": "trailer",
+   "source_counts": {
+    "trailer": 554
+   },
+   "coarse": true
+  },
+  {
+   "path": "cmd/hivegui/frontend/test/dom/minimize-project.test.tsx",
+   "total_lines": 955,
+   "ai_lines": 955,
+   "human_lines": 0,
+   "unknown_lines": 0,
+   "understood_ai_lines": 0,
+   "ai_share": 1.0,
+   "understood_share": 0.0,
+   "churn": 0.2553191489361702,
+   "blast_radius": 7.841615476477592,
+   "blast_source": "approx",
+   "score": 9.843730066216551,
+   "attribution_source": "trailer",
+   "source_counts": {
+    "trailer": 955
+   },
+   "coarse": true
+  },
+  {
+   "path": "cmd/hivegui/frontend/src/components/Sidebar.tsx",
+   "total_lines": 743,
+   "ai_lines": 743,
+   "human_lines": 0,
+   "unknown_lines": 0,
+   "understood_ai_lines": 0,
+   "ai_share": 1.0,
+   "understood_share": 0.0,
+   "churn": 0.425531914893617,
+   "blast_radius": 6.863631175598097,
+   "blast_source": "approx",
+   "score": 9.784325292873882,
+   "attribution_source": "trailer",
+   "source_counts": {
+    "trailer": 743
+   },
+   "coarse": true
+  },
+  {
+   "path": "cmd/hivegui/frontend/test/dom/plan-review-plugin.test.tsx",
+   "total_lines": 528,
+   "ai_lines": 528,
+   "human_lines": 0,
+   "unknown_lines": 0,
+   "understood_ai_lines": 0,
+   "ai_share": 1.0,
+   "understood_share": 0.0,
+   "churn": 0.02127659574468085,
+   "blast_radius": 9.53895468319775,
+   "blast_source": "approx",
+   "score": 9.741911165818978,
+   "attribution_source": "trailer",
+   "source_counts": {
+    "trailer": 528
+   },
+   "coarse": true
+  },
+  {
+   "path": "cmd/hivegui/frontend/test/dom/project-editor.test.tsx",
+   "total_lines": 365,
+   "ai_lines": 365,
+   "human_lines": 0,
+   "unknown_lines": 0,
+   "understood_ai_lines": 0,
+   "ai_share": 1.0,
+   "understood_share": 0.0,
+   "churn": 0.06382978723404255,
+   "blast_radius": 9.134760782418645,
+   "blast_source": "approx",
+   "score": 9.717830619594304,
+   "attribution_source": "trailer",
+   "source_counts": {
+    "trailer": 365
+   },
+   "coarse": true
+  },
+  {
+   "path": "plugins/sdk/hive-plugin.mjs",
+   "total_lines": 468,
+   "ai_lines": 468,
+   "human_lines": 0,
+   "unknown_lines": 0,
+   "understood_ai_lines": 0,
+   "ai_share": 1.0,
+   "understood_share": 0.0,
+   "churn": 0.1702127659574468,
+   "blast_radius": 8.238496840894365,
+   "blast_source": "approx",
+   "score": 9.640794175514683,
+   "attribution_source": "trailer",
+   "source_counts": {
+    "trailer": 468
+   },
+   "coarse": true
+  },
+  {
+   "path": "plugins/webhook/hive-plugin.mjs",
+   "total_lines": 468,
+   "ai_lines": 468,
+   "human_lines": 0,
+   "unknown_lines": 0,
+   "understood_ai_lines": 0,
+   "ai_share": 1.0,
+   "understood_share": 0.0,
+   "churn": 0.1702127659574468,
+   "blast_radius": 8.238496840894365,
+   "blast_source": "approx",
+   "score": 9.640794175514683,
+   "attribution_source": "trailer",
+   "source_counts": {
+    "trailer": 468
+   },
+   "coarse": true
+  },
+  {
+   "path": "cmd/hivegui/frontend/test/dom/key-scopes.test.ts",
+   "total_lines": 454,
+   "ai_lines": 454,
+   "human_lines": 0,
+   "unknown_lines": 0,
+   "understood_ai_lines": 0,
+   "ai_share": 1.0,
+   "understood_share": 0.0,
+   "churn": 0.1276595744680851,
+   "blast_radius": 8.53689712956617,
+   "blast_source": "approx",
+   "score": 9.626713784404405,
+   "attribution_source": "trailer",
+   "source_counts": {
+    "trailer": 454
+   },
+   "coarse": true
+  },
+  {
+   "path": "cmd/hivegui/frontend/test/dom/command-palette.test.tsx",
+   "total_lines": 299,
+   "ai_lines": 299,
+   "human_lines": 0,
+   "unknown_lines": 0,
+   "understood_ai_lines": 0,
+   "ai_share": 1.0,
+   "understood_share": 0.0,
+   "churn": 0.0425531914893617,
+   "blast_radius": 9.224967478914584,
+   "blast_source": "approx",
+   "score": 9.61751928652797,
+   "attribution_source": "trailer",
+   "source_counts": {
+    "trailer": 299
+   },
+   "coarse": true
+  },
+  {
+   "path": "cmd/hivegui/frontend/test/dom/attention-jump-integration.test.ts",
+   "total_lines": 338,
+   "ai_lines": 338,
+   "human_lines": 0,
+   "unknown_lines": 0,
+   "understood_ai_lines": 0,
+   "ai_share": 1.0,
+   "understood_share": 0.0,
+   "churn": 0.2553191489361702,
+   "blast_radius": 7.617402977974478,
+   "blast_source": "approx",
+   "score": 9.562271823414768,
+   "attribution_source": "trailer",
+   "source_counts": {
+    "trailer": 338
+   },
+   "coarse": true
+  },
+  {
+   "path": "cmd/hivegui/frontend/test/dom/acp-transcript.test.tsx",
+   "total_lines": 316,
+   "ai_lines": 316,
+   "human_lines": 0,
+   "unknown_lines": 0,
+   "understood_ai_lines": 0,
+   "ai_share": 1.0,
+   "understood_share": 0.0,
+   "churn": 0.0425531914893617,
+   "blast_radius": 9.149890544402423,
+   "blast_source": "approx",
+   "score": 9.539247588845079,
+   "attribution_source": "trailer",
+   "source_counts": {
+    "trailer": 316
+   },
+   "coarse": true
+  },
+  {
+   "path": "cmd/hivegui/frontend/test/dom/activity-panel.test.tsx",
+   "total_lines": 328,
+   "ai_lines": 328,
+   "human_lines": 0,
+   "unknown_lines": 0,
+   "understood_ai_lines": 0,
+   "ai_share": 1.0,
+   "understood_share": 0.0,
+   "churn": 0.0425531914893617,
+   "blast_radius": 9.146129510025405,
+   "blast_source": "approx",
+   "score": 9.535326510452018,
+   "attribution_source": "trailer",
+   "source_counts": {
+    "trailer": 328
+   },
+   "coarse": true
+  }
+ ],
+ "files_total": 434
+}

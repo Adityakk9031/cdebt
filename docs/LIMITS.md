@@ -21,9 +21,10 @@
   including human lines in that commit. It is marked with `*`.
 - `agent-trace` storage location is not defined by the RFC (v0.1.0); we read
   `.agent-trace/*.json[l]` (UNVERIFIED against any real producer).
-- Git AI 1.7.x records through a background daemon that needs trace2 git config. The notes
-  parser is verified against real 1.7.5 output (`tests/fixtures/gitai/`). Legacy pre-3.0.0 note
-  layouts are treated as AI (UNVERIFIED, no real sample).
+- Git AI 1.2+ records through a background daemon that needs git trace2 configuration. The
+  notes parser is verified against real output from git-ai 1.0.0 through 1.7.5; see
+  `docs/GITAI_FORMATS.md`. 0.x notes are not supported; unsupported or malformed notes yield
+  no claims (lines stay unknown).
 
 ## Understanding records
 
@@ -39,6 +40,13 @@
 
 ## Probes
 
+- **Coverage is narrow on real code** (see `docs/CASE_STUDIES.md`): runtime probes need plain,
+  typed top-level Python functions with simple argument types, no keyword-only/variadic
+  parameters and a return annotation; most files in real repos yield few or none. TypeScript
+  and JavaScript can be mapped and gated but not quizzed.
+- **Module-level code cannot be cleared by a quiz** (no probes exist for it), so AI lines in
+  `<module>`/`<file>` units keep failing the gate.
+
 - Runtime probes need typed, pure-ish Python functions with simple argument types and
   literal return values. Anything touching files, network, time, randomness, subprocesses or
   globals is skipped (with the reason shown). Skipped code cannot be verified by runtime
@@ -50,8 +58,9 @@
   baseline suite is green and the true failing set is small.
 - The sandbox is layered containment against accidental or AI-generated side effects (static
   screen, isolated interpreter, audit hook, rlimits, `sandbox-exec` on macOS, Docker if present).
-  **It is not a security boundary against deliberately hostile native code.** The Docker path
-  is implemented but UNVERIFIED (no Docker on the development machine). Run untrusted code in
+  **It is not a security boundary against deliberately hostile native code.** The Docker
+  path is tested (locally via Colima and on a GitHub runner) but only covers probe execution;
+  the mutation test runner uses the audit-hook and `sandbox-exec` layers. Run untrusted code in
   a VM or container yourself.
 
 ## Score

@@ -33,16 +33,35 @@ and nobody knows how big the gap is. `cdebt` makes it visible, testable and enfo
    reports effect sizes with confidence intervals, including null results
    ([docs/RESULTS.md](docs/RESULTS.md)).
 
-## Backtest result (as measured, 2026-10-17, AIDev revision 7840b6e)
+## What we know and don't know
 
-On 167,163 eligible (PR, file) units in 1,551 repos, the *proxy* score did **not** show a
-clear, consistent link to later fixes: the pre-registered repo-stratified risk ratio for a fix
-within 90 days was 0.997 (95% CI 0.657-1.524), time-to-fix was *shorter* for the high group
-(Cliff's delta -0.32), reverts were too rare to analyse (2 events), and only the size/churn/agent
-adjusted odds ratio pointed the predicted way (1.93, CI 1.13-3.49). The crude association (RR 1.63)
-largely disappears once you compare within repos. Full table, caveats and a post-hoc deviation
-are in [docs/RESULTS.md](docs/RESULTS.md). This does not validate the score; treat it as
-unproven.
+**Know (tested, with evidence in [docs/VERIFICATION.md](docs/VERIFICATION.md)):**
+the tool runs end to end on real repos; the Git AI notes parser handles real notes from
+git-ai 1.0.0-1.7.5; the sandbox contains file-write, network, fork-bomb, infinite-loop and
+memory-bomb payloads (also inside Docker, on a GitHub runner); the GitHub Action fails and
+passes a real PR and keeps one sticky comment.
+
+**Don't know whether the score predicts trouble.** Two analyses on the AIDev dataset, both
+published as measured:
+
+- Analysis 1 (167,163 PR-file units, 1,551 repos): the proxy score had **no clear link** to
+  later fixes (risk ratio 0.997, 95% CI 0.66-1.52). Reverts were too rare to analyse (2 events).
+  Time-to-fix was *shorter* for the high-score group. Only an adjusted odds ratio pointed the
+  predicted way (1.93, CI 1.13-3.49).
+- Analysis 2 (within-repo matched pairs, PRs with no human review vs substantive review, same
+  agent/size/time): **null** (163 pairs, odds ratio 1.00, CI 0.54-2.00). Low power.
+
+Both test only a proxy (human review evidence, plus churn in Analysis 1); the dataset has no
+cdebt records, no blast radius and no quiz results, and fixes are visible only when they are
+themselves agent PRs. So the honest reading is: **mostly null, proxy only, nothing here shows
+the score works, and nothing shows it doesn't.** See [docs/RESULTS.md](docs/RESULTS.md) and
+[docs/RESULTS_MATCHED.md](docs/RESULTS_MATCHED.md).
+
+**Also know (from the pilot on 3 real repos, [docs/CASE_STUDIES.md](docs/CASE_STUDIES.md)):**
+quiz coverage is narrow today. Runtime probes need typed, side-effect-free Python functions and
+produced questions for only a minority of the most-flagged files; call-graph probes need a SCIP
+index; TypeScript files can be mapped and gated but not quizzed; and module-level code cannot be
+cleared by a quiz at all.
 
 ## 60-second demo
 
@@ -91,13 +110,13 @@ cdebt only reads the notes; it never writes to your repo except `.cdebt/`.
 ```
 
 It runs `cdebt gate`, fetches `refs/notes/ai` best-effort, writes a job summary and a sticky PR
-comment. (UNVERIFIED on a live GitHub run: the script was exercised locally only.)
+comment. Verified on a real PR in a scratch repo (see [docs/VERIFICATION.md](docs/VERIFICATION.md)).
 
 ## Safety model
 
 Read-only on your repo (git calls are allow-listed read commands; writes go only to `.cdebt/`).
 Probe execution is sandboxed (isolated interpreter, temp cwd, timeout, no network, resource
-limits, `sandbox-exec` on macOS, Docker when available) and skips code with file, network,
+limits, `sandbox-exec` on macOS, Docker when available and the `python:3.11-slim` image is already pulled) and skips code with file, network,
 time or randomness side effects. The sandbox targets accidental/AI-generated side effects, not
 hostile native code. No network or API key is needed for any core feature.
 

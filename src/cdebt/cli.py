@@ -179,7 +179,13 @@ def quiz_cmd(
         emit.write_text(json.dumps([public(p) for p in probes], indent=2))
         typer.echo(f"wrote {len(probes)} questions to {emit} (answers are NOT included)")
         return
+    if answers and not answers.is_file():
+        typer.echo(f"error: answers file not found: {answers}", err=True)
+        raise typer.Exit(2)
     given: dict[str, str] = json.loads(answers.read_text()) if answers else {}
+    iso = sorted({str(p.evidence.get("isolation")) for p in probes if "isolation" in p.evidence})
+    if iso:
+        console.print(f"[dim]sandbox: {', '.join(iso)}[/]")
     if dirty(r, rel):
         console.print(
             "[yellow]working copy differs from HEAD: the record binds to the "

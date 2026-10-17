@@ -1,0 +1,64 @@
+$ cdebt quiz scripts/lib/io.py --n 6 --seed 0 --kinds runtime,callgraph --answers <scripted> --label pilot-audit
+skipped: scripts/lib/io.py::_normalize_enabled_config: missing type hint
+skipped: scripts/lib/io.py::_deep_merge: type dict
+skipped: scripts/lib/io.py::_load_yaml_or_json: skipped (uses pathlib (side 
+effects); uses sys (side effects))
+skipped: scripts/lib/io.py::_yaml_error_location: type Exception
+skipped: scripts/lib/io.py::_loader_fail: type Any
+skipped: scripts/lib/io.py::load_yaml_file: skipped (uses pathlib (side 
+effects))
+skipped: scripts/lib/io.py::load_yaml_cached: skipped (uses pathlib (side 
+effects))
+skipped: scripts/lib/io.py::load_json_file: skipped (uses pathlib (side 
+effects))
+skipped: scripts/lib/io.py::read_json_lenient: skipped (uses pathlib (side 
+effects))
+skipped: scripts/lib/io.py::write_atomic: skipped (uses os (side effects); uses 
+pathlib (side effects); uses tempfile (side effects))
+skipped: scripts/lib/io.py::yaml_dump_preserving_multiline: unsupported 
+signature
+skipped: scripts/lib/io.py::_write_yaml: skipped (uses pathlib (side effects))
+skipped: scripts/lib/io.py::is_unchanged: skipped (uses pathlib (side effects))
+skipped: scripts/lib/io.py::write_checked: skipped (uses pathlib (side effects))
+skipped: scripts/lib/io.py::run_git_check_ignore: skipped (uses subprocess (side
+effects))
+skipped: scripts/lib/io.py::_warn_if_not_gitignored: skipped (uses pathlib (side
+effects))
+skipped: scripts/lib/io.py::_git_probe_cwd: skipped (uses pathlib (side 
+effects))
+skipped: scripts/lib/io.py::_is_gitignored_target: skipped (uses pathlib (side 
+effects))
+skipped: scripts/lib/io.py::is_absent_gitignored_target: skipped (uses pathlib 
+(side effects))
+skipped: scripts/lib/io.py::safe_path: skipped (uses pathlib (side effects))
+skipped: scripts/lib/io.py::_yaml_error_location: no references in index (cannot
+ask)
+skipped: scripts/lib/io.py::_validate_on_error: no references in index (cannot 
+ask)
+skipped: scripts/lib/io.py::_loader_fail: no references in index (cannot ask)
+skipped: scripts/lib/io.py::_warn_if_not_gitignored: no references in index 
+(cannot ask)
+skipped: scripts/lib/io.py::_git_probe_cwd: no references in index (cannot ask)
+skipped: scripts/lib/io.py::_is_gitignored_target: no references in index 
+(cannot ask)
+sandbox: audit+rlimit+sandbox-exec
+_write_yaml: wrong - answer was ["scripts/lib/config.py", 
+"scripts/lib/sync_pipeline.py", "tests/test_se_persistence.py"] (verified by 
+scip-index)
+_normalize_enabled_config: correct - answer was ["scripts/lib/agent_sync.py", 
+"scripts/lib/registry_query.py", "scripts/lib/skills.py"] (verified by 
+scip-index)
+_load_yaml_or_json: correct - answer was ["scripts/lib/mcp_provider_config.py", 
+"scripts/lib/viz.py", "tests/test_se_persistence.py"] (verified by scip-index)
+_deep_merge: correct - answer was ["scripts/lib/conventions.py", 
+"scripts/lib/registry_query.py"] (verified by scip-index)
+clear_gitignore_cache: correct - answer was None (verified by sandbox-exec)
+_validate_on_error: correct - answer was raises ValueError (verified by 
+sandbox-exec)
+_write_yaml: 0/1 -> not yet (bound to hash 472c52caaa)
+_normalize_enabled_config: 1/1 -> UNDERSTOOD (bound to hash 5895b181c3)
+_load_yaml_or_json: 1/1 -> UNDERSTOOD (bound to hash 6831ead70c)
+_deep_merge: 1/1 -> UNDERSTOOD (bound to hash 9ffdfdb52d)
+clear_gitignore_cache: 1/1 -> UNDERSTOOD (bound to hash f1475ce7e2)
+_validate_on_error: 1/1 -> UNDERSTOOD (bound to hash 7e9184c694)
+Quizzes show visibility, not proof: they cannot stop answers being looked up.
