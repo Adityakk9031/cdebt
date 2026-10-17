@@ -75,13 +75,15 @@ Real binaries for 1.0.0 through 1.7.0 (plus 1.7.5) were run; see `docs/GITAI_FOR
 failed on `assert r.timed_out and r.elapsed < 6` (timeout 1.5 s). I first called it "load-related".
 That was not an acceptable explanation for a safety property, so:
 
-**Reproduction attempts (against the old code).** Loop under CPU stress: 0 CPU burners (11
-trials), 16-24 burners (about 60 trials) and the Docker path with 8 CPU-burning containers
-saturating the VM (8 trials): 0 failures in about 90 trials, but the worst wall time under stress
-reached 2.60 s for a 1.5 s deadline, i.e. the kill could be **1.1 s late**. I could not reproduce
-the single original failure, so I cannot claim to have identified its exact trigger. What I did
-find, by reading the kill path and writing a deterministic test for each, were five concrete ways
-the timeout could be late or missed:
+**Reproduction attempts (against the old code).** Loop under CPU stress, 86 trials in total:
+host sandbox with 0 burners (5 trials) and 24 burners (15); Docker sandbox with 0 burners (6),
+16 burners (12), 20 burners (40), and with the Docker VM itself saturated by 8 CPU-burning
+containers (8). 0 failures in 86 trials, but the worst wall time under stress reached 2.60 s for
+a 1.5 s deadline, i.e. the kill could be **1.1 s late**. I could not reproduce the one original
+failure, so I cannot claim to have identified its exact trigger. What I did find, by reading the
+kill path and writing a deterministic test for each, were five concrete ways the timeout could be
+late or missed. (That failing run happened while Colima was up, so it most likely went through the Docker
+path, where defects 3 and 4 below apply.)
 
 | # | defect (old code) | evidence |
 |---|---|---|
