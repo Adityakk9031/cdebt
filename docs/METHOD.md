@@ -47,3 +47,73 @@ Weights live in `[tool.cdebt]` (pyproject.toml) or `.cdebt/config.toml`.
 
 "AI units understood" is a proportion over units that contain AI lines; it carries a Wilson
 95% interval and its sample size. The score is a *ranking heuristic*, not a probability.
+
+---
+
+# Backtest pre-registration (written and committed BEFORE the full run)
+
+Data: AIDev (`hao-li/AIDev`, CC-BY-4.0). Tables verified 2026-10-17 via the Hugging Face
+datasets-server `/info` endpoint: `pull_request` (71,677 curated agent-authored PRs, repos with
+>100 stars; agents OpenAI_Codex, Cursor, Copilot, Devin, Claude_Code, Google_Jules),
+`pr_reviews`, `pr_review_comments`, `pr_commits`, `pr_commit_details`. **Every PR in the dataset
+is agent-authored; there is no human-PR comparison group and no issue/bug table.**
+
+## What this backtest can and cannot test
+
+The real score is `ai_share x (1-understood) x (1+w*churn) x blast`. Historical repos have no
+cdebt records and we do not clone 6.7k repos, so we test a **proxy**:
+`S = (1 - U) x (1 + C)`, with `ai_share = 1` (agent-authored by construction) and
+`blast = 1` (NOT TESTED). So the backtest evaluates only the understanding-proxy and churn
+terms. Passing it would not validate blast radius, AI share, or the quiz itself.
+
+## Unit and eligibility
+
+Unit = (merged PR, source file) from `pr_commit_details.filename`, restricted to code
+extensions (.py .js .jsx .ts .tsx .java .go .rs .c .cc .cpp .h .cs .rb .php .kt .swift) and
+`status != removed`. PR is merged iff `merged_at` is non-null. Eligible iff
+`merged_at <= max(merged_at in data) - 90 days` (full 90-day follow-up).
+
+## Proxy terms (frozen)
+
+- `U` (understanding proxy, human review evidence before merge; reviewer is not the PR author
+  and `user_type != Bot`): `1.0` if a human review comment exists on that file path; else
+  `0.5` if a human PR-level review with body >= 20 chars exists; else `0.25` if any human review
+  exists; else `0`.
+- `C` (churn): number of OTHER dataset PRs in the same repo merged in the 90 days before this
+  PR's merge that touched the same file, divided by the max such count among units in that repo
+  (0 if the max is 0).
+
+## Outcomes (within 90 days after merge, secondary 30; only dataset-visible)
+
+- **FIX**: a different, later-merged PR in the same repo touches the same file and its title
+  matches `\b(fix|fixes|fixed|bug|bugfix|hotfix|regression|crash|error)\b` (case-insens.) and
+  does not start with "revert".
+- **REVERT**: a later merged PR in the same repo whose title starts with "revert" (case-insens.)
+  and whose body or title references the original (`#<number>`, its `html_url`, a commit sha
+  from `pr_commits`, or its quoted title). Applies to all files of the reverted PR.
+- **TTF**: days from merge to the first FIX (defined only where FIX occurred).
+
+**Known biases (stated up front):** follow-ups are observable only when they are themselves
+agent PRs in the curated set, so outcomes are heavily undercounted and depend on how much a
+repo uses agents. Repo activity is therefore a confounder; all primary comparisons are
+stratified by repo. File-level co-touching is not line-level SZZ.
+
+## Hypotheses and analysis
+
+Exposure: HIGH = `S >= q75`, LOW = `S <= q25` over eligible units (if q25 == q75, reported as
+degenerate). All rates reported with Wilson 95% CIs and n.
+
+- **H1 (primary)**: P(FIX within 90d) is higher for HIGH than LOW. Statistic: repo-stratified
+  Mantel-Haenszel risk ratio; 95% CI by cluster bootstrap over repos (2000 resamples, seed 0).
+- **H2**: same for REVERT within 90d.
+- **H3**: TTF is *longer* for HIGH among FIX units. Statistic: Cliff's delta with cluster
+  bootstrap CI, plus median days per group.
+- **H4 (adjusted)**: odds ratio for HIGH from logistic regression of FIX90 on
+  `[HIGH, log1p(additions), C, agent dummies]` (IRLS, numpy), cluster-bootstrap CI.
+- **Component check**: FIX90 risk ratio for `U == 0` vs `U >= 0.5`, repo-stratified.
+- Spearman correlation between `S` and the FIX90 indicator.
+
+A hypothesis counts as supported only if the 95% CI excludes 1 (ratios) or 0 (delta) in the
+predicted direction. Null and opposite-direction results are published as measured in
+`docs/RESULTS.md`. No analysis choice above may be changed after seeing outcomes; any deviation
+must be listed in RESULTS.md as a deviation.
