@@ -112,6 +112,7 @@ class Units:
     revert90: np.ndarray
     revert30: np.ndarray
     ttf_days: np.ndarray  # NaN where no FIX within 90d
+    merged_ts: np.ndarray  # unix seconds of the PR's merge
     n_prs_merged: int
     max_merged: float
 
@@ -197,7 +198,21 @@ def build_units(tables: dict[str, list[dict[str, Any]]]) -> Units:
     agents: dict[str, int] = {}
     cols: dict[str, list[float]] = {
         k: []
-        for k in ("repo", "pr", "add", "agent", "U", "C", "elig", "f90", "f30", "r90", "r30", "ttf")
+        for k in (
+            "repo",
+            "pr",
+            "add",
+            "agent",
+            "U",
+            "C",
+            "elig",
+            "f90",
+            "f30",
+            "r90",
+            "r30",
+            "ttf",
+            "mts",
+        )
     }
     rep_max: dict[int, int] = {}
     for (i, fn), a in adds.items():
@@ -228,6 +243,7 @@ def build_units(tables: dict[str, list[dict[str, Any]]]) -> Units:
         cols["r90"].append(float(rt is not None and rt - t0 <= 90 * DAY))
         cols["r30"].append(float(rt is not None and rt - t0 <= 30 * DAY))
         cols["ttf"].append(min(fix_t) / DAY if fix_t else float("nan"))
+        cols["mts"].append(t0)
         rep_max[r_idx] = max(rep_max.get(r_idx, 0), cnt)
     repo_a = np.array(cols["repo"], dtype=int)
     cnt_a = np.array(cols["C"], dtype=float)
@@ -249,6 +265,7 @@ def build_units(tables: dict[str, list[dict[str, Any]]]) -> Units:
         revert90=np.array(cols["r90"]),
         revert30=np.array(cols["r30"]),
         ttf_days=np.array(cols["ttf"]),
+        merged_ts=np.array(cols["mts"]),
         n_prs_merged=len(prs),
         max_merged=max_m,
     )

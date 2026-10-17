@@ -1,0 +1,19 @@
+a.py
+  s_d38de21e8ebf69::t_48f35becde469b 3-7
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.0",
+  "base_commit_sha": "23ec17eeb912f44eb43cb2b34653753f1a6c6bd2",
+  "prompts": {},
+  "sessions": {
+    "s_d38de21e8ebf69": {
+      "agent_id": {
+        "tool": "mock_ai",
+        "id": "ai-thread-1792264393364404000",
+        "model": "unknown"
+      },
+      "human_author": "Dev <dev@example.com>"
+    }
+  }
+}

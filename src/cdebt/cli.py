@@ -286,6 +286,9 @@ def backtest_cmd(
     seed: int = 0,
     reps: int = 2000,
     revision: str = "main",
+    matched: Annotated[
+        bool, typer.Option("--matched", help="Analysis 2: within-repo matched pairs")
+    ] = False,
 ) -> None:
     """Does the (proxy) debt score predict later fixes and reverts on AIDev? Reproducible."""
     try:
@@ -303,6 +306,17 @@ def backtest_cmd(
     mf = data / "manifest.json"
     manifest = json.loads(mf.read_text()) if mf.exists() else None
     units = aidev.build_units(aidev.load_tables(data))
+    if matched:
+        from cdebt.backtest import matched as m2
+
+        mout = out if out.name != "RESULTS.md" else out.with_name("RESULTS_MATCHED.md")
+        mres = m2.run(units, reps=reps, seed=seed)
+        mcmd = f"cdebt backtest --matched --data {data} --out {mout} --seed {seed} --reps {reps}"
+        mout.parent.mkdir(parents=True, exist_ok=True)
+        mout.write_text(report.render_matched(mres, manifest, mcmd))
+        mout.with_suffix(".json").write_text(json.dumps(mres, indent=2, default=float))
+        console.print(f"wrote {mout} and {mout.with_suffix('.json')}")
+        return
     res = analysis.run(units, reps=reps, seed=seed)
     cmd = f"cdebt backtest --data {data} --out {out} --seed {seed} --reps {reps}"
     out.parent.mkdir(parents=True, exist_ok=True)
