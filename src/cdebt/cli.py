@@ -112,5 +112,95 @@ def map_cmd(
         render_map(res, top)
 
 
+@app.command("index")
+def index_cmd(repo: RepoOpt = Path("."), language: str = "python") -> None:
+    """Build the SCIP index (needs node/npx; writes only .cdebt/cache/)."""
+    from cdebt.scip import build_index
+
+    r = _repo(repo)
+    out = build_index(r, language)
+    if out is None:
+        typer.echo("error: indexing failed (need node/npx and network for the indexer)", err=True)
+        raise typer.Exit(2)
+    typer.echo(f"wrote {out}")
+
+
+@app.command("quiz")
+def quiz_cmd(
+    file: Path,
+    repo: RepoOpt = Path("."),
+    n: int = 5,
+    seed: int = 0,
+    kinds: Annotated[
+        str, typer.Option(help="comma list: runtime,callgraph,mutation")
+    ] = "runtime,callgraph",
+    label: Annotated[
+        str | None, typer.Option(help="audit label, never reported per person")
+    ] = None,
+    answers: Annotated[Path | None, typer.Option(help="JSON {probe_id: answer}")] = None,
+    emit: Annotated[Path | None, typer.Option(help="write questions JSON and exit")] = None,
+    expires_days: Annotated[int | None, typer.Option()] = None,
+    json_out: Annotated[bool, typer.Option("--json")] = False,
+) -> None:
+    """Ask questions whose answers come from EXECUTING the code, then record understanding."""
+    from cdebt.models import Probe
+    from cdebt.probes.base import LETTERS
+    from cdebt.quiz import build_quiz, dirty, record_results
+
+    r = _repo(repo)
+    cfg = load_config(r)
+    rel = str((file if file.is_absolute() else Path.cwd() / file).resolve().relative_to(r))
+    ks = tuple(k.strip() for k in kinds.split(",") if k.strip())
+    probes, units, skips = build_quiz(r, rel, cfg, n=n, seed=seed, kinds=ks)
+    for s in skips:
+        console.print(f"[dim]skipped: {s}[/]")
+    if not probes:
+        typer.echo("no probes could be generated for this file (see skipped reasons)", err=True)
+        raise typer.Exit(1)
+
+    def public(p: Probe) -> dict[str, object]:
+        return {
+            "id": p.id,
+            "kind": p.kind,
+            "unit": p.symbol,
+            "question": p.question,
+            "options": p.options,
+            "multi": p.multi,
+        }
+
+    if emit:
+        emit.write_text(json.dumps([public(p) for p in probes], indent=2))
+        typer.echo(f"wrote {len(probes)} questions to {emit} (answers are NOT included)")
+        return
+    given: dict[str, str] = json.loads(answers.read_text()) if answers else {}
+    if dirty(r, rel):
+        console.print(
+            "[yellow]working copy differs from HEAD: the record binds to the "
+            "current text and applies once that text is committed.[/]"
+        )
+    for i, p in enumerate(probes, 1):
+        if p.id in given:
+            continue
+        console.print(f"\n[bold]Q{i}/{len(probes)}[/] [{p.kind}] {p.question}")
+        for j, o in enumerate(p.options):
+            console.print(f"  {LETTERS[j]}) {o}")
+        hint = "letters, comma-separated (or 'none')" if p.multi else "letter or value"
+        given[p.id] = typer.prompt(f"answer ({hint})")
+    recs = record_results(r, rel, cfg, units, probes, given, label=label, expires_days=expires_days)
+    if json_out:
+        typer.echo(json.dumps([json.loads(x.model_dump_json()) for x in recs], indent=2))
+        return
+    for p in probes:
+        mark = "[green]correct[/]" if p.correct else "[red]wrong[/]"
+        console.print(f"{p.symbol}: {mark} - answer was {p.answer} (verified by {p.verified_by})")
+    for x in recs:
+        console.print(
+            f"[bold]{x.unit_symbol}[/]: {x.probes_correct}/{x.probes_asked} -> "
+            f"{'UNDERSTOOD' if x.passed else 'not yet'} (bound to hash "
+            f"{x.content_hash[:10]})"
+        )
+    console.print("Quizzes show visibility, not proof: they cannot stop answers being looked up.")
+
+
 if __name__ == "__main__":
     app()

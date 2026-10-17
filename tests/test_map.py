@@ -37,7 +37,9 @@ def test_wilson() -> None:
 
 def test_scip_reader_on_real_index() -> None:
     idx = load_index(FIX / "scip" / "index.scip")
-    assert scip_blast(idx, "pkg/lib.py") == 2  # app.py:1 (import) and app.py:4 (call)
+    assert (
+        scip_blast(idx, "pkg/lib.py") == 3
+    )  # app.py lines 1 (import), 5 and 9 (calls), deduped by (file, line)
     assert scip_blast(idx, "pkg/app.py") == 0
 
 

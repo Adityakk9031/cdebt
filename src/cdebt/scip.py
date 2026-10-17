@@ -123,6 +123,35 @@ def index_path(repo: Path) -> Path:
     return repo / ".cdebt" / "cache" / "index.scip"
 
 
+def fingerprint(repo: Path, extensions: tuple[str, ...]) -> str:
+    """Hash of working-tree source files; an index is only trusted if this still matches."""
+    import hashlib
+
+    from cdebt import gitutil
+
+    h = hashlib.sha256()
+    for rel in sorted(gitutil.ls_files(repo)):
+        if rel.endswith(extensions) and (repo / rel).is_file():
+            h.update(rel.encode() + b"\0" + hashlib.sha256((repo / rel).read_bytes()).digest())
+    return h.hexdigest()
+
+
+def meta_path(repo: Path) -> Path:
+    return repo / ".cdebt" / "cache" / "index.meta.json"
+
+
+def index_is_fresh(repo: Path, extensions: tuple[str, ...]) -> bool:
+    import json
+
+    mp = meta_path(repo)
+    if not (index_path(repo).exists() and mp.exists()):
+        return False
+    try:
+        return bool(json.loads(mp.read_text()).get("fingerprint") == fingerprint(repo, extensions))
+    except (OSError, ValueError):
+        return False
+
+
 def build_index(repo: Path, language: str = "python", timeout: int = 600) -> Path | None:
     """Run the SCIP indexer (optional external tool). Writes only under .cdebt/cache/.
     Returns None if node/npx are unavailable or indexing fails."""
@@ -152,4 +181,11 @@ def build_index(repo: Path, language: str = "python", timeout: int = 600) -> Pat
         p = subprocess.run(cmd, cwd=repo, capture_output=True, timeout=timeout)
     except (subprocess.TimeoutExpired, OSError):
         return None
-    return out if p.returncode == 0 and out.exists() else None
+    if p.returncode != 0 or not out.exists():
+        return None
+    import json
+
+    from cdebt.config import Config
+
+    meta_path(repo).write_text(json.dumps({"fingerprint": fingerprint(repo, Config().extensions)}))
+    return out

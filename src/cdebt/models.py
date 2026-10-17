@@ -93,7 +93,8 @@ class Probe(BaseModel):
     symbol: str
     question: str
     options: list[str] = Field(default_factory=list)
-    answer: str  # canonical, computed - never LLM-judged
+    answer: str  # canonical, computed - never LLM-judged (JSON list when multi)
+    multi: bool = False  # multi-select: answer is a JSON list of option strings
     verified_by: Literal["sandbox-exec", "scip-index", "mutation-run"]
     evidence: dict[str, object] = Field(default_factory=dict)
     seed: int = 0

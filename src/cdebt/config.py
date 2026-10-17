@@ -16,6 +16,7 @@ class Config(BaseModel):
     unknown_as_ai: bool = False  # worst-case view: treat unknown lines as AI
     use_trailers: bool = True
     extensions: tuple[str, ...] = (".py", ".ts", ".tsx", ".js", ".jsx", ".mjs", ".cjs")
+    min_probes_per_unit: int = 2  # probes a unit needs (capped by how many exist)
     reading_lines_per_min: float = 30.0  # plan effort heuristic: a GUESS, not measured
     unit_overhead_min: float = 2.0  # plan effort heuristic: a GUESS, not measured
 
