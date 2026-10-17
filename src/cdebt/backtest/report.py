@@ -20,6 +20,21 @@ def _rate(r: dict[str, Any]) -> str:
     return f"{r['k']}/{r['n']} = {_f(r['rate'], 4)} (Wilson 95% {_ci(r['ci95'], 4)})"
 
 
+MIN_EVENTS = 10
+
+
+def _verdict(r: dict[str, Any], devs: list[str], name: str) -> str:
+    events = r["exposed"]["k"] + r["unexposed"]["k"]
+    if events < MIN_EVENTS:
+        devs.append(
+            f"{name}: only {events} outcome events in the contrast groups, so the "
+            f"mechanical verdict was replaced by 'inconclusive (<{MIN_EVENTS} events)'. "
+            "This rule was added AFTER seeing the results (post-hoc)."
+        )
+        return f"inconclusive (<{MIN_EVENTS} events)"
+    return verdict_ratio(r["ci95"], r["rr_mh"])
+
+
 def render(res: dict[str, Any], manifest: dict[str, Any] | None, command: str) -> str:
     d = res["descriptive"]
     L = [
@@ -81,6 +96,7 @@ def render(res: dict[str, Any], manifest: dict[str, Any] | None, command: str) -
         "| hypothesis | statistic (HIGH vs LOW) | 95% CI | HIGH rate | LOW rate | verdict |",
         "|---|---|---|---|---|---|",
     ]
+    devs: list[str] = []
     for key, name in (
         ("H1_fix90", "H1 FIX within 90d (primary)"),
         ("H2_revert90", "H2 REVERT within 90d"),
@@ -91,7 +107,7 @@ def render(res: dict[str, Any], manifest: dict[str, Any] | None, command: str) -
         L.append(
             f"| {name} | MH RR {_f(r['rr_mh'])} | {_ci(r['ci95'])} | "
             f"{_rate(r['exposed'])} | {_rate(r['unexposed'])} | "
-            f"{verdict_ratio(r['ci95'], r['rr_mh'])} |"
+            f"{_verdict(r, devs, name)} |"
         )
     h3 = res["H3_ttf"]
     L.append(
@@ -109,7 +125,7 @@ def render(res: dict[str, Any], manifest: dict[str, Any] | None, command: str) -
     L.append(
         f"| component: no human review vs reviewed | MH RR {_f(cu['rr_mh'])} | "
         f"{_ci(cu['ci95'])} | {_rate(cu['exposed'])} | {_rate(cu['unexposed'])} | "
-        f"{verdict_ratio(cu['ci95'], cu['rr_mh'])} |"
+        f"{_verdict(cu, devs, 'component')} |"
     )
     L += [
         "",
@@ -117,7 +133,12 @@ def render(res: dict[str, Any], manifest: dict[str, Any] | None, command: str) -
         "",
         "## Deviations from the pre-registration",
         "",
-        "None recorded by the code. Any manual deviation must be listed here by the author.",
+        *([f"- {x}" for x in dict.fromkeys(devs)] or ["None recorded by the code."]),
+        "",
+        "Crude (unstratified) FIX90 risk ratio from the rates above: "
+        f"{_f(res['H1_fix90']['exposed']['rate'] / res['H1_fix90']['unexposed']['rate'])}. "
+        "The repo-stratified MH estimate is the pre-registered one; the gap between the two "
+        "shows how much of the raw association is explained by which repos the PRs sit in.",
         "",
     ]
     return "\n".join(L)

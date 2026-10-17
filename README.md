@@ -33,6 +33,17 @@ and nobody knows how big the gap is. `cdebt` makes it visible, testable and enfo
    reports effect sizes with confidence intervals, including null results
    ([docs/RESULTS.md](docs/RESULTS.md)).
 
+## Backtest result (as measured, 2026-10-17, AIDev revision 7840b6e)
+
+On 167,163 eligible (PR, file) units in 1,551 repos, the *proxy* score did **not** show a
+clear, consistent link to later fixes: the pre-registered repo-stratified risk ratio for a fix
+within 90 days was 0.997 (95% CI 0.657-1.524), time-to-fix was *shorter* for the high group
+(Cliff's delta -0.32), reverts were too rare to analyse (2 events), and only the size/churn/agent
+adjusted odds ratio pointed the predicted way (1.93, CI 1.13-3.49). The crude association (RR 1.63)
+largely disappears once you compare within repos. Full table, caveats and a post-hoc deviation
+are in [docs/RESULTS.md](docs/RESULTS.md). This does not validate the score; treat it as
+unproven.
+
 ## 60-second demo
 
 ```bash
