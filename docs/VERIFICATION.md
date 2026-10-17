@@ -68,3 +68,40 @@ Real binaries for 1.0.0 through 1.7.0 (plus 1.7.5) were run; see `docs/GITAI_FOR
   contains unrelated earlier work (docker sandbox, Git AI parser, fixtures) because it was
   committed with `git add -A`. The pre-registration file itself was committed before any
   matched-pairs code existed (`git log` shows the order).
+
+## Infinite-loop flake: investigation and fixes (v0.1.2)
+
+**Symptom.** Once, in a full suite run, `tests/test_sandbox.py::test_infinite_loop_killed`
+failed on `assert r.timed_out and r.elapsed < 6` (timeout 1.5 s). I first called it "load-related".
+That was not an acceptable explanation for a safety property, so:
+
+**Reproduction attempts (against the old code).** Loop under CPU stress: 0 CPU burners (11
+trials), 16-24 burners (about 60 trials) and the Docker path with 8 CPU-burning containers
+saturating the VM (8 trials): 0 failures in about 90 trials, but the worst wall time under stress
+reached 2.60 s for a 1.5 s deadline, i.e. the kill could be **1.1 s late**. I could not reproduce
+the single original failure, so I cannot claim to have identified its exact trigger. What I did
+find, by reading the kill path and writing a deterministic test for each, were five concrete ways
+the timeout could be late or missed:
+
+| # | defect (old code) | evidence |
+|---|---|---|
+| 1 | The watchdog checked the deadline and polled RSS (`ps`) in the **same loop**, so one slow `ps` (normal under load) delayed the kill by that long | with `ps` simulated slow: killed at 3.02 s for a 1.0 s deadline (test now asserts < 1.7 s) |
+| 2 | Children that left the process group (`setsid`) survived the timeout, and because they inherit our stdout pipe the call itself hung until the CPU rlimit killed them | test with a detached child: returned after 3.04 s instead of about 1.5 s, child alive |
+| 3 | In Docker mode only the docker **client** was killed at the deadline; the container kept running until a later `docker rm -f`, which had **no timeout** (could hang the caller forever, container still burning CPU) | read from the code; fixed by `docker kill` at the deadline and bounded cleanup |
+| 4 | `elapsed` included cleanup time, so slow Docker cleanup looked like (and was reported as) a late kill | `elapsed` is now measured when the process stopped |
+| 5 | After the leader was reaped, `killpg(getpgid(pid))` could signal an **unrelated process group** if the PID had been reused. Running the new reused-PID test against the old code **killed the pytest process itself** | observed |
+
+A sixth item is housekeeping: a crash between `docker create` and cleanup left an orphan
+`cdebt-*` container (one was found); orphans whose creator pid is dead are now reaped.
+
+**Fix.** The deadline is a separate `threading.Timer`; RSS polling runs in its own thread; at the
+deadline the container is killed, then the whole process tree (descendants first, then the group,
+twice); the group kill refuses to signal a pid that no longer leads that group; every docker
+command has a timeout; orphans are reaped. Regression tests: `tests/test_sandbox_kill.py`
+(slow-`ps`, CPU-stress bound, detached child, reused PID, bounded cleanup, container killed
+before cleanup, orphan reaper). Tests 1, 2 and 5 fail on the old code as described above; the
+Docker-specific ones test new functions and so cannot run against the old code.
+
+**Limits that remain.** A child that double-forks and is re-parented to `launchd` before the
+deadline cannot be found by walking the process tree (no cgroups on macOS); it is still bound by
+its inherited CPU rlimit. Hostile native code is out of scope (see `docs/LIMITS.md`).

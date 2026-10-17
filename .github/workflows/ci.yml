@@ -25,3 +25,14 @@ jobs:
       - run: uv sync --all-extras --python 3.12
       - run: docker pull python:3.11-slim
       - run: uv run pytest tests/test_sandbox_docker.py tests/test_sandbox.py -q -rs
+  repeat-suite:
+    # Flake gate: the whole suite 20 times in a row on a GitHub-hosted runner (Docker present,
+    # so the Docker sandbox tests run too). Any single failure fails the job.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with: {fetch-depth: 0}
+      - uses: astral-sh/setup-uv@v5
+      - run: uv sync --all-extras --python 3.12
+      - run: docker pull python:3.11-slim
+      - run: bash scripts/repeat_suite.sh 20
