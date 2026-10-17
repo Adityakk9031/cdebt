@@ -35,6 +35,20 @@ class Store:
         self.file = self.dir / "understanding.json"
         self._doc = self._load()
 
+    @classmethod
+    def at_rev(cls, repo: Path, rev: str, working_fallback_rev: str | None = None) -> Store:
+        """Store as committed at `rev` (what CI should trust). Falls back to the working-tree
+        file only when `rev` resolves to the checked-out HEAD and nothing is committed."""
+        from cdebt import gitutil
+
+        s = cls.__new__(cls)
+        s.repo, s.dir, s.file = repo, repo / ".cdebt", repo / ".cdebt" / "understanding.json"
+        text = gitutil.show_file(repo, rev, ".cdebt/understanding.json")
+        if text is None and working_fallback_rev == rev and s.file.exists():
+            text = s.file.read_text()
+        s._doc = _Doc.model_validate_json(text) if text else _Doc()
+        return s
+
     def _load(self) -> _Doc:
         if not self.file.exists():
             return _Doc()

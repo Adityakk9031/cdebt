@@ -1,0 +1,23 @@
+name: cdebt gate
+description: Fail a PR when AI-authored changed lines sit in code nobody has verifiably understood.
+inputs:
+  max-ai-lines: {description: "Allowed AI lines in un-understood units", default: "0"}
+  strict-unknown: {description: "Fail on unknown attribution", default: "false"}
+  comment: {description: "Post a sticky PR comment", default: "true"}
+  version: {description: "cdebt version to install (pip spec)", default: "cdebt"}
+  python-version: {description: "Python version", default: "3.12"}
+runs:
+  using: composite
+  steps:
+    - uses: actions/setup-python@v5
+      with: {python-version: "${{ inputs.python-version }}"}
+    - shell: bash
+      run: python -m pip install --quiet "${{ inputs.version }}"
+    - shell: bash
+      env:
+        CDEBT_MAX_AI_LINES: ${{ inputs.max-ai-lines }}
+        CDEBT_STRICT_UNKNOWN: ${{ inputs.strict-unknown }}
+        CDEBT_COMMENT: ${{ inputs.comment }}
+        GITHUB_TOKEN: ${{ github.token }}
+        PR_NUMBER: ${{ github.event.pull_request.number }}
+      run: bash "${{ github.action_path }}/scripts/action_run.sh"

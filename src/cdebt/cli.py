@@ -202,5 +202,79 @@ def quiz_cmd(
     console.print("Quizzes show visibility, not proof: they cannot stop answers being looked up.")
 
 
+@app.command("gate")
+def gate_cmd(
+    repo: RepoOpt = Path("."),
+    base: str = "origin/main",
+    head: str = "HEAD",
+    max_ai_lines: int = 0,
+    strict_unknown: Annotated[bool, typer.Option("--strict-unknown")] = False,
+    json_out: Annotated[bool, typer.Option("--json")] = False,
+    markdown: Annotated[Path | None, typer.Option(help="write PR-comment markdown")] = None,
+) -> None:
+    """CI check: fail when AI-authored changed lines sit in files nobody has understood."""
+    from cdebt.gate import run_gate, to_markdown
+
+    r = _repo(repo)
+    try:
+        res = run_gate(
+            r, load_config(r), base, head, max_ai_lines=max_ai_lines, strict_unknown=strict_unknown
+        )
+    except gitutil.GitError as e:
+        typer.echo(f"error: {e}", err=True)
+        raise typer.Exit(2) from None
+    if markdown:
+        markdown.write_text(to_markdown(res))
+    if json_out:
+        typer.echo(json.dumps(json.loads(res.model_dump_json()), indent=2))
+    else:
+        console.print(
+            f"[bold]cdebt gate: {'PASS' if res.passed else 'FAIL'}[/] "
+            f"AI lines in un-understood units: {res.ai_lines_unverified} "
+            f"(max {res.max_ai_lines}) | sources: {res.attribution_sources or 'none'}"
+        )
+        for v in res.violations[:20]:
+            console.print(
+                f"  {v.path}::{v.symbol}  {len(v.ai_lines)} AI lines "
+                f"[{v.status}, {v.attribution_source.value}]"
+            )
+        for n in res.notes:
+            console.print(f"[yellow]{n}[/]")
+    raise typer.Exit(0 if res.passed else 1)
+
+
+@app.command("plan")
+def plan_cmd(
+    repo: RepoOpt = Path("."),
+    rev: str = "HEAD",
+    top: int = 20,
+    json_out: Annotated[bool, typer.Option("--json")] = False,
+    no_scip: Annotated[bool, typer.Option("--no-scip")] = False,
+) -> None:
+    """Ranked pay-down plan: what to read, review or rewrite first, with effort estimates."""
+    from cdebt.plan import compute_plan
+
+    r = _repo(repo)
+    items = compute_plan(r, load_config(r), rev, top, scip_idx=None if no_scip else _scip(r, False))  # type: ignore[arg-type]
+    if json_out:
+        typer.echo(json.dumps([json.loads(i.model_dump_json()) for i in items], indent=2))
+        return
+    t = Table(title="cdebt plan", caption="effort = heuristic guess (configurable), not measured")
+    for c in ("#", "file", "action", "est. min", "score", "priority", "attribution", "why"):
+        t.add_column(c)
+    for i in items:
+        t.add_row(
+            str(i.rank),
+            i.path,
+            i.action,
+            f"{i.effort_min:g}",
+            f"{i.score:.2f}",
+            f"{i.priority:.3f}",
+            i.attribution_source.value,
+            i.reason,
+        )
+    console.print(t)
+
+
 if __name__ == "__main__":
     app()
