@@ -1,23 +1,26 @@
-"""Git AI notes reader (refs/notes/ai). Format verified against git-ai 1.7.5 output,
-see tests/fixtures/gitai/ (authorship/3.0.0).
+"""Git AI notes reader (refs/notes/ai). Verified against REAL notes from git-ai 1.0.0 through
+1.7.5 (tests/fixtures/gitai/ and tests/fixtures/gitai_versions/; see docs/GITAI_FORMATS.md).
 
-Note layout (VERIFIED on real output):
+Note layout (VERIFIED, all versions):
 
-    <file path>                      # unindented
+    <file path>                      # unindented; the whole section is empty if nothing attributed
       <attestation-id> <ranges>      # indented; ranges like "3-7" or "2-3,6"
-    ---
-    { JSON metadata: schema_version, sessions/prompts/humans, ... }
+    ---                              # a line of exactly three dashes (FIRST line when empty)
+    { JSON metadata }
 
-Attestation ids: `s_<id>::t_<id>` (AI session/trace) and `p_`/legacy 16-hex prompt hashes
-are AI; `h_<id>` is an explicitly recorded human edit. Line numbers are positions in the
-file AT THAT COMMIT, so we map HEAD lines through `git blame` (orig line + blamed commit).
-Lines absent from the note are *unknown* (git-ai calls them untracked).
-UNVERIFIED: legacy (pre-3.0.0) prompt-hash ids are treated as AI; no real sample captured.
+`schema_version` is "authorship/3.0.0" in every captured version, so it cannot tell layouts
+apart; the metadata keys can: `prompts` (1.0-1.3, bare hex prompt-hash ids) vs `sessions`
+(1.4+, `s_<id>::t_<id>` ids; 1.7+ also `humans` with `h_<id>` explicit human edits).
+Line numbers are positions in the file AT THAT COMMIT, so HEAD lines are mapped through
+`git blame --porcelain` (blamed commit + original line). Lines absent from a note are
+*unknown* (git-ai calls them untracked), never "human". Notes whose schema is not
+`authorship/3.x`, or that fail to parse, yield no claims.
 """
 
 from __future__ import annotations
 
 import json
+import re
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -26,6 +29,7 @@ from cdebt.gitutil import BlameLine
 from cdebt.models import AttributionSource, AuthorKind
 
 SUPPORTED_SCHEMA_PREFIX = "authorship/3."
+_DIVIDER = re.compile(r"^---[ \t]*$", re.MULTILINE)
 
 
 @dataclass
@@ -33,6 +37,7 @@ class ParsedNote:
     # path -> list of (attestation_id, [(start, end)])
     files: dict[str, list[tuple[str, list[tuple[int, int]]]]] = field(default_factory=dict)
     meta: dict[str, object] = field(default_factory=dict)
+    malformed: bool = False
 
     @property
     def schema_version(self) -> str:
@@ -41,7 +46,7 @@ class ParsedNote:
     @property
     def supported(self) -> bool:
         """Only `authorship/3.x` notes are interpreted; anything else yields no claims."""
-        return self.schema_version.startswith(SUPPORTED_SCHEMA_PREFIX)
+        return self.schema_version.startswith(SUPPORTED_SCHEMA_PREFIX) and not self.malformed
 
     @property
     def layout(self) -> str:
@@ -67,7 +72,10 @@ def parse_ranges(spec: str) -> list[tuple[int, int]]:
 
 
 def parse_note(text: str) -> ParsedNote:
-    head, sep, tail = text.partition("\n---\n")
+    # The divider is a line of exactly `---`. It is the FIRST line when the attestation section
+    # is empty (verified: git-ai 1.0.0-1.7.x notes for commits with no attributed lines).
+    m = _DIVIDER.search(text)
+    head, sep, tail = (text[: m.start()], True, text[m.end() :]) if m else (text, False, "")
     note = ParsedNote()
     if sep:
         try:
@@ -84,7 +92,10 @@ def parse_note(text: str) -> ParsedNote:
             if cur is None:
                 continue
             ident, _, spec = raw.strip().partition(" ")
-            note.files[cur].append((ident, parse_ranges(spec)))
+            try:
+                note.files[cur].append((ident, parse_ranges(spec)))
+            except ValueError:
+                note.malformed = True
         else:
             cur = raw.strip().strip('"')
             note.files.setdefault(cur, [])

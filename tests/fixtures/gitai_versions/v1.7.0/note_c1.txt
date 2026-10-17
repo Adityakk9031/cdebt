@@ -1,0 +1,14 @@
+a.py
+  h_384e3f831b1c86 1-2
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.0",
+  "base_commit_sha": "63a21721fd49940bfee9541637901fc29ef6cdce",
+  "prompts": {},
+  "humans": {
+    "h_384e3f831b1c86": {
+      "author": "Dev <dev@example.com>"
+    }
+  }
+}

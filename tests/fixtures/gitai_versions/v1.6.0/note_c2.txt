@@ -1,0 +1,19 @@
+a.py
+  s_5428519af6b762::t_90dd35f9171939 3-7
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.0",
+  "base_commit_sha": "9dc913a4ea0350931e7693d651b1202bd2344c2d",
+  "prompts": {},
+  "sessions": {
+    "s_5428519af6b762": {
+      "agent_id": {
+        "tool": "mock_ai",
+        "id": "ai-thread-1792264509247889000",
+        "model": "unknown"
+      },
+      "human_author": "Dev <dev@example.com>"
+    }
+  }
+}
