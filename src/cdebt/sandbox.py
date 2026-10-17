@@ -120,6 +120,72 @@ def screen_source(source: str) -> list[str]:
     return sorted(set(reasons))
 
 
+def _import_aliases(tree: ast.AST) -> dict[str, str]:
+    """local name -> top-level module, for every import in the file."""
+    out: dict[str, str] = {}
+    for n in ast.walk(tree):
+        if isinstance(n, ast.Import):
+            for a in n.names:
+                out[(a.asname or a.name).split(".")[0]] = a.name.split(".")[0]
+        elif isinstance(n, ast.ImportFrom) and n.module and n.level == 0:
+            for a in n.names:
+                out[a.asname or a.name] = n.module.split(".")[0]
+    return out
+
+
+def screen_module_level(source: str) -> list[str]:
+    """Reasons the module must not be IMPORTED for probing: only module-level (not inside a
+    def/class body) calls to side-effecting builtins and global/nonlocal. Importing `os` or
+    `pathlib` is fine: actual writes/network/subprocess are blocked by the audit hook."""
+    try:
+        tree = ast.parse(source)
+    except SyntaxError as e:
+        return [f"syntax error: {e.msg}"]
+    reasons: set[str] = set()
+
+    def visit(n: ast.AST) -> None:
+        for ch in ast.iter_child_nodes(n):
+            if isinstance(ch, (ast.FunctionDef, ast.AsyncFunctionDef, ast.Lambda)):
+                continue  # bodies run only if called
+            if (
+                isinstance(ch, ast.Call)
+                and isinstance(ch.func, ast.Name)
+                and ch.func.id in BLOCKED_CALLS
+            ):
+                reasons.add(f"module-level call to {ch.func.id}()")
+            visit(ch)
+
+    visit(tree)
+    return sorted(reasons)
+
+
+def screen_function(source: str, name: str) -> list[str]:
+    """Reasons the function `name` is not safe to run for a probe: it touches a side-effecting
+    module (os, time, random, pathlib, ...), calls a side-effecting builtin, mutates global
+    state, or is async."""
+    try:
+        tree = ast.parse(source)
+    except SyntaxError as e:
+        return [f"syntax error: {e.msg}"]
+    fn = next((n for n in tree.body if isinstance(n, ast.FunctionDef) and n.name == name), None)
+    if fn is None:
+        return [f"function {name} not found"]
+    aliases = _import_aliases(tree)
+    reasons: set[str] = set()
+    for n in ast.walk(fn):
+        if isinstance(n, ast.Name):
+            mod = aliases.get(n.id)
+            if mod in BLOCKED_MODULES:
+                reasons.add(f"uses {mod} (side effects)")
+            if isinstance(n.ctx, ast.Load) and n.id in BLOCKED_CALLS:
+                reasons.add(f"uses {n.id}()")
+        elif isinstance(n, (ast.Global, ast.Nonlocal)):
+            reasons.add("mutates global/nonlocal state")
+        elif isinstance(n, (ast.Await, ast.AsyncFunctionDef)):
+            reasons.add("async code")
+    return sorted(reasons)
+
+
 @dataclass
 class SandboxResult:
     returncode: int | None

@@ -86,6 +86,13 @@ def run_gate(
             f"{unknown_lines} changed line(s) have unknown attribution and were not "
             "gated (unknown is not human-written)."
         )
+    unquizzable = sum(1 for v in violations if v.symbol.startswith("<"))
+    if unquizzable:
+        notes.append(
+            f"{unquizzable} violating unit(s) are module-level (<module>/<file>) code, which "
+            "`cdebt quiz` cannot cover: they stay failing until the code changes or the limit "
+            "is raised. See docs/CASE_STUDIES.md."
+        )
     if any(s == "trailer" for s in sources):
         notes.append("Some attribution is from commit trailers: coarse, commit-level.")
     fail = ai_unverified > max_ai_lines or (strict_unknown and unknown_lines > 0)

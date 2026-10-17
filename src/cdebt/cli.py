@@ -141,6 +141,7 @@ def quiz_cmd(
     emit: Annotated[Path | None, typer.Option(help="write questions JSON and exit")] = None,
     expires_days: Annotated[int | None, typer.Option()] = None,
     json_out: Annotated[bool, typer.Option("--json")] = False,
+    verbose: Annotated[bool, typer.Option("--verbose", help="list every skipped unit")] = False,
 ) -> None:
     """Ask questions whose answers come from EXECUTING the code, then record understanding."""
     from cdebt.models import Probe
@@ -152,8 +153,14 @@ def quiz_cmd(
     rel = str((file if file.is_absolute() else Path.cwd() / file).resolve().relative_to(r))
     ks = tuple(k.strip() for k in kinds.split(",") if k.strip())
     probes, units, skips = build_quiz(r, rel, cfg, n=n, seed=seed, kinds=ks)
-    for s in skips:
-        console.print(f"[dim]skipped: {s}[/]")
+    if skips and verbose:
+        for s in skips:
+            console.print(f"[dim]skipped: {s}[/]")
+    elif skips:
+        console.print(
+            f"[dim]{len(skips)} unit(s)/probe kinds skipped (side effects, unsupported "
+            "types or signatures, no index entry); use --verbose to list.[/]"
+        )
     if not probes:
         typer.echo("no probes could be generated for this file (see skipped reasons)", err=True)
         raise typer.Exit(1)

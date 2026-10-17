@@ -10,7 +10,7 @@ from pathlib import Path
 
 from cdebt.models import CodeUnit, Probe
 from cdebt.probes.base import copy_tree, probe_id, shuffled, temp_root
-from cdebt.sandbox import run_in_sandbox, screen_source
+from cdebt.sandbox import run_in_sandbox, screen_function, screen_module_level
 
 WORDS = ["ab", "hello", "x", "", "Cat", "a b", "zed"]
 EXC = ["ValueError", "TypeError", "KeyError", "ZeroDivisionError", "IndexError"]
@@ -112,7 +112,7 @@ def generate(
 ) -> tuple[list[Probe], list[str]]:
     """Returns (probes, skip reasons). Every answer is computed by sandboxed execution."""
     skips: list[str] = []
-    why = screen_source(source)
+    why = screen_module_level(source)
     if why:
         return [], [f"{rel}: skipped runtime probes ({'; '.join(why[:3])})"]
     by_sym = {u.symbol: u for u in units}
@@ -127,6 +127,10 @@ def generate(
         (root / rel).write_text(source)  # exercise exactly the text we hashed
         rng = random.Random(seed)
         for fn in funcs:
+            fn_why = screen_function(source, fn.name)
+            if fn_why:
+                skips.append(f"{rel}::{fn.name}: skipped ({'; '.join(fn_why[:3])})")
+                continue
             a = fn.args
             if a.vararg or a.kwarg or a.kwonlyargs or a.posonlyargs or fn.returns is None:
                 skips.append(f"{rel}::{fn.name}: unsupported signature")

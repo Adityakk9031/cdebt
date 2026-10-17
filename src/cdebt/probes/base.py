@@ -46,7 +46,7 @@ def resolve_choice(probe: Probe, raw: str) -> list[str]:
     for p in parts:
         if len(p) == 1 and p.upper() in LETTERS[: len(probe.options)]:
             out.append(probe.options[LETTERS.index(p.upper())])
-        elif p.lower() == "none":
+        elif probe.multi and p.lower() == "none":  # only multi-select has a (none) option
             out.append(NONE_OPTION)
         elif p:
             out.append(p)
