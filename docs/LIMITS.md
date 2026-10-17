@@ -44,8 +44,14 @@
   typed top-level Python functions with simple argument types, no keyword-only/variadic
   parameters and a return annotation; most files in real repos yield few or none. TypeScript
   and JavaScript can be mapped and gated but not quizzed.
-- **Module-level code cannot be cleared by a quiz** (no probes exist for it), so AI lines in
-  `<module>`/`<file>` units keep failing the gate.
+- **Module-level code is only partly verifiable.** `constant` probes verify the values of
+  top-level constants (Python only). Everything else at module level (imports, class headers,
+  decorators, registrations, top-level calls) can only be **attested**, which is a human sign-off,
+  NON-VERIFIED, and trivially easy to over-use (one note can cover hundreds of units). It is
+  labelled NON-VERIFIED in the map, gate, plan and PR comment; `--require verified` ignores it and
+  `attested_weight` controls how much it counts in the score.
+- TypeScript/JavaScript cannot be quizzed at all (no runtime probes; call-graph probes need a
+  SCIP index for that language). They can only be attested. `cdebt coverage` shows this.
 
 - Runtime probes need typed, pure-ish Python functions with simple argument types and
   literal return values. Anything touching files, network, time, randomness, subprocesses or

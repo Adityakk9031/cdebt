@@ -13,7 +13,9 @@ and nobody knows how big the gap is. `cdebt` makes it visible, testable and enfo
 | command | what it does |
 |---|---|
 | `cdebt map` | Which files hold the most AI-written code no human has verifiably understood? |
-| `cdebt quiz <file>` | Questions whose answers come from **executing** the code; records what is now understood |
+| `cdebt quiz <file>` | Questions whose answers come from **executing** the code (function results, call graph, module constants); records what is now verified |
+| `cdebt attest <file> --note ...` | A human sign-off for code a quiz cannot cover. **NON-VERIFIED**, hash-bound, counts less (default 0.5) |
+| `cdebt coverage` | Before you trust the gate: how much of the top-N debt files can be verified, only attested, or not quizzed at all |
 | `cdebt gate --base origin/main` | CI check: fail a PR whose AI-authored changed lines sit in un-understood code |
 | `cdebt plan` | Ranked pay-down plan (quiz / review / rewrite-or-delete) with effort estimates |
 | `cdebt backtest` | Does the (proxy) score predict later fixes and reverts on AIDev? Reproducible, published as measured |
@@ -28,7 +30,10 @@ and nobody knows how big the gap is. `cdebt` makes it visible, testable and enfo
    Co-Authored-By trailers are a labelled, coarse fallback. Every output names its source:
    `git-ai | agent-trace | trailer | none`, where `none` means *unknown*, not "human".
 3. **Expiring understanding.** A record is bound to a hash of the code it covers and is stale
-   the moment that code changes.
+   the moment that code changes. Understanding has three states: **verified** (execution-checked),
+   **attested** (a human signed off; labelled NON-VERIFIED everywhere, weighted 0.5 in the score)
+   and none. `cdebt gate --require verified|attested` picks the policy; by default attestation is
+   accepted only for module-level code and for functions a quiz cannot verify.
 4. **Backtested.** `cdebt backtest` runs a pre-registered analysis on the AIDev dataset and
    reports effect sizes with confidence intervals, including null results
    ([docs/RESULTS.md](docs/RESULTS.md)).
@@ -86,6 +91,8 @@ Interactive use:
 cdebt map                              # table or --json
 cdebt quiz src/billing.py --n 5        # answer in the terminal
 git add .cdebt/understanding.json && git commit -m "record understanding"
+cdebt coverage                         # what can a quiz actually clear here?
+cdebt attest src/settings.py --note "read; constants match the deploy config"
 cdebt gate --base origin/main --strict-unknown
 cdebt plan --top 10
 ```

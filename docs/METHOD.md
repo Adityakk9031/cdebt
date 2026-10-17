@@ -23,6 +23,23 @@ Comments are included. Any change to a unit's text makes its records *stale*. Op
 `expires_at` adds time-based expiry. An AI line is "understood" iff its unit has a passing,
 hash-matching, unexpired record.
 
+### Verified vs attested
+
+A record is `verified` (passing probes whose answers were computed by execution, a SCIP index or
+a mutation run) or `attested` (a human signed off with `cdebt attest --note`; nothing is
+executed). Both are bound to the unit's content hash and expire when it changes. An attested
+record also stores `scope`, decided at attest time: `module` (module-level unit), `function-
+unquizzable` (no probe could be generated for it) or `function-quizzable` (only with `--force`).
+`understood_share = (verified_lines + attested_weight x attested_lines) / AI_lines`, with
+`attested_weight` = 0.5 by default (configurable, 0..1; 0 ignores attestation in the score).
+Gate policy: `--require verified` (attestation never counts), `--require attested` (it counts
+everywhere), default (it counts for `module` and `function-unquizzable` scopes only).
+
+`constant` probes ask "what is the value of NAME?" for top-level `NAME = expr` whose
+right-hand side does not touch `os`, `sys`, `time`, `random`, `pathlib`, etc.; the module is
+imported (and reloaded) in the sandbox and the repr of the value is the answer. They verify
+constant values only.
+
 ## Debt score (`cdebt map`)
 
 ```
