@@ -3,7 +3,8 @@
 UNVERIFIED: the spec does not define where records live. We read `*.json` / `*.jsonl` under
 `.agent-trace/` at the repo root (configurable). Records give lines at `vcs.revision`, so a
 HEAD line maps via blame to (commit, orig line); we match records whose revision == that commit.
-Contributor types: ai -> AI, human -> HUMAN, mixed -> AI (human-edited AI output), unknown -> no claim.
+Contributor types: ai -> AI, human -> HUMAN, mixed -> AI (human-edited AI output),
+unknown -> no claim.
 """
 
 from __future__ import annotations
