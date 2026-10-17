@@ -73,7 +73,11 @@ def test_memory_bomb_killed() -> None:
     r = run_code(
         "x = []\nwhile True:\n    x.append(bytearray(50_000_000))\n", timeout=20, mem_mb=200
     )
-    assert r.killed_for_memory or r.returncode != 0
+    # Contained one of three ways depending on the OS: watchdog kill (macOS: RLIMIT_AS is not
+    # enforced), non-zero exit, or RLIMIT_AS turning the allocation into a MemoryError that the
+    # runner reports (Linux).
+    err = str((r.payload or {}).get("error", ""))
+    assert r.killed_for_memory or r.returncode != 0 or err.startswith("MemoryError")
     assert r.elapsed < 20
 
 
