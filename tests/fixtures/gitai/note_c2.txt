@@ -1,0 +1,21 @@
+b.py
+  s_0e167da600d21b::t_4fd49745880c19 2-3,6
+a.py
+  s_0e167da600d21b::t_4fd49745880c19 3-7
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "ae683711269019703335e87e81d7f770d443376c",
+  "prompts": {},
+  "sessions": {
+    "s_0e167da600d21b": {
+      "agent_id": {
+        "tool": "mock_ai",
+        "id": "ai-thread-1792258952601257000",
+        "model": "unknown"
+      },
+      "human_author": "Dev <dev@example.com>"
+    }
+  }
+}

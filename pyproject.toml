@@ -1,0 +1,55 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "cdebt"
+version = "0.1.0"
+description = "Measure, test and pay down comprehension debt: AI-written code nobody has verifiably understood."
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "Apache-2.0" }
+dependencies = [
+  "pydantic>=2.6",
+  "typer>=0.12",
+  "rich>=13.7",
+  "tree-sitter>=0.23",
+  "tree-sitter-python>=0.23",
+  "tree-sitter-typescript>=0.23",
+  "numpy>=1.26",
+]
+
+[project.optional-dependencies]
+mutation = ["mutmut>=3"]
+history = ["pydriller>=2.6"]
+backtest = ["pyarrow>=15", "huggingface_hub>=0.23"]
+
+[dependency-groups]
+dev = ["pytest>=8", "ruff>=0.5", "mypy>=1.10", "pytest-timeout>=2.3"]
+
+[project.scripts]
+cdebt = "cdebt.cli:app"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/cdebt"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
+timeout = 120
+
+[tool.ruff]
+line-length = 100
+src = ["src", "tests"]
+extend-exclude = ["tests/fixtures", "scripts"]
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM"]
+
+[tool.mypy]
+python_version = "3.11"
+strict = true
+plugins = ["pydantic.mypy"]
+files = ["src"]
+[[tool.mypy.overrides]]
+module = ["tree_sitter_python.*", "tree_sitter_typescript.*", "tree_sitter.*"]
+ignore_missing_imports = true

@@ -1,0 +1,34 @@
+b3c5f787fdde9212cea33522708db0ac68ec7686 1 1 1
+author Dev
+author-mail <dev@example.com>
+author-time 1792258952
+author-tz +0530
+committer Dev
+committer-mail <dev@example.com>
+committer-time 1792258952
+committer-tz +0530
+summary c1 human
+boundary
+filename b.py
+	one
+ae683711269019703335e87e81d7f770d443376c 2 2 2
+author Dev
+author-mail <dev@example.com>
+author-time 1792258952
+author-tz +0530
+committer Dev
+committer-mail <dev@example.com>
+committer-time 1792258952
+committer-tz +0530
+summary c2 ai
+previous b3c5f787fdde9212cea33522708db0ac68ec7686 b.py
+filename b.py
+	AI-A
+ae683711269019703335e87e81d7f770d443376c 3 3
+	AI-B
+b3c5f787fdde9212cea33522708db0ac68ec7686 2 4 2
+	two
+b3c5f787fdde9212cea33522708db0ac68ec7686 3 5
+	three
+ae683711269019703335e87e81d7f770d443376c 6 6 1
+	AI-C
