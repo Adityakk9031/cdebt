@@ -1,0 +1,345 @@
+{
+ "top_n": 25,
+ "files": [
+  {
+   "path": "scripts/lib/consistency/report.py",
+   "score": 7.126386810683397,
+   "ai_lines": 110,
+   "verifiable_lines": 90,
+   "attest_only_lines": 20,
+   "no_quiz_lines": 0,
+   "klass": "partly verifiable",
+   "probe_kinds": [
+    "callgraph",
+    "constant"
+   ]
+  },
+  {
+   "path": "scripts/lib/log.py",
+   "score": 6.945561853819398,
+   "ai_lines": 147,
+   "verifiable_lines": 119,
+   "attest_only_lines": 28,
+   "no_quiz_lines": 0,
+   "klass": "partly verifiable",
+   "probe_kinds": [
+    "callgraph"
+   ]
+  },
+  {
+   "path": "scripts/lib/external_tools.py",
+   "score": 6.411011215709714,
+   "ai_lines": 408,
+   "verifiable_lines": 386,
+   "attest_only_lines": 22,
+   "no_quiz_lines": 0,
+   "klass": "partly verifiable",
+   "probe_kinds": [
+    "callgraph",
+    "constant"
+   ]
+  },
+  {
+   "path": "scripts/lib/cli_commands.py",
+   "score": 6.207874981266681,
+   "ai_lines": 1363,
+   "verifiable_lines": 1061,
+   "attest_only_lines": 302,
+   "no_quiz_lines": 0,
+   "klass": "partly verifiable",
+   "probe_kinds": [
+    "callgraph",
+    "constant"
+   ]
+  },
+  {
+   "path": "scripts/lib/config_audit_types.py",
+   "score": 6.156859335585742,
+   "ai_lines": 95,
+   "verifiable_lines": 45,
+   "attest_only_lines": 50,
+   "no_quiz_lines": 0,
+   "klass": "partly verifiable",
+   "probe_kinds": [
+    "callgraph"
+   ]
+  },
+  {
+   "path": "scripts/lib/orchestration.py",
+   "score": 5.876642276575819,
+   "ai_lines": 520,
+   "verifiable_lines": 480,
+   "attest_only_lines": 40,
+   "no_quiz_lines": 0,
+   "klass": "partly verifiable",
+   "probe_kinds": [
+    "callgraph",
+    "constant"
+   ]
+  },
+  {
+   "path": "scripts/lib/doctor_predicates.py",
+   "score": 5.828192014281559,
+   "ai_lines": 267,
+   "verifiable_lines": 228,
+   "attest_only_lines": 39,
+   "no_quiz_lines": 0,
+   "klass": "partly verifiable",
+   "probe_kinds": [
+    "callgraph",
+    "constant"
+   ]
+  },
+  {
+   "path": "scripts/lib/registry_query.py",
+   "score": 5.810058162964132,
+   "ai_lines": 316,
+   "verifiable_lines": 316,
+   "attest_only_lines": 0,
+   "no_quiz_lines": 0,
+   "klass": "verifiable",
+   "probe_kinds": [
+    "callgraph",
+    "constant"
+   ]
+  },
+  {
+   "path": "tests/active_set_render.py",
+   "score": 5.757297237095012,
+   "ai_lines": 149,
+   "verifiable_lines": 132,
+   "attest_only_lines": 17,
+   "no_quiz_lines": 0,
+   "klass": "partly verifiable",
+   "probe_kinds": [
+    "callgraph",
+    "constant",
+    "runtime"
+   ]
+  },
+  {
+   "path": "scripts/lib/consistency/se_cascade.py",
+   "score": 5.735901804507632,
+   "ai_lines": 611,
+   "verifiable_lines": 357,
+   "attest_only_lines": 254,
+   "no_quiz_lines": 0,
+   "klass": "partly verifiable",
+   "probe_kinds": [
+    "callgraph",
+    "constant"
+   ]
+  },
+  {
+   "path": "scripts/lib/skill_channel.py",
+   "score": 5.455474715204042,
+   "ai_lines": 209,
+   "verifiable_lines": 150,
+   "attest_only_lines": 59,
+   "no_quiz_lines": 0,
+   "klass": "partly verifiable",
+   "probe_kinds": [
+    "callgraph",
+    "runtime"
+   ]
+  },
+  {
+   "path": "scripts/lib/agents.py",
+   "score": 5.454103984554887,
+   "ai_lines": 314,
+   "verifiable_lines": 290,
+   "attest_only_lines": 24,
+   "no_quiz_lines": 0,
+   "klass": "partly verifiable",
+   "probe_kinds": [
+    "callgraph",
+    "constant"
+   ]
+  },
+  {
+   "path": "scripts/lib/harnesses.py",
+   "score": 5.394553158660025,
+   "ai_lines": 318,
+   "verifiable_lines": 213,
+   "attest_only_lines": 105,
+   "no_quiz_lines": 0,
+   "klass": "partly verifiable",
+   "probe_kinds": [
+    "callgraph",
+    "constant"
+   ]
+  },
+  {
+   "path": "scripts/lib/rules.py",
+   "score": 5.317469109849868,
+   "ai_lines": 632,
+   "verifiable_lines": 583,
+   "attest_only_lines": 49,
+   "no_quiz_lines": 0,
+   "klass": "partly verifiable",
+   "probe_kinds": [
+    "callgraph",
+    "constant",
+    "runtime"
+   ]
+  },
+  {
+   "path": "scripts/lib/config.py",
+   "score": 5.258505275110199,
+   "ai_lines": 941,
+   "verifiable_lines": 440,
+   "attest_only_lines": 501,
+   "no_quiz_lines": 0,
+   "klass": "partly verifiable",
+   "probe_kinds": [
+    "callgraph",
+    "constant"
+   ]
+  },
+  {
+   "path": "scripts/hermes_export.py",
+   "score": 5.1736434036382475,
+   "ai_lines": 664,
+   "verifiable_lines": 462,
+   "attest_only_lines": 202,
+   "no_quiz_lines": 0,
+   "klass": "partly verifiable",
+   "probe_kinds": [
+    "callgraph",
+    "constant",
+    "runtime"
+   ]
+  },
+  {
+   "path": "scripts/lib/active_set.py",
+   "score": 5.073531204611577,
+   "ai_lines": 169,
+   "verifiable_lines": 88,
+   "attest_only_lines": 81,
+   "no_quiz_lines": 0,
+   "klass": "partly verifiable",
+   "probe_kinds": [
+    "callgraph"
+   ]
+  },
+  {
+   "path": "scripts/lib/io.py",
+   "score": 4.953358291523766,
+   "ai_lines": 456,
+   "verifiable_lines": 352,
+   "attest_only_lines": 104,
+   "no_quiz_lines": 0,
+   "klass": "partly verifiable",
+   "probe_kinds": [
+    "callgraph",
+    "runtime"
+   ]
+  },
+  {
+   "path": "scripts/lib/model_discovery.py",
+   "score": 4.947826108518848,
+   "ai_lines": 750,
+   "verifiable_lines": 728,
+   "attest_only_lines": 22,
+   "no_quiz_lines": 0,
+   "klass": "partly verifiable",
+   "probe_kinds": [
+    "callgraph",
+    "constant"
+   ]
+  },
+  {
+   "path": "scripts/lib/toml_writer.py",
+   "score": 4.89862170658314,
+   "ai_lines": 210,
+   "verifiable_lines": 165,
+   "attest_only_lines": 45,
+   "no_quiz_lines": 0,
+   "klass": "partly verifiable",
+   "probe_kinds": [
+    "callgraph",
+    "constant",
+    "runtime"
+   ]
+  },
+  {
+   "path": "scripts/lib/mcp_provider_config.py",
+   "score": 4.830222891474352,
+   "ai_lines": 622,
+   "verifiable_lines": 434,
+   "attest_only_lines": 188,
+   "no_quiz_lines": 0,
+   "klass": "partly verifiable",
+   "probe_kinds": [
+    "callgraph",
+    "constant",
+    "runtime"
+   ]
+  },
+  {
+   "path": "scripts/lib/se_export/markdown_adapter.py",
+   "score": 4.711089683812089,
+   "ai_lines": 232,
+   "verifiable_lines": 153,
+   "attest_only_lines": 79,
+   "no_quiz_lines": 0,
+   "klass": "partly verifiable",
+   "probe_kinds": [
+    "callgraph",
+    "runtime"
+   ]
+  },
+  {
+   "path": "scripts/lib/delegation_syntax.py",
+   "score": 4.680385369448262,
+   "ai_lines": 455,
+   "verifiable_lines": 419,
+   "attest_only_lines": 36,
+   "no_quiz_lines": 0,
+   "klass": "partly verifiable",
+   "probe_kinds": [
+    "callgraph",
+    "constant"
+   ]
+  },
+  {
+   "path": "scripts/lib/se_export/github_issues_adapter.py",
+   "score": 4.592692446124665,
+   "ai_lines": 291,
+   "verifiable_lines": 203,
+   "attest_only_lines": 88,
+   "no_quiz_lines": 0,
+   "klass": "partly verifiable",
+   "probe_kinds": [
+    "callgraph",
+    "constant",
+    "runtime"
+   ]
+  },
+  {
+   "path": "scripts/lib/context_report.py",
+   "score": 4.493884114913619,
+   "ai_lines": 293,
+   "verifiable_lines": 215,
+   "attest_only_lines": 78,
+   "no_quiz_lines": 0,
+   "klass": "partly verifiable",
+   "probe_kinds": [
+    "callgraph",
+    "constant"
+   ]
+  }
+ ],
+ "files_by_class": {
+  "partly verifiable": 24,
+  "verifiable": 1
+ },
+ "verifiable_share": 0.7692088787706317,
+ "attest_only_share": 0.23079112122936823,
+ "no_quiz_share": 0.0,
+ "scip_index": true,
+ "sandbox": "host (audit hook + rlimits [+ sandbox-exec])",
+ "notes": [
+  "Mutation probes are opt-in and slow; not counted."
+ ]
+}

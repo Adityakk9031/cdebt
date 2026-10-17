@@ -1,0 +1,89 @@
+{
+ "space_chassis": {
+  "top_files": 25,
+  "units_attested": 754,
+  "attest_refused_quizzable": 42,
+  "gate_before": {
+   "ai_lines_unverified": 62412,
+   "violating_units": 3250
+  },
+  "gate_after_attesting_top25": {
+   "default": {
+    "passed": false,
+    "ai_lines_unverified": 43604,
+    "violating_units": 2335,
+    "attested_accepted_lines": 18808
+   },
+   "verified": {
+    "passed": false,
+    "ai_lines_unverified": 62412,
+    "violating_units": 3250,
+    "attested_accepted_lines": 0
+   },
+   "attested": {
+    "passed": false,
+    "ai_lines_unverified": 43604,
+    "violating_units": 2335,
+    "attested_accepted_lines": 18808
+   }
+  }
+ },
+ "hive": {
+  "top_files": 25,
+  "units_attested": 629,
+  "attest_refused_quizzable": 0,
+  "gate_before": {
+   "ai_lines_unverified": 5657,
+   "violating_units": 224
+  },
+  "gate_after_attesting_top25": {
+   "default": {
+    "passed": false,
+    "ai_lines_unverified": 4359,
+    "violating_units": 159,
+    "attested_accepted_lines": 1298
+   },
+   "verified": {
+    "passed": false,
+    "ai_lines_unverified": 5657,
+    "violating_units": 224,
+    "attested_accepted_lines": 0
+   },
+   "attested": {
+    "passed": false,
+    "ai_lines_unverified": 4359,
+    "violating_units": 159,
+    "attested_accepted_lines": 1298
+   }
+  }
+ },
+ "agent-meta": {
+  "top_files": 25,
+  "units_attested": 182,
+  "attest_refused_quizzable": 229,
+  "gate_before": {
+   "ai_lines_unverified": 17180,
+   "violating_units": 1348
+  },
+  "gate_after_attesting_top25": {
+   "default": {
+    "passed": false,
+    "ai_lines_unverified": 16465,
+    "violating_units": 1305,
+    "attested_accepted_lines": 715
+   },
+   "verified": {
+    "passed": false,
+    "ai_lines_unverified": 17180,
+    "violating_units": 1348,
+    "attested_accepted_lines": 0
+   },
+   "attested": {
+    "passed": false,
+    "ai_lines_unverified": 16465,
+    "violating_units": 1305,
+    "attested_accepted_lines": 715
+   }
+  }
+ }
+}

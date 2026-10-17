@@ -1,0 +1,314 @@
+{
+ "top_n": 25,
+ "files": [
+  {
+   "path": "vehicle/tools/console.py",
+   "score": 12.672284722948847,
+   "ai_lines": 7128,
+   "verifiable_lines": 1233,
+   "attest_only_lines": 5895,
+   "no_quiz_lines": 0,
+   "klass": "partly verifiable",
+   "probe_kinds": [
+    "constant",
+    "runtime"
+   ]
+  },
+  {
+   "path": "vehicle/tools/episode_eval.py",
+   "score": 11.096677838296637,
+   "ai_lines": 1027,
+   "verifiable_lines": 173,
+   "attest_only_lines": 854,
+   "no_quiz_lines": 0,
+   "klass": "partly verifiable",
+   "probe_kinds": [
+    "constant",
+    "runtime"
+   ]
+  },
+  {
+   "path": "vehicle/tests/test_rules_seam.py",
+   "score": 11.013092718514821,
+   "ai_lines": 270,
+   "verifiable_lines": 93,
+   "attest_only_lines": 177,
+   "no_quiz_lines": 0,
+   "klass": "partly verifiable",
+   "probe_kinds": [
+    "constant"
+   ]
+  },
+  {
+   "path": "vehicle/tests/test_interlocks.py",
+   "score": 10.981520851067241,
+   "ai_lines": 378,
+   "verifiable_lines": 0,
+   "attest_only_lines": 378,
+   "no_quiz_lines": 0,
+   "klass": "attest-only",
+   "probe_kinds": []
+  },
+  {
+   "path": "vehicle/tests/test_quiet_coast.py",
+   "score": 10.74581074199495,
+   "ai_lines": 489,
+   "verifiable_lines": 134,
+   "attest_only_lines": 355,
+   "no_quiz_lines": 0,
+   "klass": "partly verifiable",
+   "probe_kinds": [
+    "constant",
+    "runtime"
+   ]
+  },
+  {
+   "path": "aurora/live/stack.py",
+   "score": 10.32749891241608,
+   "ai_lines": 596,
+   "verifiable_lines": 162,
+   "attest_only_lines": 434,
+   "no_quiz_lines": 0,
+   "klass": "partly verifiable",
+   "probe_kinds": [
+    "constant",
+    "runtime"
+   ]
+  },
+  {
+   "path": "vehicle/tests/test_power_rules.py",
+   "score": 10.141447227100274,
+   "ai_lines": 370,
+   "verifiable_lines": 118,
+   "attest_only_lines": 252,
+   "no_quiz_lines": 0,
+   "klass": "partly verifiable",
+   "probe_kinds": [
+    "constant",
+    "runtime"
+   ]
+  },
+  {
+   "path": "vehicle/tests/test_thermal_rules.py",
+   "score": 9.972358457536389,
+   "ai_lines": 538,
+   "verifiable_lines": 199,
+   "attest_only_lines": 339,
+   "no_quiz_lines": 0,
+   "klass": "partly verifiable",
+   "probe_kinds": [
+    "constant",
+    "runtime"
+   ]
+  },
+  {
+   "path": "aurora/recorder/recorder_streams.py",
+   "score": 9.93741582534325,
+   "ai_lines": 1023,
+   "verifiable_lines": 200,
+   "attest_only_lines": 823,
+   "no_quiz_lines": 0,
+   "klass": "partly verifiable",
+   "probe_kinds": [
+    "constant"
+   ]
+  },
+  {
+   "path": "aurora/tests/test_agent_entrypoint.py",
+   "score": 9.82998636887579,
+   "ai_lines": 318,
+   "verifiable_lines": 73,
+   "attest_only_lines": 245,
+   "no_quiz_lines": 0,
+   "klass": "partly verifiable",
+   "probe_kinds": [
+    "constant"
+   ]
+  },
+  {
+   "path": "aurora/scripts/volume_images.py",
+   "score": 9.679502840443108,
+   "ai_lines": 767,
+   "verifiable_lines": 367,
+   "attest_only_lines": 400,
+   "no_quiz_lines": 0,
+   "klass": "partly verifiable",
+   "probe_kinds": [
+    "constant",
+    "runtime"
+   ]
+  },
+  {
+   "path": "vehicle/tests/test_eclss_rules.py",
+   "score": 9.538211124626782,
+   "ai_lines": 163,
+   "verifiable_lines": 68,
+   "attest_only_lines": 95,
+   "no_quiz_lines": 0,
+   "klass": "partly verifiable",
+   "probe_kinds": [
+    "constant"
+   ]
+  },
+  {
+   "path": "aurora/tests/test_quiet_coast_window.py",
+   "score": 9.537141176575862,
+   "ai_lines": 468,
+   "verifiable_lines": 0,
+   "attest_only_lines": 468,
+   "no_quiz_lines": 0,
+   "klass": "attest-only",
+   "probe_kinds": []
+  },
+  {
+   "path": "vehicle/tests/test_quiet_coast_scenario.py",
+   "score": 9.532581395557646,
+   "ai_lines": 128,
+   "verifiable_lines": 50,
+   "attest_only_lines": 78,
+   "no_quiz_lines": 0,
+   "klass": "partly verifiable",
+   "probe_kinds": [
+    "constant"
+   ]
+  },
+  {
+   "path": "vehicle/tests/test_comms_rules.py",
+   "score": 9.526846711978958,
+   "ai_lines": 199,
+   "verifiable_lines": 61,
+   "attest_only_lines": 138,
+   "no_quiz_lines": 0,
+   "klass": "partly verifiable",
+   "probe_kinds": [
+    "constant",
+    "runtime"
+   ]
+  },
+  {
+   "path": "vehicle/tests/test_console_scenario.py",
+   "score": 9.498804930702324,
+   "ai_lines": 418,
+   "verifiable_lines": 115,
+   "attest_only_lines": 303,
+   "no_quiz_lines": 0,
+   "klass": "partly verifiable",
+   "probe_kinds": [
+    "constant"
+   ]
+  },
+  {
+   "path": "aurora/recorder/tests/test_proxy.py",
+   "score": 9.309626650795146,
+   "ai_lines": 1801,
+   "verifiable_lines": 0,
+   "attest_only_lines": 1801,
+   "no_quiz_lines": 0,
+   "klass": "attest-only",
+   "probe_kinds": []
+  },
+  {
+   "path": "aurora/tests/test_verify_containment.py",
+   "score": 9.270894532165464,
+   "ai_lines": 427,
+   "verifiable_lines": 129,
+   "attest_only_lines": 298,
+   "no_quiz_lines": 0,
+   "klass": "partly verifiable",
+   "probe_kinds": [
+    "constant"
+   ]
+  },
+  {
+   "path": "vehicle/tools/trajectory.py",
+   "score": 9.264061566679217,
+   "ai_lines": 454,
+   "verifiable_lines": 152,
+   "attest_only_lines": 302,
+   "no_quiz_lines": 0,
+   "klass": "partly verifiable",
+   "probe_kinds": [
+    "constant",
+    "runtime"
+   ]
+  },
+  {
+   "path": "aurora/tests/test_journal.py",
+   "score": 9.232521542559104,
+   "ai_lines": 566,
+   "verifiable_lines": 0,
+   "attest_only_lines": 566,
+   "no_quiz_lines": 0,
+   "klass": "attest-only",
+   "probe_kinds": []
+  },
+  {
+   "path": "aurora/pump/pump.py",
+   "score": 9.148776726919834,
+   "ai_lines": 955,
+   "verifiable_lines": 210,
+   "attest_only_lines": 745,
+   "no_quiz_lines": 0,
+   "klass": "partly verifiable",
+   "probe_kinds": [
+    "constant"
+   ]
+  },
+  {
+   "path": "aurora/tests/test_health.py",
+   "score": 9.119660993377378,
+   "ai_lines": 452,
+   "verifiable_lines": 0,
+   "attest_only_lines": 452,
+   "no_quiz_lines": 0,
+   "klass": "attest-only",
+   "probe_kinds": []
+  },
+  {
+   "path": "vehicle/tests/test_scenario.py",
+   "score": 9.01373867759565,
+   "ai_lines": 121,
+   "verifiable_lines": 0,
+   "attest_only_lines": 121,
+   "no_quiz_lines": 0,
+   "klass": "attest-only",
+   "probe_kinds": []
+  },
+  {
+   "path": "vehicle/tests/test_state_level.py",
+   "score": 9.007689699916451,
+   "ai_lines": 54,
+   "verifiable_lines": 0,
+   "attest_only_lines": 54,
+   "no_quiz_lines": 0,
+   "klass": "attest-only",
+   "probe_kinds": []
+  },
+  {
+   "path": "aurora/live/probes.py",
+   "score": 9.006822644544542,
+   "ai_lines": 102,
+   "verifiable_lines": 46,
+   "attest_only_lines": 56,
+   "no_quiz_lines": 0,
+   "klass": "partly verifiable",
+   "probe_kinds": [
+    "constant",
+    "runtime"
+   ]
+  }
+ ],
+ "files_by_class": {
+  "partly verifiable": 18,
+  "attest-only": 7
+ },
+ "verifiable_share": 0.18649802206953986,
+ "attest_only_share": 0.8135019779304601,
+ "no_quiz_share": 0.0,
+ "scip_index": false,
+ "sandbox": "host (audit hook + rlimits [+ sandbox-exec])",
+ "notes": [
+  "Mutation probes are opt-in and slow; not counted.",
+  "No fresh SCIP index: call-graph probes are not counted (run `cdebt index`). TypeScript/JavaScript stay no-quiz without one."
+ ]
+}

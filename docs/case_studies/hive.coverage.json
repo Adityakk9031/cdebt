@@ -1,0 +1,267 @@
+{
+ "top_n": 25,
+ "files": [
+  {
+   "path": "cmd/hivegui/frontend/test/e2e/wails-mock.ts",
+   "score": 17.254696969360467,
+   "ai_lines": 2268,
+   "verifiable_lines": 0,
+   "attest_only_lines": 0,
+   "no_quiz_lines": 2268,
+   "klass": "no-quiz",
+   "probe_kinds": []
+  },
+  {
+   "path": "cmd/hivegui/frontend/test/e2e-real/wails-bridge.ts",
+   "score": 14.666978960210932,
+   "ai_lines": 642,
+   "verifiable_lines": 0,
+   "attest_only_lines": 0,
+   "no_quiz_lines": 642,
+   "klass": "no-quiz",
+   "probe_kinds": []
+  },
+  {
+   "path": "cmd/hivegui/frontend/test/dom/settings.test.tsx",
+   "score": 12.648100554594318,
+   "ai_lines": 1627,
+   "verifiable_lines": 0,
+   "attest_only_lines": 0,
+   "no_quiz_lines": 1627,
+   "klass": "no-quiz",
+   "probe_kinds": []
+  },
+  {
+   "path": "cmd/hivegui/frontend/src/app/events.ts",
+   "score": 12.641609975037724,
+   "ai_lines": 1426,
+   "verifiable_lines": 0,
+   "attest_only_lines": 0,
+   "no_quiz_lines": 1426,
+   "klass": "no-quiz",
+   "probe_kinds": []
+  },
+  {
+   "path": "cmd/hivegui/frontend/src/store/store.ts",
+   "score": 12.529329116633159,
+   "ai_lines": 1540,
+   "verifiable_lines": 0,
+   "attest_only_lines": 0,
+   "no_quiz_lines": 1540,
+   "klass": "no-quiz",
+   "probe_kinds": []
+  },
+  {
+   "path": "cmd/hivegui/frontend/src/app/session-term.ts",
+   "score": 11.879662904471502,
+   "ai_lines": 1778,
+   "verifiable_lines": 0,
+   "attest_only_lines": 0,
+   "no_quiz_lines": 1778,
+   "klass": "no-quiz",
+   "probe_kinds": []
+  },
+  {
+   "path": "cmd/hivegui/frontend/src/lib/shortcuts.ts",
+   "score": 11.462548608943836,
+   "ai_lines": 443,
+   "verifiable_lines": 0,
+   "attest_only_lines": 0,
+   "no_quiz_lines": 443,
+   "klass": "no-quiz",
+   "probe_kinds": []
+  },
+  {
+   "path": "cmd/hivegui/frontend/src/app/keyboard.ts",
+   "score": 11.107153938947716,
+   "ai_lines": 117,
+   "verifiable_lines": 0,
+   "attest_only_lines": 0,
+   "no_quiz_lines": 117,
+   "klass": "no-quiz",
+   "probe_kinds": []
+  },
+  {
+   "path": "cmd/hivegui/frontend/src/app/view.ts",
+   "score": 11.011219809378884,
+   "ai_lines": 476,
+   "verifiable_lines": 0,
+   "attest_only_lines": 0,
+   "no_quiz_lines": 476,
+   "klass": "no-quiz",
+   "probe_kinds": []
+  },
+  {
+   "path": "cmd/hivegui/frontend/test/dom/nav-history.test.ts",
+   "score": 10.536241567025323,
+   "ai_lines": 354,
+   "verifiable_lines": 0,
+   "attest_only_lines": 0,
+   "no_quiz_lines": 354,
+   "klass": "no-quiz",
+   "probe_kinds": []
+  },
+  {
+   "path": "cmd/hivegui/frontend/test/dom/launcher.test.tsx",
+   "score": 10.511312333672493,
+   "ai_lines": 1249,
+   "verifiable_lines": 0,
+   "attest_only_lines": 0,
+   "no_quiz_lines": 1249,
+   "klass": "no-quiz",
+   "probe_kinds": []
+  },
+  {
+   "path": "cmd/hivegui/frontend/test/dom/message-session.test.tsx",
+   "score": 10.252430501780912,
+   "ai_lines": 266,
+   "verifiable_lines": 0,
+   "attest_only_lines": 0,
+   "no_quiz_lines": 266,
+   "klass": "no-quiz",
+   "probe_kinds": []
+  },
+  {
+   "path": "cmd/hivegui/frontend/test/dom/settings-updates.test.tsx",
+   "score": 10.172255355085971,
+   "ai_lines": 358,
+   "verifiable_lines": 0,
+   "attest_only_lines": 0,
+   "no_quiz_lines": 358,
+   "klass": "no-quiz",
+   "probe_kinds": []
+  },
+  {
+   "path": "scripts/workflow-proto/dsl.ts",
+   "score": 10.05951750866614,
+   "ai_lines": 554,
+   "verifiable_lines": 0,
+   "attest_only_lines": 0,
+   "no_quiz_lines": 554,
+   "klass": "no-quiz",
+   "probe_kinds": []
+  },
+  {
+   "path": "cmd/hivegui/frontend/test/dom/minimize-project.test.tsx",
+   "score": 9.843730066216551,
+   "ai_lines": 955,
+   "verifiable_lines": 0,
+   "attest_only_lines": 0,
+   "no_quiz_lines": 955,
+   "klass": "no-quiz",
+   "probe_kinds": []
+  },
+  {
+   "path": "cmd/hivegui/frontend/src/components/Sidebar.tsx",
+   "score": 9.784325292873882,
+   "ai_lines": 743,
+   "verifiable_lines": 0,
+   "attest_only_lines": 0,
+   "no_quiz_lines": 743,
+   "klass": "no-quiz",
+   "probe_kinds": []
+  },
+  {
+   "path": "cmd/hivegui/frontend/test/dom/plan-review-plugin.test.tsx",
+   "score": 9.741911165818978,
+   "ai_lines": 528,
+   "verifiable_lines": 0,
+   "attest_only_lines": 0,
+   "no_quiz_lines": 528,
+   "klass": "no-quiz",
+   "probe_kinds": []
+  },
+  {
+   "path": "cmd/hivegui/frontend/test/dom/project-editor.test.tsx",
+   "score": 9.717830619594304,
+   "ai_lines": 365,
+   "verifiable_lines": 0,
+   "attest_only_lines": 0,
+   "no_quiz_lines": 365,
+   "klass": "no-quiz",
+   "probe_kinds": []
+  },
+  {
+   "path": "plugins/sdk/hive-plugin.mjs",
+   "score": 9.640794175514683,
+   "ai_lines": 468,
+   "verifiable_lines": 0,
+   "attest_only_lines": 0,
+   "no_quiz_lines": 468,
+   "klass": "no-quiz",
+   "probe_kinds": []
+  },
+  {
+   "path": "plugins/webhook/hive-plugin.mjs",
+   "score": 9.640794175514683,
+   "ai_lines": 468,
+   "verifiable_lines": 0,
+   "attest_only_lines": 0,
+   "no_quiz_lines": 468,
+   "klass": "no-quiz",
+   "probe_kinds": []
+  },
+  {
+   "path": "cmd/hivegui/frontend/test/dom/key-scopes.test.ts",
+   "score": 9.626713784404405,
+   "ai_lines": 454,
+   "verifiable_lines": 0,
+   "attest_only_lines": 0,
+   "no_quiz_lines": 454,
+   "klass": "no-quiz",
+   "probe_kinds": []
+  },
+  {
+   "path": "cmd/hivegui/frontend/test/dom/command-palette.test.tsx",
+   "score": 9.61751928652797,
+   "ai_lines": 299,
+   "verifiable_lines": 0,
+   "attest_only_lines": 0,
+   "no_quiz_lines": 299,
+   "klass": "no-quiz",
+   "probe_kinds": []
+  },
+  {
+   "path": "cmd/hivegui/frontend/test/dom/attention-jump-integration.test.ts",
+   "score": 9.562271823414768,
+   "ai_lines": 338,
+   "verifiable_lines": 0,
+   "attest_only_lines": 0,
+   "no_quiz_lines": 338,
+   "klass": "no-quiz",
+   "probe_kinds": []
+  },
+  {
+   "path": "cmd/hivegui/frontend/test/dom/acp-transcript.test.tsx",
+   "score": 9.539247588845079,
+   "ai_lines": 316,
+   "verifiable_lines": 0,
+   "attest_only_lines": 0,
+   "no_quiz_lines": 316,
+   "klass": "no-quiz",
+   "probe_kinds": []
+  },
+  {
+   "path": "cmd/hivegui/frontend/test/dom/activity-panel.test.tsx",
+   "score": 9.535326510452018,
+   "ai_lines": 328,
+   "verifiable_lines": 0,
+   "attest_only_lines": 0,
+   "no_quiz_lines": 328,
+   "klass": "no-quiz",
+   "probe_kinds": []
+  }
+ ],
+ "files_by_class": {
+  "no-quiz": 25
+ },
+ "verifiable_share": 0.0,
+ "attest_only_share": 0.0,
+ "no_quiz_share": 1.0,
+ "scip_index": false,
+ "sandbox": "host (audit hook + rlimits [+ sandbox-exec])",
+ "notes": [
+  "Mutation probes are opt-in and slow; not counted.",
+  "No fresh SCIP index: call-graph probes are not counted (run `cdebt index`). TypeScript/JavaScript stay no-quiz without one."
+ ]
+}

@@ -345,9 +345,89 @@ def _rss_kb(pid: int) -> int:
         return 0
 
 
-def _kill_group(pid: int) -> None:
+def _kill_group(pgid: int) -> None:
+    """SIGKILL a process group whose id is `pgid` (the sandbox child is a session leader, so
+    pgid == its pid). Refuses if that pid now belongs to an unrelated process (PID reuse after
+    the leader was reaped)."""
+    try:
+        cur: int | None = os.getpgid(pgid)
+    except ProcessLookupError:
+        cur = None  # leader gone: remaining members (if any) still carry this group id
+    except OSError:
+        return
+    if cur not in (None, pgid):
+        return
     with contextlib.suppress(ProcessLookupError, PermissionError, OSError):
-        os.killpg(os.getpgid(pid), signal.SIGKILL)
+        os.killpg(pgid, signal.SIGKILL)
+
+
+def _descendants(pid: int) -> list[int]:
+    """All live descendants of `pid` (so children that left the process group by calling
+    setsid are killed too). Best effort: needs `ps`."""
+    try:
+        out = subprocess.run(
+            ["ps", "-A", "-o", "pid=,ppid="], capture_output=True, text=True, timeout=3
+        ).stdout
+    except Exception:  # noqa: BLE001
+        return []
+    kids: dict[int, list[int]] = {}
+    for ln in out.splitlines():
+        parts = ln.split()
+        if len(parts) == 2 and parts[0].isdigit() and parts[1].isdigit():
+            kids.setdefault(int(parts[1]), []).append(int(parts[0]))
+    found: list[int] = []
+    stack = [pid]
+    while stack:
+        for k in kids.get(stack.pop(), []):
+            found.append(k)
+            stack.append(k)
+    return found
+
+
+def _kill_tree(pid: int) -> None:
+    """Kill the whole process tree: descendants first (they may have escaped the group), then
+    the group, then the group again (a fork racing the first pass)."""
+    for d in _descendants(pid):
+        with contextlib.suppress(ProcessLookupError, PermissionError, OSError):
+            os.kill(d, signal.SIGKILL)
+    _kill_group(pid)
+    _kill_group(pid)
+
+
+def _docker(args: list[str], timeout: float) -> None:
+    """Run a docker CLI command with a hard timeout; never raises."""
+    with contextlib.suppress(Exception):
+        subprocess.run(["docker", *args], capture_output=True, timeout=timeout)
+
+
+_REAPED = False
+
+
+def _reap_orphan_containers() -> None:
+    """Remove `cdebt-<pid>-...` containers whose creating process is gone (it was killed
+    between `docker create` and cleanup). Once per process."""
+    global _REAPED
+    if _REAPED:
+        return
+    _REAPED = True
+    try:
+        names = subprocess.run(
+            ["docker", "ps", "-a", "--filter", "name=cdebt-", "--format", "{{.Names}}"],
+            capture_output=True,
+            text=True,
+            timeout=15,
+        ).stdout.split()
+    except Exception:  # noqa: BLE001
+        return
+    for n in names:
+        parts = n.split("-")
+        if len(parts) >= 3 and parts[1].isdigit():
+            try:
+                os.kill(int(parts[1]), 0)
+            except ProcessLookupError:
+                _docker(["rm", "-f", n], 30)
+            except PermissionError:
+                pass
 
 
 def run_in_sandbox(
@@ -395,6 +475,7 @@ def run_in_sandbox(
         # shared with the Docker VM). No network, capped memory/pids, no capabilities,
         # unprivileged user. The audit hook still runs inside the container.
         isolation = "docker"
+        _reap_orphan_containers()
         docker_name = f"cdebt-{os.getpid()}-{int(time.time() * 1e6)}"
         runner_src = runner.read_text()
         stdin_data = json.dumps(spec).replace(str(root), "/work").replace(orig_root, "/work")
@@ -449,7 +530,7 @@ def run_in_sandbox(
             == 0
         )
         if not copied:
-            subprocess.run(["docker", "rm", "-f", docker_name], capture_output=True)
+            _docker(["rm", "-f", docker_name], 30)
             docker_name, isolation = None, "audit+rlimit"
         else:
             docker_bin = shutil.which("docker") or "docker"
@@ -491,37 +572,49 @@ def run_in_sandbox(
         )
     except Exception:
         if docker_name:
-            subprocess.run(["docker", "rm", "-f", docker_name], capture_output=True)
+            _docker(["rm", "-f", docker_name], 30)
         raise
     flags = {"mem": False, "timeout": False}
     done = threading.Event()
 
-    def watchdog() -> None:
-        while not done.wait(0.05):
-            if time.monotonic() - t0 > timeout:
-                flags["timeout"] = True
-                _kill_group(proc.pid)
-                return
+    def terminate(reason: str) -> None:
+        if proc.poll() is not None:  # already exited by itself: not a timeout/mem kill
+            return
+        flags[reason] = True
+        if docker_name:  # the CONTAINER is what runs the code: kill it, not just the client
+            _docker(["kill", docker_name], 10)
+        _kill_tree(proc.pid)
+
+    # The wall-clock limit is its own timer: it must not depend on how long `ps` (the RSS poll
+    # below) takes under load. (Previously one slow `ps` delayed the timeout check.)
+    timer = threading.Timer(timeout, terminate, args=("timeout",))
+    timer.daemon = True
+    timer.start()
+
+    def rss_watch() -> None:
+        while not done.wait(0.25):
             if docker_name is None and _rss_kb(proc.pid) > mem_mb * 1024:
-                flags["mem"] = True
-                _kill_group(proc.pid)
+                terminate("mem")
                 return
 
-    wd = threading.Thread(target=watchdog, daemon=True)
-    wd.start()
+    threading.Thread(target=rss_watch, daemon=True).start()
     try:
         out, err = proc.communicate(
             stdin_data.encode() if stdin_data else None, timeout=timeout + 5
         )
     except subprocess.TimeoutExpired:
-        _kill_group(proc.pid)
+        terminate("timeout")  # backstop if the timer thread could not run
+        _kill_tree(proc.pid)
         out, err = proc.communicate()
         flags["timeout"] = True
-    finally:
-        done.set()
-        _kill_group(proc.pid)  # reap any stragglers in the process group
+    t_end = time.monotonic()  # time until the code stopped running, before any cleanup
+    done.set()
+    timer.cancel()
+    try:
+        _kill_tree(proc.pid)  # reap stragglers in the tree
         if docker_name:
-            subprocess.run(["docker", "rm", "-f", docker_name], capture_output=True)
+            _docker(["rm", "-f", docker_name], 30)
+    finally:
         shutil.rmtree(runner.parent, ignore_errors=True)
     text = out.decode("utf-8", "replace")
     payload: dict[str, object] | None = None
@@ -542,7 +635,7 @@ def run_in_sandbox(
         violations=viol,
         isolation=isolation,
         payload=payload,
-        elapsed=time.monotonic() - t0,
+        elapsed=t_end - t0,
     )
 
 
