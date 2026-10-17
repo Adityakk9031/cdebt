@@ -14,7 +14,7 @@ from rich.table import Table
 from cdebt import gitutil
 from cdebt.config import load_config
 from cdebt.mapper import MapResult, compute_map
-from cdebt.scip import index_path, load_index
+from cdebt.scip import ScipIndex, index_path, load_index
 
 app = typer.Typer(
     add_completion=False,
@@ -40,7 +40,7 @@ def _repo(p: Path) -> Path:
         raise typer.Exit(2) from None
 
 
-def _scip(repo: Path, build: bool) -> object | None:
+def _scip(repo: Path, build: bool) -> ScipIndex | None:
     from cdebt.scip import build_index
 
     ip = index_path(repo)
@@ -111,7 +111,7 @@ def map_cmd(
     """Which files hold the most AI-written code nobody has verifiably understood?"""
     r = _repo(repo)
     idx = None if no_scip else _scip(r, build_scip)
-    res = compute_map(r, load_config(r), rev, scip_idx=idx)  # type: ignore[arg-type]
+    res = compute_map(r, load_config(r), rev, scip_idx=idx)
     if json_out:
         typer.echo(json.dumps(json.loads(res.model_dump_json()), indent=2))
     else:
@@ -332,6 +332,54 @@ def attest_cmd(
         raise typer.Exit(1)
 
 
+@app.command("coverage")
+def coverage_cmd(
+    repo: RepoOpt = Path("."),
+    top_n: Annotated[int, typer.Option("--top-n", help="number of highest-debt files")] = 25,
+    rev: str = "HEAD",
+    json_out: Annotated[bool, typer.Option("--json")] = False,
+    no_scip: Annotated[bool, typer.Option("--no-scip")] = False,
+) -> None:
+    """What fraction of the top-N debt files can be VERIFIED, only ATTESTED, or not quizzed at
+    all (incl. TypeScript)? Run this before trusting the gate."""
+    from cdebt.coverage import compute_coverage
+
+    r = _repo(repo)
+    res = compute_coverage(
+        r, load_config(r), top_n, rev, scip_idx=None if no_scip else _scip(r, False)
+    )
+    if json_out:
+        typer.echo(json.dumps(json.loads(res.model_dump_json()), indent=2))
+        return
+    t = Table(title=f"cdebt coverage: top {top_n} debt files")
+    for c in ("file", "AI lines", "verifiable", "attest-only", "no-quiz", "class", "probe kinds"):
+        t.add_column(c)
+    for f in res.files:
+        t.add_row(
+            f.path,
+            str(f.ai_lines),
+            str(f.verifiable_lines),
+            str(f.attest_only_lines),
+            str(f.no_quiz_lines),
+            f.klass,
+            ",".join(f.probe_kinds) or "-",
+        )
+    console.print(t)
+
+    def pct(x: float | None) -> str:
+        return "n/a" if x is None else f"{x:.0%}"
+
+    console.print(
+        f"[bold]Of the AI lines in these files:[/] {pct(res.verifiable_share)} can be VERIFIED by "
+        f"a quiz, {pct(res.attest_only_share)} can only be ATTESTED (NON-VERIFIED), "
+        f"{pct(res.no_quiz_share)} are in languages with no quiz support. "
+        f"Files by class: {res.files_by_class}. SCIP index: {res.scip_index}; sandbox: "
+        f"{res.sandbox}."
+    )
+    for n in res.notes:
+        console.print(f"[dim]{n}[/]")
+
+
 @app.command("plan")
 def plan_cmd(
     repo: RepoOpt = Path("."),
@@ -344,7 +392,7 @@ def plan_cmd(
     from cdebt.plan import compute_plan
 
     r = _repo(repo)
-    items = compute_plan(r, load_config(r), rev, top, scip_idx=None if no_scip else _scip(r, False))  # type: ignore[arg-type]
+    items = compute_plan(r, load_config(r), rev, top, scip_idx=None if no_scip else _scip(r, False))
     if json_out:
         typer.echo(json.dumps([json.loads(i.model_dump_json()) for i in items], indent=2))
         return

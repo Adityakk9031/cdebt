@@ -97,6 +97,7 @@ def compute_map(
     units_ai = units_ok = units_att = 0
     coarse = False
     agg_sources: dict[str, int] = {}
+    ai_units_by_path: dict[str, dict[str, int]] = {}
     for p, text in sources.items():
         fa = resolve_file(repo, p, rev, providers)
         if fa.total == 0:
@@ -110,12 +111,14 @@ def compute_map(
         ]
         und = 0
         att = 0
+        unit_ai: dict[str, int] = {}
         seen_units: set[str] = set()
         for ln in ai_lines:
             u = unit_for_line(units, ln)
             if u is None:
                 continue
             st = status[(u.path, u.symbol)]
+            unit_ai[u.symbol] = unit_ai.get(u.symbol, 0) + 1
             und += int(st == "verified")
             att += int(st == "attested")
             if u.symbol not in seen_units:
@@ -123,6 +126,7 @@ def compute_map(
                 units_ai += 1
                 units_ok += int(st == "verified")
                 units_att += int(st == "attested")
+        ai_units_by_path[p] = unit_ai
         coarse = coarse or fa.coarse
         for k, v in fa.source_counts().items():
             agg_sources[k] = agg_sources.get(k, 0) + v
@@ -178,6 +182,7 @@ def compute_map(
                 attribution_source=AttributionSource(src),
                 source_counts=counts,
                 coarse=co,
+                ai_units=ai_units_by_path.get(p, {}),
             )
         )
     files.sort(key=lambda f: (-f.score, f.path))

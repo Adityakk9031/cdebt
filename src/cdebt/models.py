@@ -145,6 +145,7 @@ class FileDebt(BaseModel):
     attribution_source: AttributionSource
     source_counts: dict[str, int] = Field(default_factory=dict)
     coarse: bool = False
+    ai_units: dict[str, int] = Field(default_factory=dict)  # unit symbol -> AI lines in it
 
 
 class Violation(BaseModel):
