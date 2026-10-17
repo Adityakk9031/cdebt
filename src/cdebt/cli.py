@@ -8,6 +8,7 @@ from typing import Annotated
 
 import typer
 from rich.console import Console
+from rich.markup import escape
 from rich.table import Table
 
 from cdebt import gitutil
@@ -52,13 +53,15 @@ def render_map(res: MapResult, top: int) -> None:
     s = res.summary
     t = Table(
         title=f"cdebt map @ {s.rev}",
-        caption="score = ai_share x (1-understood) x "
-        "(1+w*churn) x blast. `unknown` attribution is NOT human-written.",
+        caption="score = ai_share x (1-understood) x (1+w*churn) x blast; understood = verified "
+        "+ weight x attested. `attested` = human sign-off, NON-VERIFIED. `unknown` attribution "
+        "is NOT human-written.",
     )
     for c, j in (
         ("file", "left"),
         ("AI%", "right"),
-        ("understood%", "right"),
+        ("verified%", "right"),
+        ("attested% (NON-VERIFIED)", "right"),
         ("unknown%", "right"),
         ("churn", "right"),
         ("blast", "right"),
@@ -71,7 +74,8 @@ def render_map(res: MapResult, top: int) -> None:
         t.add_row(
             f.path,
             f"{f.ai_share:.0%}",
-            f"{f.understood_share:.0%}" if f.ai_lines else "-",
+            f"{f.understood_ai_lines / f.ai_lines:.0%}" if f.ai_lines else "-",
+            f"{f.attested_ai_lines / f.ai_lines:.0%}" if f.ai_lines else "-",
             f"{f.unknown_lines / f.total_lines:.0%}",
             f"{f.churn:.2f}",
             f"{f.blast_radius:.2f}",
@@ -82,12 +86,14 @@ def render_map(res: MapResult, top: int) -> None:
     console.print(t)
     srcs = ", ".join(f"{k}={v}" for k, v in s.attribution_sources.items()) or "none (all unknown)"
     und = "n/a" if s.understood_ai_share is None else f"{s.understood_ai_share:.0%}"
+    att = "n/a" if s.attested_ai_share is None else f"{s.attested_ai_share:.0%}"
     lo, hi = s.understood_units_ci95
     console.print(
         f"[bold]Summary[/] files={s.files} lines={s.total_lines} | AI={s.ai_share:.1%} "
         f"({s.ai_lines}) unknown={s.unknown_share:.1%} ({s.unknown_lines}) | "
-        f"AI lines understood: {und} | AI units understood: {s.units_understood}/"
-        f"{s.units_with_ai} (95% CI {lo:.0%}-{hi:.0%}) | attribution sources: {srcs}"
+        f"AI lines verified: {und} | attested (NON-VERIFIED): {att} | AI units verified: "
+        f"{s.units_understood}/{s.units_with_ai} (95% CI {lo:.0%}-{hi:.0%}), attested "
+        f"{s.units_attested} | attribution sources: {srcs}"
     )
     if s.coarse_attribution:
         console.print("[yellow]* coarse: commit-level trailer heuristic, not line-level.[/]")
@@ -132,8 +138,8 @@ def quiz_cmd(
     n: int = 5,
     seed: int = 0,
     kinds: Annotated[
-        str, typer.Option(help="comma list: runtime,callgraph,mutation")
-    ] = "runtime,callgraph",
+        str, typer.Option(help="comma list: runtime,callgraph,constant,mutation")
+    ] = "runtime,callgraph,constant",
     label: Annotated[
         str | None, typer.Option(help="audit label, never reported per person")
     ] = None,
@@ -222,6 +228,15 @@ def gate_cmd(
     head: str = "HEAD",
     max_ai_lines: int = 0,
     strict_unknown: Annotated[bool, typer.Option("--strict-unknown")] = False,
+    require: Annotated[
+        str | None,
+        typer.Option(
+            "--require",
+            help="verified: only execution-verified counts. attested: NON-VERIFIED sign-offs "
+            "count everywhere. Default: attested accepted for module-level code and for "
+            "functions quiz cannot verify; verified required otherwise.",
+        ),
+    ] = None,
     json_out: Annotated[bool, typer.Option("--json")] = False,
     markdown: Annotated[Path | None, typer.Option(help="write PR-comment markdown")] = None,
 ) -> None:
@@ -231,8 +246,17 @@ def gate_cmd(
     r = _repo(repo)
     try:
         res = run_gate(
-            r, load_config(r), base, head, max_ai_lines=max_ai_lines, strict_unknown=strict_unknown
+            r,
+            load_config(r),
+            base,
+            head,
+            max_ai_lines=max_ai_lines,
+            strict_unknown=strict_unknown,
+            require=require or "default",
         )
+    except ValueError as e:
+        typer.echo(f"error: {e}", err=True)
+        raise typer.Exit(2) from None
     except gitutil.GitError as e:
         typer.echo(f"error: {e}", err=True)
         raise typer.Exit(2) from None
@@ -251,9 +275,61 @@ def gate_cmd(
                 f"  {v.path}::{v.symbol}  {len(v.ai_lines)} AI lines "
                 f"\\[{v.status}, {v.attribution_source.value}]"
             )
+        if res.attested_accepted_lines:
+            console.print(
+                f"[yellow]{res.attested_accepted_lines} AI line(s) accepted on ATTESTATION "
+                "(NON-VERIFIED).[/]"
+            )
         for n in res.notes:
-            console.print(f"[yellow]{n}[/]")
+            console.print(f"[yellow]{escape(n)}[/]")
     raise typer.Exit(0 if res.passed else 1)
+
+
+@app.command("attest")
+def attest_cmd(
+    file: Path,
+    note: Annotated[str, typer.Option("--note", help="what you read / why it is fine (required)")],
+    repo: RepoOpt = Path("."),
+    unit: Annotated[
+        list[str] | None, typer.Option("--unit", help="unit symbol (repeatable); default: all")
+    ] = None,
+    label: Annotated[
+        str | None, typer.Option(help="audit label, never reported per person")
+    ] = None,
+    expires_days: Annotated[int | None, typer.Option()] = None,
+    force: Annotated[
+        bool, typer.Option("--force", help="attest even functions that quiz could verify")
+    ] = False,
+) -> None:
+    """Record a human sign-off. NON-VERIFIED: nothing is executed or checked. Hash-bound, so it
+    expires when the code changes. Use for module-level or unquizzable code."""
+    from cdebt.quiz import attest
+
+    r = _repo(repo)
+    rel = str((file if file.is_absolute() else Path.cwd() / file).resolve().relative_to(r))
+    try:
+        recs, notes = attest(
+            r,
+            rel,
+            load_config(r),
+            note,
+            symbols=unit,
+            label=label,
+            expires_days=expires_days,
+            force=force,
+        )
+    except (ValueError, FileNotFoundError) as e:
+        typer.echo(f"error: {e}", err=True)
+        raise typer.Exit(2) from None
+    for n in notes:
+        console.print(escape(n))
+    console.print(
+        f"[bold]{len(recs)} unit(s) attested[/] (NON-VERIFIED human sign-off; counts at weight "
+        f"{load_config(r).attested_weight:g} in the map, accepted by the default gate only for "
+        "module-level or unquizzable code). Commit .cdebt/understanding.json."
+    )
+    if not recs:
+        raise typer.Exit(1)
 
 
 @app.command("plan")

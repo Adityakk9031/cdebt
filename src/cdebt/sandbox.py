@@ -267,6 +267,14 @@ try:
             except BaseException as e:
                 results.append(("raises", type(e).__name__))
         out["results"] = results
+    elif spec["mode"] == "attrs":
+        import importlib
+        mod = importlib.import_module(spec["module"])
+        vals = {n: [repr(getattr(mod, n, "<missing>"))] for n in spec["names"]}
+        importlib.reload(mod)  # second evaluation: constants must be stable
+        for n in spec["names"]:
+            vals[n].append(repr(getattr(mod, n, "<missing>")))
+        out["values"] = vals
     elif spec["mode"] == "exec":
         exec(compile(spec["code"], "<sandbox>", "exec"), {"__name__": "__sandbox__"})
     out["stdout"] = sys.stdout.getvalue()[:10000]

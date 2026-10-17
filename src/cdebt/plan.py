@@ -31,7 +31,8 @@ class PlanItem(BaseModel):
     effort_min: float
     priority: float  # score / effort_min
     units: list[str]
-    unquizzable_ai_lines: int
+    unquizzable_ai_lines: int  # module-level AI lines (quiz covers constants only)
+    attested_ai_lines: int = 0  # ATTESTED (NON-VERIFIED): no effort counted, score weighted
     attribution_source: AttributionSource
 
 
@@ -50,11 +51,18 @@ def compute_plan(
         units = extract_units(f.path, text)
         need: dict[str, int] = {}
         residual = 0
+        attested = 0
         for i, k in enumerate(fa.kinds):
             if k is not AuthorKind.AI and not (cfg.unknown_as_ai and k is AuthorKind.UNKNOWN):
                 continue
             u = unit_for_line(units, i + 1)
-            if u is None or store.is_understood(u):
+            if u is None:
+                continue
+            st = store.status(u)
+            if st == "verified":
+                continue
+            if st == "attested":  # a human signed off (NON-VERIFIED): no reading effort left
+                attested += 1
                 continue
             if u.symbol.startswith("<"):
                 residual += 1
@@ -69,7 +77,10 @@ def compute_plan(
             )
         elif residual > lines / 2 or not f.path.endswith(".py"):
             action = "review"
-            why = "module-level or non-Python code cannot be quizzed: needs a human read-through"
+            why = (
+                "module-level or non-Python code: read it, then `cdebt attest` "
+                "(NON-VERIFIED); only module constants can be verified by quiz"
+            )
         else:
             action = "quiz"
             why = f"{len(need)} unit(s) can be verified with `cdebt quiz {f.path}`"
@@ -84,6 +95,7 @@ def compute_plan(
                 priority=f.score / effort,
                 units=sorted(need),
                 unquizzable_ai_lines=residual,
+                attested_ai_lines=attested,
                 attribution_source=f.attribution_source,
             )
         )

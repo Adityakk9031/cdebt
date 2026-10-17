@@ -44,7 +44,7 @@ def test_expiry_on_edit(make_repo) -> None:  # type: ignore[no-untyped-def]
     assert st.status(u) == "none"
     st.add(Record(unit_path="a.py", unit_symbol="f", content_hash=u.content_hash, passed=True))
     st.save()
-    assert Store(r.path).status(u) == "valid"
+    assert Store(r.path).status(u) == "verified"
     edited = {x.symbol: x for x in extract_units("a.py", SRC.replace("x + 1", "x + 2"))}["f"]
     assert Store(r.path).status(edited) == "stale"  # code changed -> understanding expired
     assert len(Store(r.path).records) == 1  # kept for audit

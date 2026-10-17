@@ -20,7 +20,7 @@ from pydantic import BaseModel, Field
 from cdebt.models import CodeUnit, Record
 
 SCHEMA = 1
-Status = Literal["valid", "stale", "none"]
+Status = Literal["verified", "attested", "stale", "none"]
 
 
 class _Doc(BaseModel):
@@ -76,22 +76,38 @@ class Store:
             if os.path.exists(tmp):
                 os.unlink(tmp)
 
-    def status(self, unit: CodeUnit, now: datetime | None = None) -> Status:
-        """valid: a passing record matches the current hash. stale: records exist for this
-        unit but none match the current content. none: never quizzed."""
+    def _valid(self, r: Record, unit: CodeUnit, now: datetime) -> bool:
+        return (
+            r.passed
+            and r.content_hash == unit.content_hash
+            and (r.expires_at is None or r.expires_at > now)
+        )
+
+    def record_for(self, unit: CodeUnit, now: datetime | None = None) -> Record | None:
+        """The record that currently clears `unit` (verified preferred over attested)."""
         now = now or datetime.now(UTC)
-        seen = False
+        best: Record | None = None
         for r in self._doc.records:
             if r.unit_path != unit.path or r.unit_symbol != unit.symbol:
                 continue
-            seen = True
-            if (
-                r.passed
-                and r.content_hash == unit.content_hash
-                and (r.expires_at is None or r.expires_at > now)
-            ):
-                return "valid"
+            if self._valid(r, unit, now):
+                if r.kind == "verified":
+                    return r
+                best = best or r
+        return best
+
+    def status(self, unit: CodeUnit, now: datetime | None = None) -> Status:
+        """verified / attested (NON-VERIFIED human sign-off): a passing record matches the
+        current hash. stale: records exist for this unit but none match the current content.
+        none: never quizzed or attested."""
+        r = self.record_for(unit, now)
+        if r is not None:
+            return "verified" if r.kind == "verified" else "attested"
+        seen = any(
+            x.unit_path == unit.path and x.unit_symbol == unit.symbol for x in self._doc.records
+        )
         return "stale" if seen else "none"
 
     def is_understood(self, unit: CodeUnit) -> bool:
-        return self.status(unit) == "valid"
+        """VERIFIED understanding only (attestation does not count here)."""
+        return self.status(unit) == "verified"

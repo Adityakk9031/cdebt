@@ -9,14 +9,14 @@ from pathlib import Path
 from cdebt import gitutil
 from cdebt.config import Config
 from cdebt.models import CodeUnit, Probe, Record
-from cdebt.probes import callgraph, mutation, runtime
+from cdebt.probes import callgraph, constants, mutation, runtime
 from cdebt.probes.base import grade
 from cdebt.scip import index_is_fresh, index_path, load_index
 from cdebt.store import Store
 from cdebt.units import extract_units
 
-ALL_KINDS = ("runtime", "callgraph", "mutation")
-DEFAULT_KINDS = ("runtime", "callgraph")  # mutation is slow: opt in
+ALL_KINDS = ("runtime", "callgraph", "constant", "mutation")
+DEFAULT_KINDS = ("runtime", "callgraph", "constant")  # mutation is slow: opt in
 
 
 def build_quiz(
@@ -52,6 +52,9 @@ def build_quiz(
                 "callgraph: no fresh SCIP index (run `cdebt index`); skipped, "
                 "approximate answers are never used"
             )
+    if "constant" in kinds:
+        ps, sk = constants.generate(repo, rel, source, units, seed, per_unit)
+        pool["constant"], skips = ps, skips + sk
     if "mutation" in kinds:
         ps, sk = mutation.generate(repo, rel, source, units, seed)
         pool["mutation"], skips = ps, skips + sk
@@ -59,7 +62,7 @@ def build_quiz(
     status = {u.symbol: store.status(u) for u in units}
     order = sorted(
         {p.symbol for ps in pool.values() for p in ps},
-        key=lambda s: (status.get(s, "none") == "valid", s),
+        key=lambda s: (status.get(s, "none") == "verified", s),
     )
     rng = random.Random(seed)
     chosen: list[Probe] = []
@@ -121,3 +124,95 @@ def record_results(
 def dirty(repo: Path, rel: str) -> bool:
     head = gitutil.show_file(repo, "HEAD", rel)
     return head is None or head != (repo / rel).read_text()
+
+
+def unit_probe_kinds(
+    repo: Path, rel: str, cfg: Config, source: str | None = None
+) -> tuple[dict[str, set[str]], list[str]]:
+    """Which probe kinds CAN be generated per unit symbol (one probe each; mutation excluded:
+    slow, opt-in). Used by `attest` (is this unit quizzable?) and `coverage`."""
+    f = repo / rel
+    source = source if source is not None else f.read_text()
+    units = extract_units(rel, source)
+    avail: dict[str, set[str]] = {}
+    skips: list[str] = []
+    gens: list[tuple[list[Probe], list[str]]] = [
+        runtime.generate(repo, rel, source, units, 0, 1),
+        constants.generate(repo, rel, source, units, 0, 1),
+    ]
+    if index_is_fresh(repo, cfg.extensions):
+        gens.append(
+            callgraph.generate(repo, rel, units, load_index(index_path(repo)), 0, per_unit=1)
+        )
+    for ps, sk in gens:
+        skips += sk
+        for p in ps:
+            avail.setdefault(p.symbol, set()).add(p.kind)
+    return avail, skips
+
+
+def attest(
+    repo: Path,
+    rel: str,
+    cfg: Config,
+    note: str,
+    *,
+    symbols: list[str] | None = None,
+    label: str | None = None,
+    expires_days: int | None = None,
+    force: bool = False,
+    store: Store | None = None,
+) -> tuple[list[Record], list[str]]:
+    """Record a hash-bound, NON-VERIFIED human sign-off. Module-level units may always be
+    attested. A function that quiz COULD verify is refused unless `force` (then it is stored with
+    scope `function-quizzable`, which the default gate does not accept)."""
+    if not note.strip():
+        raise ValueError("an attestation needs a non-empty --note")
+    source = (repo / rel).read_text()
+    units = extract_units(rel, source)
+    store = store or Store(repo)
+    avail, _ = unit_probe_kinds(repo, rel, cfg, source)
+    wanted = set(symbols) if symbols else None
+    unknown = (wanted or set()) - {u.symbol for u in units}
+    if unknown:
+        raise ValueError(f"no such unit(s) in {rel}: {sorted(unknown)}")
+    exp = datetime.now(UTC) + timedelta(days=expires_days) if expires_days else None
+    recs: list[Record] = []
+    notes: list[str] = []
+    for u in units:
+        if wanted is not None and u.symbol not in wanted:
+            continue
+        st = store.status(u)
+        if st == "verified":
+            notes.append(f"{u.symbol}: already verified, nothing to attest")
+            continue
+        if st == "attested" and wanted is None:
+            continue
+        module = u.symbol.startswith("<")
+        quizzable = not module and bool(avail.get(u.symbol))
+        if quizzable and not force:
+            notes.append(
+                f"{u.symbol}: REFUSED, quiz can verify it ({sorted(avail[u.symbol])}); "
+                "run `cdebt quiz` or pass --force to attest anyway"
+            )
+            continue
+        scope = (
+            "module" if module else ("function-quizzable" if quizzable else "function-unquizzable")
+        )
+        rec = Record(
+            unit_path=rel,
+            unit_symbol=u.symbol,
+            content_hash=u.content_hash,
+            passed=True,
+            expires_at=exp,
+            audit_label=label,
+            kind="attested",
+            note=note.strip(),
+            scope=scope,
+        )
+        store.add(rec)
+        recs.append(rec)
+        notes.append(f"{u.symbol}: attested ({scope}) - NON-VERIFIED")
+    if recs:
+        store.save()
+    return recs, notes

@@ -1,4 +1,5 @@
-"""Debt map: score = ai_share x (1 - understood) x (1 + w_churn * churn) x blast_radius."""
+"""Debt map: score = ai_share x (1 - understood) x (1 + w_churn * churn) x blast_radius,
+where understood = (verified + attested_weight * attested) / ai lines."""
 
 from __future__ import annotations
 
@@ -27,8 +28,11 @@ class Summary(BaseModel):
     unknown_lines: int
     ai_share: float  # ai / total
     unknown_share: float
-    understood_ai_lines: int
-    understood_ai_share: float | None  # None when there are no AI lines
+    understood_ai_lines: int  # VERIFIED
+    understood_ai_share: float | None  # VERIFIED share; None when there are no AI lines
+    attested_ai_lines: int  # ATTESTED (NON-VERIFIED human sign-off)
+    attested_ai_share: float | None
+    units_attested: int
     units_with_ai: int
     units_understood: int
     understood_units_ci95: tuple[float, float]  # Wilson, over units that contain AI lines
@@ -90,7 +94,7 @@ def compute_map(
         if s:
             sources[p] = s
     rows: list[tuple[str, int, int, int, int, int, int, str, dict[str, int], bool, int]] = []
-    units_ai = units_ok = 0
+    units_ai = units_ok = units_att = 0
     coarse = False
     agg_sources: dict[str, int] = {}
     for p, text in sources.items():
@@ -98,24 +102,27 @@ def compute_map(
         if fa.total == 0:
             continue
         units = extract_units(p, text)
-        status = {(u.path, u.symbol): store.is_understood(u) for u in units}
+        status = {(u.path, u.symbol): store.status(u) for u in units}
         ai_lines = [
             i + 1
             for i, k in enumerate(fa.kinds)
             if k is AuthorKind.AI or (cfg.unknown_as_ai and k is AuthorKind.UNKNOWN)
         ]
         und = 0
+        att = 0
         seen_units: set[str] = set()
         for ln in ai_lines:
             u = unit_for_line(units, ln)
             if u is None:
                 continue
-            ok = status[(u.path, u.symbol)]
-            und += int(ok)
+            st = status[(u.path, u.symbol)]
+            und += int(st == "verified")
+            att += int(st == "attested")
             if u.symbol not in seen_units:
                 seen_units.add(u.symbol)
                 units_ai += 1
-                units_ok += int(ok)
+                units_ok += int(st == "verified")
+                units_att += int(st == "attested")
         coarse = coarse or fa.coarse
         for k, v in fa.source_counts().items():
             agg_sources[k] = agg_sources.get(k, 0) + v
@@ -132,7 +139,7 @@ def compute_map(
                 fa.source.value,
                 fa.source_counts(),
                 fa.coarse,
-                0,
+                att,
             )
         )
     max_churn = max((r[6] for r in rows), default=0) or 1
@@ -143,13 +150,13 @@ def compute_map(
     else:
         blast_src = "none"
     files: list[FileDebt] = []
-    for p, total, ai, human, unk, und, churn, src, counts, co, _ in rows:
+    for p, total, ai, human, unk, und, churn, src, counts, co, att in rows:
         if scip_idx is not None:
             refs = scip_blast(scip_idx, p)
         else:
             refs = approx_blast(repo, rev, p, sources[p], sources)
         ai_share = ai / total
-        und_share = und / ai if ai else 0.0
+        und_share = (und + cfg.attested_weight * att) / ai if ai else 0.0
         c = churn / max_churn
         br = blast_factor(refs, cfg.blast_mode)
         score = ai_share * (1 - und_share) * (1 + cfg.w_churn * c) * br
@@ -161,6 +168,7 @@ def compute_map(
                 human_lines=human,
                 unknown_lines=unk,
                 understood_ai_lines=und,
+                attested_ai_lines=att,
                 ai_share=ai_share,
                 understood_share=und_share,
                 churn=c,
@@ -176,6 +184,7 @@ def compute_map(
     tot = sum(f.total_lines for f in files)
     ai_t = sum(f.ai_lines for f in files)
     und_t = sum(f.understood_ai_lines for f in files)
+    att_t = sum(f.attested_ai_lines for f in files)
     summary = Summary(
         rev=gitutil.resolve(repo, rev)[:12],
         files=len(files),
@@ -187,6 +196,9 @@ def compute_map(
         unknown_share=sum(f.unknown_lines for f in files) / tot if tot else 0.0,
         understood_ai_lines=und_t,
         understood_ai_share=(und_t / ai_t if ai_t else None),
+        attested_ai_lines=att_t,
+        attested_ai_share=(att_t / ai_t if ai_t else None),
+        units_attested=units_att,
         units_with_ai=units_ai,
         units_understood=units_ok,
         understood_units_ci95=wilson(units_ok, units_ai),

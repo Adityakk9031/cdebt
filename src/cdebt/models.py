@@ -88,7 +88,7 @@ class CodeUnit(BaseModel):
 
 class Probe(BaseModel):
     id: str
-    kind: Literal["runtime", "callgraph", "mutation"]
+    kind: Literal["runtime", "callgraph", "mutation", "constant"]
     path: str
     symbol: str
     question: str
@@ -113,6 +113,11 @@ class Record(BaseModel):
     created_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
     expires_at: datetime | None = None
     audit_label: str | None = None  # audit only; never aggregated or reported per person
+    # `verified`: execution-verified probes. `attested`: a human signed off; NON-VERIFIED.
+    kind: Literal["verified", "attested"] = "verified"
+    note: str | None = None  # attestation note (what was read / why it is fine)
+    # attested records only, decided at attest time: why quiz could not clear this unit.
+    scope: Literal["module", "function-unquizzable", "function-quizzable"] | None = None
 
     @property
     def probes_asked(self) -> int:
@@ -129,7 +134,8 @@ class FileDebt(BaseModel):
     ai_lines: int
     human_lines: int
     unknown_lines: int
-    understood_ai_lines: int
+    understood_ai_lines: int  # AI lines in VERIFIED units
+    attested_ai_lines: int = 0  # AI lines in ATTESTED (NON-VERIFIED) units
     ai_share: float
     understood_share: float
     churn: float
@@ -145,7 +151,7 @@ class Violation(BaseModel):
     path: str
     symbol: str
     ai_lines: list[int]
-    status: Literal["none", "stale"]
+    status: Literal["none", "stale", "attested"]  # attested = NON-VERIFIED, not accepted here
     attribution_source: AttributionSource
 
 
@@ -158,6 +164,9 @@ class GateResult(BaseModel):
     strict_unknown: bool
     violations: list[Violation] = Field(default_factory=list)
     unknown_files: list[str] = Field(default_factory=list)
+    require: Literal["default", "verified", "attested"] = "default"
+    attested_accepted: list[Violation] = Field(default_factory=list)  # NON-VERIFIED, accepted
+    attested_accepted_lines: int = 0
     unknown_changed_lines: int = 0
     attribution_sources: dict[str, int] = Field(default_factory=dict)
     notes: list[str] = Field(default_factory=list)
