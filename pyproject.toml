@@ -55,5 +55,5 @@ strict = true
 plugins = ["pydantic.mypy"]
 files = ["src"]
 [[tool.mypy.overrides]]
-module = ["tree_sitter_python.*", "tree_sitter_typescript.*", "tree_sitter.*"]
+module = ["tree_sitter_python.*", "tree_sitter_typescript.*", "tree_sitter.*", "pyarrow.*", "huggingface_hub.*"]
 ignore_missing_imports = true

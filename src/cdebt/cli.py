@@ -236,7 +236,7 @@ def gate_cmd(
         for v in res.violations[:20]:
             console.print(
                 f"  {v.path}::{v.symbol}  {len(v.ai_lines)} AI lines "
-                f"[{v.status}, {v.attribution_source.value}]"
+                f"\\[{v.status}, {v.attribution_source.value}]"
             )
         for n in res.notes:
             console.print(f"[yellow]{n}[/]")
@@ -274,6 +274,37 @@ def plan_cmd(
             i.reason,
         )
     console.print(t)
+
+
+@app.command("backtest")
+def backtest_cmd(
+    data: Annotated[Path, typer.Option(help="dir with AIDev parquet subset")] = Path("data/aidev"),
+    fetch: Annotated[
+        bool, typer.Option("--fetch", help="download needed columns (network)")
+    ] = False,
+    out: Path = Path("docs/RESULTS.md"),
+    seed: int = 0,
+    reps: int = 2000,
+    revision: str = "main",
+) -> None:
+    """Does the (proxy) debt score predict later fixes and reverts on AIDev? Reproducible."""
+    from cdebt.backtest import aidev, analysis, report
+
+    if fetch:
+        console.print(f"fetching AIDev@{revision} columns into {data} ...")
+        aidev.fetch(data, revision)
+    if not (data / "pull_request.parquet").exists():
+        typer.echo(f"error: no data in {data}; run with --fetch", err=True)
+        raise typer.Exit(2)
+    mf = data / "manifest.json"
+    manifest = json.loads(mf.read_text()) if mf.exists() else None
+    units = aidev.build_units(aidev.load_tables(data))
+    res = analysis.run(units, reps=reps, seed=seed)
+    cmd = f"cdebt backtest --data {data} --out {out} --seed {seed} --reps {reps}"
+    out.parent.mkdir(parents=True, exist_ok=True)
+    out.write_text(report.render(res, manifest, cmd))
+    out.with_suffix(".json").write_text(json.dumps(res, indent=2, default=float))
+    console.print(f"wrote {out} and {out.with_suffix('.json')}")
 
 
 if __name__ == "__main__":
