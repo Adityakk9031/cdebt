@@ -6,8 +6,7 @@
 3. in-child audit hook that BLOCKS (raises PermissionError before the action happens) file
    writes, network, subprocess/fork/exec, ctypes. Policy "tests" allows writes inside the
    sandbox root and subprocesses (needed to run a project's test suite);
-4. OS isolation when present: Docker (`--network none`, UNVERIFIED here: no docker on the
-   dev machine) or macOS `sandbox-exec` (network + file-write deny).
+4. OS isolation when present: Docker (`--network none`, caps dropped, memory/pids capped) or macOS `sandbox-exec` (network + file-write deny).
 
 THREAT MODEL: accidental or AI-generated side effects, not a determined attacker. Audit hooks
 are not a security boundary against hostile native code; use Docker for untrusted input.
@@ -243,8 +242,11 @@ def _sbx_profile(root: str) -> str:
     )
 
 
-def docker_available(image: str = "python:3.11-slim") -> bool:
-    """UNVERIFIED path: needs a running Docker daemon and the image already pulled."""
+DOCKER_IMAGE = "python:3.11-slim"
+
+
+def docker_available(image: str = DOCKER_IMAGE) -> bool:
+    """Needs a running Docker daemon and the image already pulled (never pulls by itself)."""
     global _DOCKER_OK
     if _DOCKER_OK is None:
         _DOCKER_OK = False
@@ -288,6 +290,7 @@ def run_in_sandbox(
 ) -> SandboxResult:
     """Run the runner (mode call/exec) or, with `command`, an arbitrary command (policy
     "tests") under the same containment. `root` is the only writable directory."""
+    orig_root = str(root)
     root = Path(root).resolve()
     (root / "tmp").mkdir(exist_ok=True)
     runner = Path(tempfile.mkdtemp(prefix="cdebt-runner-")) / "runner.py"
@@ -312,36 +315,74 @@ def run_in_sandbox(
     else:
         argv = [py, "-I", str(runner)]
         stdin_data = json.dumps(spec)
+    docker_name: str | None = None
     if use_os_isolation and command is None and docker_available():
+        # Files are copied in with `docker cp` (no bind mounts: temp dirs are usually not
+        # shared with the Docker VM). No network, capped memory/pids, no capabilities,
+        # unprivileged user. The audit hook still runs inside the container.
         isolation = "docker"
-        argv = [
-            "docker",
-            "run",
-            "--rm",
-            "-i",
-            "--network",
-            "none",
-            "--memory",
-            f"{mem_mb}m",
-            "--pids-limit",
-            "64",
-            "--read-only",
-            "--tmpfs",
-            "/tmp",
-            "-v",
-            f"{root}:/work:ro",
-            "-v",
-            f"{runner.parent}:/runner:ro",
-            "-w",
-            "/work",
-            "python:3.11-slim",
-            "python",
-            "-I",
-            "/runner/runner.py",
-        ]
-        spec["root"] = "/work"
-        stdin_data = json.dumps(spec)
-    elif use_os_isolation and _sandbox_exec_available():
+        docker_name = f"cdebt-{os.getpid()}-{int(time.time() * 1e6)}"
+        runner_src = runner.read_text()
+        stdin_data = json.dumps(spec).replace(str(root), "/work").replace(orig_root, "/work")
+        created = subprocess.run(
+            [
+                "docker",
+                "create",
+                "--name",
+                docker_name,
+                "-i",
+                "--network",
+                "none",
+                "--memory",
+                f"{mem_mb}m",
+                "--memory-swap",
+                f"{mem_mb}m",
+                "--pids-limit",
+                "64",
+                "--cap-drop",
+                "ALL",
+                "--security-opt",
+                "no-new-privileges",
+                "--user",
+                "65534:65534",
+                "--tmpfs",
+                "/tmp:rw,size=64m",
+                "-w",
+                "/work",
+                "-e",
+                "HOME=/tmp",
+                "-e",
+                "PYTHONDONTWRITEBYTECODE=1",
+                "-e",
+                "PYTHONHASHSEED=0",
+                DOCKER_IMAGE,
+                "python",
+                "-I",
+                "-c",
+                runner_src,
+            ],
+            capture_output=True,
+            timeout=60,
+        )
+        subprocess.run(["chmod", "-R", "a+rX", str(root)], capture_output=True)  # nobody must read
+        copied = (
+            created.returncode == 0
+            and subprocess.run(
+                ["docker", "cp", f"{root}/.", f"{docker_name}:/work"],
+                capture_output=True,
+                timeout=120,
+            ).returncode
+            == 0
+        )
+        if not copied:
+            subprocess.run(["docker", "rm", "-f", docker_name], capture_output=True)
+            docker_name, isolation = None, "audit+rlimit"
+        else:
+            docker_bin = shutil.which("docker") or "docker"
+            env["PATH"] = f"{Path(docker_bin).parent}:{env['PATH']}"
+            env["HOME"] = os.environ.get("HOME", env["HOME"])  # docker CLI context lives there
+            argv = [docker_bin, "start", "-a", "-i", docker_name]
+    if docker_name is None and use_os_isolation and _sandbox_exec_available():
         argv = ["sandbox-exec", "-p", _sbx_profile(str(root)), *argv]
         isolation += "+sandbox-exec"
 
@@ -359,15 +400,20 @@ def run_in_sandbox(
                 resource.setrlimit(resource.RLIMIT_AS, (mem_mb << 20, mem_mb << 20))
 
     t0 = time.monotonic()
-    proc = subprocess.Popen(
-        argv,
-        cwd=root,
-        env=env,
-        stdin=subprocess.PIPE,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        preexec_fn=preexec,
-    )
+    try:
+        proc = subprocess.Popen(
+            argv,
+            cwd=root,
+            env=env,
+            stdin=subprocess.PIPE,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            preexec_fn=preexec,
+        )
+    except Exception:
+        if docker_name:
+            subprocess.run(["docker", "rm", "-f", docker_name], capture_output=True)
+        raise
     flags = {"mem": False, "timeout": False}
     done = threading.Event()
 
@@ -377,7 +423,7 @@ def run_in_sandbox(
                 flags["timeout"] = True
                 _kill_group(proc.pid)
                 return
-            if _rss_kb(proc.pid) > mem_mb * 1024:
+            if docker_name is None and _rss_kb(proc.pid) > mem_mb * 1024:
                 flags["mem"] = True
                 _kill_group(proc.pid)
                 return
@@ -395,6 +441,8 @@ def run_in_sandbox(
     finally:
         done.set()
         _kill_group(proc.pid)  # reap any stragglers in the process group
+        if docker_name:
+            subprocess.run(["docker", "rm", "-f", docker_name], capture_output=True)
         shutil.rmtree(runner.parent, ignore_errors=True)
     text = out.decode("utf-8", "replace")
     payload: dict[str, object] | None = None

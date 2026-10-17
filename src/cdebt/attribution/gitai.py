@@ -38,6 +38,19 @@ class ParsedNote:
     def schema_version(self) -> str:
         return str(self.meta.get("schema_version", ""))
 
+    @property
+    def supported(self) -> bool:
+        """Only `authorship/3.x` notes are interpreted; anything else yields no claims."""
+        return self.schema_version.startswith(SUPPORTED_SCHEMA_PREFIX)
+
+    @property
+    def layout(self) -> str:
+        """`sessions` (1.7+: s_..::t_.. and h_.. ids), `prompts` (1.0-1.6: bare prompt-hash
+        ids), or `empty`. NB: schema_version says `authorship/3.0.0` in ALL of them."""
+        if "sessions" in self.meta or "humans" in self.meta:
+            return "sessions"
+        return "prompts" if self.meta.get("prompts") else "empty"
+
 
 def parse_ranges(spec: str) -> list[tuple[int, int]]:
     out: list[tuple[int, int]] = []
@@ -116,7 +129,9 @@ class GitAiProvider:
             key = (bl.sha, bl.path or path)
             if key not in per_commit:
                 note = self._note(bl.sha)
-                per_commit[key] = line_kinds(note, key[1]) if note else {}
+                per_commit[key] = (
+                    line_kinds(note, key[1]) if note is not None and note.supported else {}
+                )
             kind = per_commit[key].get(bl.orig)
             out.append((kind, False) if kind else None)
         return out

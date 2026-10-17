@@ -1,0 +1,23 @@
+a.py
+  caf93435c1f6fb04 3-7
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.3.0",
+  "base_commit_sha": "230d615b71705a0139499b07eefe0f9e7a38fa16",
+  "prompts": {
+    "caf93435c1f6fb04": {
+      "agent_id": {
+        "tool": "mock_ai",
+        "id": "ai-thread-1792264309447037000",
+        "model": "unknown"
+      },
+      "human_author": "Dev",
+      "messages": [],
+      "total_additions": 5,
+      "total_deletions": 0,
+      "accepted_lines": 5,
+      "overriden_lines": 0
+    }
+  }
+}

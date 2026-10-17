@@ -15,3 +15,12 @@ jobs:
       - run: uv run ruff check .
       - run: uv run mypy src
       - run: uv run pytest -q
+  docker-sandbox:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with: {fetch-depth: 0}
+      - uses: astral-sh/setup-uv@v5
+      - run: uv sync --all-extras --python 3.12
+      - run: docker pull python:3.11-slim
+      - run: uv run pytest tests/test_sandbox_docker.py tests/test_sandbox.py -q -rs

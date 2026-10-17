@@ -117,3 +117,14 @@ A hypothesis counts as supported only if the 95% CI excludes 1 (ratios) or 0 (de
 predicted direction. Null and opposite-direction results are published as measured in
 `docs/RESULTS.md`. No analysis choice above may be changed after seeing outcomes; any deviation
 must be listed in RESULTS.md as a deviation.
+
+---
+
+## Mutation backend (decision, 2026-10-18)
+
+cdebt's own single-token AST mutator (`probes/mutation.py`) is the **only** mutation backend.
+mutmut 3 was tried on a toy project: it runs, but it reports only killed/survived per *its own*
+mutant set and cannot answer "which tests fail when this specific line changes", which is the
+question the probe asks. Cross-checking would need a mapping between mutant sets, so mutmut
+was removed from the extras rather than shipped untested. Stryker (JS/TS) is likewise not
+supported: mutation probes are Python-only.
