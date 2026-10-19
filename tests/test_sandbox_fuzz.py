@@ -399,8 +399,10 @@ def test_fuzz_combined_payloads(world: World) -> None:
         world.check(res, f"[combo/#{i}] {code!r}")
 
 
-def run_in_root(root: Path, body: str, mode: str) -> Res:
-    spec = {"code": body, "mode": mode, "timeout": TIMEOUT, "root": str(root)}
+def run_in_root(root: Path, body: str, mode: str, sanitize: bool = False) -> Res:
+    """`sanitize=False` (the default here) tests the runtime guards on their own; the sandbox
+    normally scrubs escaping links first."""
+    spec = {"code": body, "mode": mode, "timeout": TIMEOUT, "root": str(root), "sanitize": sanitize}
     p = subprocess.run(
         [sys.executable, str(Path(__file__).with_name("_fuzz_worker.py"))],
         input=json.dumps(spec),

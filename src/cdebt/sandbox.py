@@ -207,118 +207,193 @@ class SandboxResult:
 
 
 _RUNNER = r"""
-import sys, os, json, io, resource
-spec = json.loads(sys.stdin.read())
-ROOT = os.path.realpath(spec["root"]); POLICY = spec["policy"]
-violations = []
-_BLOCK = ("socket.", "ctypes.", "winreg.")
-_PROC = ("subprocess.Popen", "os.system", "os.fork", "os.forkpty", "os.exec", "os.posix_spawn",
-         "os.spawn", "os.startfile", "pty.spawn")
-_FS = ("os.remove", "os.rename", "os.mkdir", "os.rmdir", "os.truncate", "os.symlink", "os.link",
-       "os.chmod", "os.chown", "os.utime", "os.mkfifo", "os.mknod", "shutil.", "os.removexattr",
-       "os.setxattr")
-def _inside(p):
-    try:
-        rp = os.path.realpath(p if isinstance(p, (str, bytes, os.PathLike)) else str(p))
-    except Exception:
-        return False
-    rp = os.fsdecode(rp)
-    return rp == ROOT or rp.startswith(ROOT + os.sep) or rp in ("/dev/null", "/dev/tty")
-import sysconfig
-def _real(p):
-    try:
-        return os.path.realpath(p)
-    except Exception:
-        return None
-_READ_OK = tuple(r for r in (_real(x) for x in {
-    ROOT, sys.prefix, sys.base_prefix, sys.exec_prefix, *sysconfig.get_paths().values(),
-    "/usr", "/System/Library", "/Library/Frameworks", "/lib", "/lib64", "/etc/localtime",
-    "/dev/null", "/dev/urandom", "/dev/random", "/dev/tty", "/private/var/db/timezone",
-    "/proc/self"}) if r)
-def _read_ok(p):
-    if isinstance(p, int) or p is None:
-        return True  # an already-open fd / the cwd (== ROOT)
-    try:
-        rp = os.fsdecode(os.path.realpath(p if isinstance(p, (str, bytes, os.PathLike)) else str(p)))
-    except Exception:
-        return False
-    return any(rp == a or rp.startswith(a + os.sep) for a in _READ_OK)
-def _deny(ev, why):
-    violations.append(ev + ": " + why)
-    raise PermissionError("cdebt sandbox blocked " + ev + " (" + why + ")")
-def hook(event, args):
-    if event.startswith(_BLOCK):
-        _deny(event, "network/native")
-    if event.startswith(_PROC) and POLICY == "pure":
-        _deny(event, "process creation")
-    if event in ("os.kill", "os.killpg", "signal.pthread_kill"):
-        _deny(event, "signalling other processes")
-    if event == "sqlite3.connect" and args and str(args[0]) not in (":memory:", ""):
-        _deny(event, "sqlite3 would open a file in C, outside the audited open()")
-    if event == "open":
-        path, mode, flags = args
-        write = False
-        if isinstance(flags, int) and flags & (os.O_WRONLY | os.O_RDWR | os.O_CREAT | os.O_APPEND | os.O_TRUNC):
-            write = True
-        if isinstance(mode, str) and any(c in mode for c in "wax+"):
-            write = True
-        if write and not (POLICY == "tests" and _inside(path)):
-            _deny(event, "file write")
-        if not write and not _read_ok(path):
-            _deny(event, "file read outside the sandbox")
-    elif event in ("os.listdir", "os.scandir"):
-        if not _read_ok(args[0] if args else None):
-            _deny(event, "directory listing outside the sandbox")
-    elif event.startswith(_FS):
-        paths = [a for a in args if isinstance(a, (str, bytes, os.PathLike))]
-        if not (POLICY == "tests" and paths and all(_inside(p) for p in paths)):
-            _deny(event, "file mutation")
-sys.dont_write_bytecode = True
-def _limits():
-    for name, val in (("RLIMIT_CORE", 0),):
-        try: resource.setrlimit(getattr(resource, name), (val, val))
-        except Exception: pass
-_limits()
-sys.addaudithook(hook)
-os.chdir(ROOT)
-for p in reversed(spec.get("sys_path", [])):
-    sys.path.insert(0, p)
-out = {"violations": violations}
-real_out = sys.stdout
-try:
-    sys.stdout = io.StringIO()
-    if spec["mode"] == "call":
-        import importlib
-        mod = importlib.import_module(spec["module"])
-        fn = getattr(mod, spec["func"])
-        import ast
-        args = ast.literal_eval(spec["args_repr"])
-        results = []
-        for _ in range(2):  # determinism check
+import sys as _sys
+
+
+def _run():
+    # Everything lives in function scope: nothing for user code to reach through `__main__`,
+    # and the guard (`hook`) is created inside `_install()` which returns, so no frame that
+    # user code can walk (tracebacks, f_back) holds a reference to it.
+    import os, json, io, stat, sysconfig, resource
+    spec = json.loads(_sys.stdin.read())
+    POLICY = spec["policy"]
+    _lstat, _readlink, _getcwd, _fsdecode = os.lstat, os.readlink, os.getcwd, os.fsdecode
+    _S_ISLNK, _S_ISREG = stat.S_ISLNK, stat.S_ISREG
+    _violations = []
+
+    def realpath(p):
+        # Own implementation bound to captured primitives: user code that monkeypatches
+        # os.path.realpath / os.lstat / os.readlink cannot make the guard misjudge a path.
+        p = _fsdecode(p)
+        if not p.startswith("/"):
+            p = _getcwd() + "/" + p
+        out = []
+        stack = [x for x in reversed(p.split("/")) if x]
+        hops = 0
+        while stack:
+            c = stack.pop()
+            if c == ".":
+                continue
+            if c == "..":
+                if out:
+                    out.pop()
+                continue
+            cand = "/" + "/".join(out + [c])
             try:
-                results.append(("ok", repr(fn(*args))))
-            except PermissionError:
-                raise
-            except BaseException as e:
-                results.append(("raises", type(e).__name__))
-        out["results"] = results
-    elif spec["mode"] == "attrs":
-        import importlib
-        mod = importlib.import_module(spec["module"])
-        vals = {n: [repr(getattr(mod, n, "<missing>"))] for n in spec["names"]}
-        importlib.reload(mod)  # second evaluation: constants must be stable
-        for n in spec["names"]:
-            vals[n].append(repr(getattr(mod, n, "<missing>")))
-        out["values"] = vals
-    elif spec["mode"] == "exec":
-        exec(compile(spec["code"], "<sandbox>", "exec"), {"__name__": "__sandbox__"})
-    out["stdout"] = sys.stdout.getvalue()[:10000]
-except BaseException as e:
-    out["error"] = type(e).__name__ + ": " + str(e)[:500]
-finally:
-    sys.stdout = real_out
-sys.stdout.write("\x00CDEBT-RESULT\x00" + json.dumps(out))
-sys.stdout.flush()
+                st = _lstat(cand)
+            except OSError:
+                out.append(c)
+                continue
+            if _S_ISLNK(st.st_mode):
+                hops += 1
+                if hops > 40:
+                    return "/__unresolvable__"
+                t = _readlink(cand)
+                if t.startswith("/"):
+                    out = []
+                stack.extend(x for x in reversed(t.split("/")) if x)
+            else:
+                out.append(c)
+        return "/" + "/".join(out)
+
+    ROOT = realpath(spec["root"])
+
+    def _install():
+        _BLOCK = ("socket.", "ctypes.", "winreg.", "sys.monitoring")
+        _PROC = ("subprocess.Popen", "os.system", "os.fork", "os.forkpty", "os.exec",
+                 "os.posix_spawn", "os.spawn", "os.startfile", "pty.spawn")
+        _FS = ("os.remove", "os.rename", "os.mkdir", "os.rmdir", "os.truncate", "os.symlink",
+               "os.link", "os.chmod", "os.chown", "os.utime", "os.mkfifo", "os.mknod", "shutil.",
+               "os.removexattr", "os.setxattr", "os.chroot")
+        # tampering with the guard itself, and shared memory (creates host-visible segments)
+        _TAMPER = ("gc.get_objects", "gc.get_referrers", "gc.get_referents", "sys._getframe",
+                   "sys._current_frames", "sys.settrace", "sys.setprofile",
+                   "sys.setswitchinterval")
+        _NO_IMPORT = ("_posixshmem", "multiprocessing.shared_memory", "_xxsubinterpreters",
+                      "_interpreters", "_testcapi", "_testinternalcapi")
+        _OK = tuple(r for r in (realpath(x) for x in {
+            ROOT, _sys.prefix, _sys.base_prefix, _sys.exec_prefix,
+            *sysconfig.get_paths().values(), "/usr", "/System/Library", "/Library/Frameworks",
+            "/lib", "/lib64", "/etc/localtime", "/dev/null", "/dev/urandom", "/dev/random",
+            "/dev/tty", "/private/var/db/timezone"}) if r)
+        _O_WRITE = os.O_WRONLY | os.O_RDWR | os.O_CREAT | os.O_APPEND | os.O_TRUNC
+        _PathLike = os.PathLike
+        _sep = os.sep
+
+        def read_ok(p, _any=any, _isinstance=isinstance, _str=str, _bytes=bytes):
+            if _isinstance(p, int) or p is None:
+                return True  # an already-open fd / the cwd (== ROOT)
+            try:
+                rp = realpath(p if _isinstance(p, (_str, _bytes, _PathLike)) else _str(p))
+            except BaseException:
+                return False
+            if not _any(rp == a or rp.startswith(a + _sep) for a in _OK):
+                return False
+            if rp.startswith(ROOT + _sep):
+                # a hard link inside the root can alias a file outside it (the path check cannot
+                # see that); copy_tree never creates one, so a regular file with nlink > 1 is hostile
+                try:
+                    st = _lstat(rp)
+                except OSError:
+                    return True
+                if _S_ISREG(st.st_mode) and st.st_nlink > 1:
+                    return False
+            return True
+
+        def inside(p, _isinstance=isinstance, _str=str, _bytes=bytes):
+            try:
+                rp = realpath(p if _isinstance(p, (_str, _bytes, _PathLike)) else _str(p))
+            except BaseException:
+                return False
+            return rp == ROOT or rp.startswith(ROOT + _sep) or rp in ("/dev/null", "/dev/tty")
+
+        def deny(ev, why, _PermissionError=PermissionError, _violations=_violations):
+            _violations.append(ev + ": " + why)
+            raise _PermissionError("cdebt sandbox blocked " + ev + " (" + why + ")")
+
+        def hook(event, args, _any=any, _isinstance=isinstance, _str=str, _int=int, _all=all,
+                 _PathLike=_PathLike, _bytes=bytes):
+            if event.startswith(_BLOCK):
+                deny(event, "network/native")
+            if event.startswith(_PROC) and POLICY == "pure":
+                deny(event, "process creation")
+            if event in ("os.kill", "os.killpg", "signal.pthread_kill"):
+                deny(event, "signalling other processes")
+            if event in _TAMPER:
+                deny(event, "introspection that could tamper with the sandbox")
+            if event == "import" and args and _str(args[0]) in _NO_IMPORT:
+                deny(event, "module not allowed in the sandbox")
+            if event == "sqlite3.connect" and args and _str(args[0]) not in (":memory:", ""):
+                deny(event, "sqlite3 would open a file in C, outside the audited open()")
+            if event == "open":
+                path, mode, flags = args
+                write = False
+                if _isinstance(flags, _int) and flags & _O_WRITE:
+                    write = True
+                if _isinstance(mode, _str) and _any(c in mode for c in "wax+"):
+                    write = True
+                if write and not (POLICY == "tests" and inside(path)):
+                    deny(event, "file write")
+                if not write and not read_ok(path):
+                    deny(event, "file read outside the sandbox")
+            elif event in ("os.listdir", "os.scandir"):
+                if not read_ok(args[0] if args else None):
+                    deny(event, "directory listing outside the sandbox")
+            elif event.startswith(_FS):
+                paths = [a for a in args if _isinstance(a, (_str, _bytes, _PathLike))]
+                if not (POLICY == "tests" and paths and _all(inside(p) for p in paths)):
+                    deny(event, "file mutation")
+
+        _sys.addaudithook(hook)
+
+    _sys.dont_write_bytecode = True
+    try:
+        resource.setrlimit(resource.RLIMIT_CORE, (0, 0))
+    except Exception:
+        pass
+    _install()
+    os.chdir(ROOT)
+    for p in reversed(spec.get("sys_path", [])):
+        _sys.path.insert(0, p)
+    out = {"violations": _violations}
+    real_out = _sys.stdout
+    try:
+        _sys.stdout = io.StringIO()
+        if spec["mode"] == "call":
+            import importlib
+            mod = importlib.import_module(spec["module"])
+            fn = getattr(mod, spec["func"])
+            import ast
+            args = ast.literal_eval(spec["args_repr"])
+            results = []
+            for _ in range(2):  # determinism check
+                try:
+                    results.append(("ok", repr(fn(*args))))
+                except PermissionError:
+                    raise
+                except BaseException as e:
+                    results.append(("raises", type(e).__name__))
+            out["results"] = results
+        elif spec["mode"] == "attrs":
+            import importlib
+            mod = importlib.import_module(spec["module"])
+            vals = {n: [repr(getattr(mod, n, "<missing>"))] for n in spec["names"]}
+            importlib.reload(mod)  # second evaluation: constants must be stable
+            for n in spec["names"]:
+                vals[n].append(repr(getattr(mod, n, "<missing>")))
+            out["values"] = vals
+        elif spec["mode"] == "exec":
+            exec(compile(spec["code"], "<sandbox>", "exec"), {"__name__": "__sandbox__"})
+        out["stdout"] = _sys.stdout.getvalue()[:10000]
+    except BaseException as e:
+        out["error"] = type(e).__name__ + ": " + str(e)[:500]
+    finally:
+        _sys.stdout = real_out
+    _sys.stdout.write("\x00CDEBT-RESULT\x00" + json.dumps(out))
+    _sys.stdout.flush()
+
+
+_run()
 """
 
 
@@ -331,6 +406,8 @@ import https from 'node:https';
 import http2 from 'node:http2';
 import tls from 'node:tls';
 import dgram from 'node:dgram';
+import inspector from 'node:inspector';
+import v8 from 'node:v8';
 const MARK = "\u0000CDEBT-RESULT\u0000";
 const violations = [];
 function blocked(name) {
@@ -345,6 +422,11 @@ const NET = [[net, ['connect', 'createConnection', 'createServer']],
   [http2, ['connect', 'createServer', 'createSecureServer']], [tls, ['connect', 'createServer']],
   [dgram, ['createSocket']]];
 for (const [mod, names] of NET) for (const n of names) { try { mod[n] = blocked(n); } catch (e) {} }
+// the permission model does not cover the debugger port, V8 flags, diagnostic reports or wasm memory
+for (const k of Object.keys(inspector)) { try { if (typeof inspector[k] === 'function') inspector[k] = blocked('inspector.' + k); } catch (e) {} }
+for (const k of ['setFlagsFromString', 'writeHeapSnapshot', 'setHeapSnapshotNearHeapLimit']) { try { v8[k] = blocked('v8.' + k); } catch (e) {} }
+try { process.report.writeReport = blocked('process.report.writeReport'); } catch (e) {}
+try { delete globalThis.WebAssembly; } catch (e) {}
 for (const g of ['fetch', 'WebSocket', 'EventSource', 'XMLHttpRequest']) { try { delete globalThis[g]; } catch (e) {} }
 for (const k of ['kill', 'abort', 'reallyExit', 'dlopen', 'binding', '_linkedBinding']) { try { process[k] = blocked('process.' + k); } catch (e) {} }
 try { net.Socket.prototype.connect = blocked('net.Socket.connect'); } catch (e) {}
@@ -670,6 +752,30 @@ def _reap_orphan_containers() -> None:
                 pass
 
 
+def sanitize_root(root: Path) -> list[str]:
+    """Remove, from the sandbox root, symlinks that resolve outside it and regular files with more
+    than one hard link (which can alias a file outside the root). Neither can be told apart from a
+    legitimate file by path-based guards (Node's permission model follows such symlinks). The
+    root is a temporary copy we created, so unlinking is safe. Returns what was removed."""
+    removed: list[str] = []
+    base = os.path.realpath(root)
+    for dirpath, dirnames, filenames in os.walk(root, followlinks=False):
+        for name in [*dirnames, *filenames]:
+            p = os.path.join(dirpath, name)
+            try:
+                if os.path.islink(p):
+                    tgt = os.path.realpath(p)
+                    if not (tgt == base or tgt.startswith(base + os.sep)):
+                        os.unlink(p)
+                        removed.append(os.path.relpath(p, root))
+                elif os.path.isfile(p) and os.lstat(p).st_nlink > 1:
+                    os.unlink(p)
+                    removed.append(os.path.relpath(p, root))
+            except OSError:
+                continue
+    return removed
+
+
 def run_in_sandbox(
     spec: dict[str, object],
     *,
@@ -683,6 +789,7 @@ def run_in_sandbox(
     extra_env: dict[str, str] | None = None,
     runtime: Literal["python", "node"] = "python",
     isolation: Isolation | None = None,
+    sanitize: bool = True,
 ) -> SandboxResult:
     """Run the runner (mode call/exec; `runtime` selects the Python or Node runner) or, with
     `command`, an arbitrary command (policy "tests") under the same containment. `root` is the
@@ -691,6 +798,8 @@ def run_in_sandbox(
         raise SandboxUnavailable(WINDOWS_MESSAGE)
     orig_root = str(root)
     root = Path(root).resolve()
+    if sanitize:
+        sanitize_root(root)
     (root / "tmp").mkdir(exist_ok=True)
     runner = Path(tempfile.mkdtemp(prefix="cdebt-runner-")) / "runner.py"
     runner.write_text(_RUNNER)

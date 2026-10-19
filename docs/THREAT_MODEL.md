@@ -89,8 +89,35 @@ Fuzz budget: 7 Python families + 1 Node family, 6 iterations each by default (ev
 a 20-iteration soak with a second seed also passed. `CDEBT_FUZZ_N` and `CDEBT_FUZZ_SEED` scale it.
 A passing fuzz run is evidence, not proof.
 
+### 5b. Second pass: a fresh red-team round (v1.0.0-rc2)
+
+`tests/test_sandbox_redteam.py` adds explicit payload classes the first suite lacked. Run against
+the *previous* sandbox, **6 of 13 guard-tampering variants disabled the in-process guard** and a
+repository symlink got a host file copied into the sandbox; all are fixed and now pass.
+
+| class | result on the old code | fix |
+|---|---|---|
+| Tampering with the guard: swapping the hook's `__code__` via `__main__`, via `gc.get_objects`, via traceback frame walking, via `sys._getframe`; patching `os.path.realpath`; patching builtins (`any`, `isinstance`, `str`, `len`) | **defeated the guard** (gc, `__main__`, builtins, realpath, both frame walks) | the guard now lives in closures created inside a function that has returned (no module global, no reachable frame), binds every builtin it uses as a default argument, uses its own `realpath` built on captured `lstat`/`readlink`, and `gc.get_objects/get_referrers/get_referents`, `sys._getframe`, `sys._current_frames`, `settrace`, `setprofile` and `sys.monitoring` raise |
+| A repository symlink to a host file (`leak -> ~/.ssh/id_rsa`): `copy_tree` followed it and **copied the secret into the sandbox root**, where a probe could read and return it | **leaked** | `copy_tree` never copies through a symlink; in-repo links are kept as relative links, others dropped |
+| Symlinks planted inside the root: Node's permission model **follows them out of the root** | **leaked** (Node) | the root is scrubbed before every run (`sandbox.sanitize_root`): symlinks resolving outside it and regular files with more than one hard link are removed; the Python guard also refuses reads of multiply-linked files |
+| Hard links inside the root aliasing an outside file | path guards cannot see them | scrub above; Python guard checks `st_nlink` |
+| Shared memory (`multiprocessing.shared_memory`, `_posixshmem`) | not demonstrable on macOS | imports blocked (Linux behaviour is checked in CI, not locally) |
+| `/proc` and `/sys` reads (`environ`, `mem`, `maps`, `cmdline`, `root/..`, `net/tcp`, DMI ids), `/etc/{passwd,shadow,hosts,resolv.conf}`, `/dev/shm` | not readable (macOS has no `/proc`; Linux covered by CI) | `/proc/self` removed from the read allowlist |
+| Credential files in the real home (`.aws`, `.ssh`, `gh`, `.netrc`, docker, npm, git, pypirc), found via `pwd.getpwuid` | not readable | (held) read allowlist and strict Seatbelt |
+| Unix sockets including agent-style (`SSH_AUTH_SOCK`, `docker.sock`), `socketpair` | blocked | (held) |
+| Signal tricks (SIGSTOP of self, ignoring SIGTERM/SIGINT, itimers, `sigtimedwait`, `pause`) | none evaded the deadline | (held) |
+| Decompression and allocation bombs (zlib, gzip, bz2, lzma, zip in memory, 2^40-byte allocations, huge `mmap`) | contained | (held) |
+| Node: `inspector.open` (debugger port), V8 flags, diagnostic reports, WebAssembly memory | not shown to fail; added as precautions | `inspector.*`, `v8.setFlagsFromString/writeHeapSnapshot`, `process.report.writeReport` blocked, `WebAssembly` removed |
+| Forging the probe result with a raw `os.write(1, ...)` | works | **accepted**: the repo already controls what its own functions return |
+
+Not shown by this pass: anything about hostile native code, kernel or Docker flaws, or timing
+side channels. Passing these tests is evidence, not proof.
+
 ## 6. Residual risks (not defended)
 
+- **The in-process Python guard is still best-effort.** It resisted every tampering variant in the
+  second pass, but it is Python code running in the same process as the attacker's Python; the real
+  boundaries are Seatbelt and Docker.
 - **Hostile native code / interpreter exploits** (ctypes is blocked by a hook that native code
   can bypass; V8 or CPython memory-safety bugs). Docker narrows the damage; a VM would be better.
 - **Host mode is not a boundary against A2.** `--trusted` on a hostile repo is the user's mistake.

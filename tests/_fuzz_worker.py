@@ -24,6 +24,7 @@ if spec.get("runtime") == "node":
         use_os_isolation=mode != "audit",
         isolation="strong" if mode == "strong" else "host",
         runtime="node",
+        sanitize=spec.get("sanitize", True),
     )
 elif spec.get("root"):
     from pathlib import Path
@@ -34,6 +35,7 @@ elif spec.get("root"):
         timeout=spec["timeout"],
         use_os_isolation=mode != "audit",
         isolation="strong" if mode == "strong" else "host",
+        sanitize=spec.get("sanitize", True),
     )
 else:
     res = sandbox.run_code(

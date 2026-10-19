@@ -3,8 +3,10 @@
 from __future__ import annotations
 
 import ast
+import contextlib
 import hashlib
 import json
+import os
 import random
 import shutil
 import subprocess
@@ -74,6 +76,20 @@ def copy_tree(repo: Path, dest: Path, *, max_mb: int = 100) -> None:
         if not rel or rel.startswith((".git/", ".venv/", ".cdebt/")):
             continue
         src = repo / rel
+        if src.is_symlink():
+            # A tracked symlink is attacker-controlled. `shutil.copy2` would FOLLOW it and copy
+            # (for example) ~/.ssh/id_rsa into the sandbox root, where a probe could read it.
+            # Keep a link only if it stays inside the repository; never copy what it points at.
+            try:
+                tgt = src.resolve()
+                tgt.relative_to(repo.resolve())
+            except (OSError, ValueError):
+                continue
+            d = dest / rel
+            d.parent.mkdir(parents=True, exist_ok=True)
+            with contextlib.suppress(OSError):  # relative, so it resolves inside the sandbox root
+                d.symlink_to(os.path.relpath(tgt, src.parent.resolve()))
+            continue
         if not src.is_file():
             continue
         total += src.stat().st_size
