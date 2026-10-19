@@ -1,0 +1,30 @@
+{
+ "alpha_one_sided": 0.05,
+ "power": 0.8,
+ "probes_per_participant": 12,
+ "assumed_icc": 0.1,
+ "note": "planning estimates from cdebt.study.required_responses_per_group; the ICC and both proportions are ASSUMPTIONS, not measurements",
+ "scenarios": [
+  {
+   "p_familiar": 0.7,
+   "p_never": 0.55,
+   "design_effect": 2.1,
+   "responses_per_group": 271,
+   "participants_at_12_questions": 46
+  },
+  {
+   "p_familiar": 0.75,
+   "p_never": 0.55,
+   "design_effect": 2.1,
+   "responses_per_group": 148,
+   "participants_at_12_questions": 25
+  },
+  {
+   "p_familiar": 0.65,
+   "p_never": 0.55,
+   "design_effect": 2.1,
+   "responses_per_group": 624,
+   "participants_at_12_questions": 104
+  }
+ ]
+}

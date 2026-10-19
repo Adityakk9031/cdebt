@@ -5,8 +5,11 @@ from __future__ import annotations
 import contextlib
 import functools
 import json
+import math
 import os
+import random
 from collections.abc import Callable, Iterator
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Annotated, Any
 
@@ -517,6 +520,229 @@ def migrate_cmd(
     typer.echo(
         f"migrated understanding.json: schema {old} -> {CURRENT_SCHEMA} "
         f"({len(st.records)} records; backup understanding.v{old}.bak.json)"
+    )
+
+
+study_app = typer.Typer(
+    no_args_is_help=True,
+    help="Validity study kit: does familiarity predict answering verified questions? "
+    "Team-level only; see docs/STUDY_PROTOCOL.md.",
+)
+app.add_typer(study_app, name="study")
+
+
+@study_app.command("init")
+def study_init(
+    repo: RepoOpt = Path("."),
+    out: Annotated[Path, typer.Option(help="study file to send to participants")] = Path(
+        "study.json"
+    ),
+    secret: Annotated[Path, typer.Option(help="coordinator-only grading key")] = Path(
+        "study.secret.json"
+    ),
+    n: Annotated[int, typer.Option(help="number of questions")] = 12,
+    seed: int = 0,
+    top_files: Annotated[int, typer.Option(help="draw from the N highest-debt files")] = 12,
+    kinds: str = "runtime,callgraph,constant",
+    trusted: TrustedOpt = False,
+) -> None:
+    """Build a FIXED question set on a repo. Writes the participant file (no answers) and the
+    coordinator secret (HMAC key + answer MACs). Never send the secret file to participants."""
+    from cdebt import study as S
+    from cdebt.attribution.resolve import default_providers, resolve_file
+    from cdebt.mapper import compute_map
+    from cdebt.models import AuthorKind
+    from cdebt.quiz import build_quiz
+    from cdebt.units import unit_for_line
+
+    r = _repo(repo)
+    cfg = load_config(r)
+    _apply_isolation(trusted)
+    res = compute_map(r, cfg, scip_idx=_scip(r, False))
+    files = [f.path for f in res.files if f.ai_lines > 0][:top_files]
+    ks = tuple(k.strip() for k in kinds.split(",") if k.strip())
+    commit = gitutil.resolve(r, "HEAD")
+    pool: list[tuple[Any, str]] = []
+    with _sandbox_errors():
+        for i, rel in enumerate(files):
+            probes, units, _ = build_quiz(r, rel, cfg, n=3, seed=seed + i, kinds=ks)
+            fa = resolve_file(r, rel, "HEAD", default_providers(r))
+            for p in probes:
+                u = next((x for x in units if x.symbol == p.symbol), None)
+                lines = u.lines() if u else []
+                ai = sum(
+                    1 for ln in lines if 1 <= ln <= fa.total and fa.kinds[ln - 1] is AuthorKind.AI
+                )
+                share = ai / len(lines) if lines else None
+                pub = S.StudyProbe(
+                    id=p.id,
+                    kind=p.kind,
+                    path=p.path,
+                    unit=p.symbol,
+                    question=p.question,
+                    options=p.options,
+                    multi=p.multi,
+                    verified_by=p.verified_by,
+                    unit_ai_share=share,
+                )
+                pool.append((pub, S.canonical(p.answer, p.multi)))
+    del unit_for_line
+    rng = random.Random(seed)
+    rng.shuffle(pool)
+    chosen: list[tuple[Any, str]] = []
+    per_file: dict[str, int] = {}
+    for pub, ans in pool:  # at most 2 per file so one file cannot dominate
+        if len(chosen) >= n:
+            break
+        if per_file.get(pub.path, 0) < 2:
+            chosen.append((pub, ans))
+            per_file[pub.path] = per_file.get(pub.path, 0) + 1
+    if len(chosen) < n:
+        typer.echo(
+            f"warning: only {len(chosen)} questions could be generated (wanted {n})", err=True
+        )
+    if not chosen:
+        typer.echo("error: no questions could be generated", err=True)
+        raise typer.Exit(1)
+    study, sec = S.build_study(r.name, commit, seed, chosen)
+    S.write_json(out, study)
+    S.write_json(secret, sec)
+    typer.echo(
+        f"wrote {out} ({len(chosen)} questions over {len(per_file)} files, commit {commit[:10]}) "
+        f"and {secret}. Send ONLY {out} to participants; keep {secret} private."
+    )
+
+
+@study_app.command("run")
+def study_run(
+    study_file: Path,
+    out_dir: Annotated[Path, typer.Option(help="where to write your anonymous response")] = Path(
+        "responses"
+    ),
+    team: Annotated[str | None, typer.Option(help="free-text team label (never a person)")] = None,
+    answers: Annotated[
+        Path | None, typer.Option(help="scripted JSON {probe_id: {answer, familiarity, consulted}}")
+    ] = None,
+) -> None:
+    """Answer the study questions. Records your answers and, per question, whether you wrote /
+    reviewed / never saw the code and whether you consulted anything. No name, no host, no
+    timestamps beyond the date. Needs no sandbox (works on Windows)."""
+    from cdebt import study as S
+    from cdebt.probes.base import LETTERS
+
+    study = S.StudyFile.model_validate_json(study_file.read_text())
+    given: dict[str, Any] = json.loads(answers.read_text()) if answers else {}
+    resp: dict[str, S.Answer] = {}
+    if not answers:
+        typer.echo(study.instructions + "\n")
+    for i, p in enumerate(study.probes, 1):
+        if p.id in given:
+            resp[p.id] = S.Answer.model_validate(given[p.id])
+            continue
+        console.print(
+            f"\n[bold]Q{i}/{len(study.probes)}[/] ({p.path} :: {p.unit}) {escape(p.question)}"
+        )
+        for j, o in enumerate(p.options):
+            console.print(f"  {LETTERS[j]}) {escape(o)}")
+        a = typer.prompt("answer (letter" + (", comma-separated, or 'none')" if p.multi else ")"))
+        f = ""
+        while f not in ("w", "r", "n"):
+            f = typer.prompt("this code: [w]rote it / [r]eviewed it / [n]ever saw it").lower()[:1]
+        c = typer.confirm("did you look anything up or ask anyone (incl. an AI)?", default=False)
+        resp[p.id] = S.Answer(
+            answer=a,
+            familiarity={"w": "wrote", "r": "reviewed", "n": "never"}[f],
+            consulted=c,
+        )
+    rf = S.ResponseFile(
+        study_id=study.study_id,
+        participant=S.new_participant_id(),
+        team=team,
+        date=datetime.now(UTC).date().isoformat(),
+        answers=resp,
+    )
+    out_dir.mkdir(parents=True, exist_ok=True)
+    dest = out_dir / f"response-{rf.participant}.json"
+    S.write_json(dest, rf)
+    typer.echo(f"saved {dest}. Send it to the coordinator. It contains no name or account.")
+
+
+@study_app.command("analyze")
+def study_analyze(
+    study_file: Path,
+    responses_dir: Path,
+    secret: Annotated[Path, typer.Option(help="coordinator secret from `study init`")] = Path(
+        "study.secret.json"
+    ),
+    min_participants: Annotated[int, typer.Option(help="suppress cells below this")] = 5,
+    reps: int = 2000,
+    seed: int = 0,
+    json_out: Annotated[bool, typer.Option("--json")] = False,
+) -> None:
+    """Pooled, team-level analysis of all responses. Never prints anything per participant."""
+    from cdebt import study as S
+
+    study = S.StudyFile.model_validate_json(study_file.read_text())
+    sec = S.SecretFile.model_validate_json(secret.read_text())
+    resps = [
+        S.ResponseFile.model_validate_json(f.read_text())
+        for f in sorted(responses_dir.glob("response-*.json"))
+    ]
+    try:
+        res = S.analyze(study, sec, resps, min_participants=min_participants, reps=reps, seed=seed)
+    except ValueError as e:
+        typer.echo(f"error: {e}", err=True)
+        raise typer.Exit(2) from None
+    if json_out:
+        typer.echo(res.model_dump_json(indent=2))
+        return
+    console.print(
+        f"[bold]study {res.study_id}[/]: {res.participants} participants, {res.teams} "
+        f"team label(s), {res.responses} responses (cells with < {res.min_participants} "
+        "participants are suppressed)"
+    )
+    t = Table(title="accuracy by self-reported familiarity")
+    for c in ("familiarity", "correct/n", "rate", "95% CI (responses, naive)", "participants"):
+        t.add_column(c)
+    for k, cell in res.by_familiarity.items():
+        if cell.suppressed:
+            t.add_row(k, "suppressed", "", "", str(cell.participants))
+        else:
+            t.add_row(
+                k,
+                f"{cell.correct}/{cell.n}",
+                f"{cell.rate:.3f}",
+                f"[{cell.ci95[0]:.3f}, {cell.ci95[1]:.3f}]" if cell.ci95 else "",
+                str(cell.participants),
+            )
+    console.print(t)
+    console.print(
+        "Pre-registered contrast, familiar (wrote|reviewed) minus never saw:", res.familiar_vs_never
+    )
+    console.print("Same, excluding consulted responses:", res.sensitivity_excluding_consulted)
+    for nte in res.notes:
+        console.print(f"[yellow]{escape(nte)}[/]")
+
+
+@study_app.command("power")
+def study_power(
+    p_familiar: float = 0.70,
+    p_never: float = 0.55,
+    probes_per_participant: int = 12,
+    icc: float = 0.10,
+    alpha: float = 0.05,
+    power: float = 0.80,
+) -> None:
+    """Planning estimate of the sample size for the pre-registered contrast."""
+    from cdebt import study as S
+
+    deff = S.design_effect(probes_per_participant, icc)
+    n = S.required_responses_per_group(p_familiar, p_never, alpha, power, deff)
+    typer.echo(
+        f"design effect {deff:.2f}; {n} responses per group; about "
+        f"{math.ceil(2 * n / probes_per_participant)} participants if every participant answers "
+        f"{probes_per_participant} questions split evenly between familiar and never-saw code "
+        "(a planning estimate, not a guarantee)"
     )
 
 
