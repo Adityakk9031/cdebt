@@ -37,7 +37,7 @@ when they are themselves agent PRs, and neither tests the quiz itself. The hones
 
 **How much can a quiz cover on real code?** Less than we hoped, and it depends heavily on the
 language. On the 25 highest-debt files of three public repositories that use AI agents
-[src: docs/case_studies/hive.coverage-ts.json, docs/case_studies/agent-meta.coverage.json]:
+[src: docs/case_studies/hive.coverage-ts.json, docs/case_studies/hive.coverage.json, docs/case_studies/agent-meta.coverage.json]:
 a TypeScript front-end repository went from 0% to 33% of AI lines verifiable once TypeScript
 quizzes existed, with 61% attest-only and 6% unquizzable (JSX); a Python tooling repository
 reached 77% verifiable with a call-graph index and 23% attest-only. A second Python repository
@@ -55,12 +55,16 @@ confusing, is in `docs/CASE_STUDIES.md`.
 
 A quiz executes functions from the repository you point it at. cdebt treats every repository as
 untrusted by default: probes run in Docker or, on macOS, under a strict Seatbelt profile, or not
-at all; `--trusted` is the only opt-out and is never read from the repository. A fuzz suite of
-random hostile payloads found six real holes during development (a payload could signal and kill
-other processes, read your home directory, or open files through SQLite), all fixed and covered
-by tests [src: docs/THREAT_MODEL.md]. It is containment against accidental and AI-written side
-effects, not a defence against a determined attacker with native-code exploits. Read the threat
-model before running it on code you do not trust.
+at all; `--trusted` is the only opt-out and is never read from the repository. We attacked the
+sandbox twice with random and hand-written hostile payloads and it failed both times before it was
+fixed: the first round found six holes (a payload could signal and kill other processes, read your
+home directory, or open files through SQLite), and the second showed that code inside the sandbox
+could switch off the in-process guard, that a repository symlink could get a host secret copied into
+the sandbox, and that Node's permission model follows symlinks out of its root. All are fixed and
+covered by tests [src: docs/THREAT_MODEL.md]. That is evidence, not proof. The sandbox is containment
+against accidental and AI-written side effects, not a defence against a determined attacker with
+native-code exploits, and it has been reviewed only by its author and an AI. Read the threat model
+before running it on code you do not trust.
 
 ## What it is not
 

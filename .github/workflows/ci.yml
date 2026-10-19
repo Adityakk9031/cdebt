@@ -62,3 +62,20 @@ jobs:
       - run: uv sync --all-extras --python 3.12
       - run: docker pull python:3.11-slim
       - run: bash scripts/repeat_suite.sh 20
+  package:
+    # Build sdist + wheel, twine check, then install the wheel in a CLEAN venv and smoke-test it on
+    # each OS (nothing is uploaded anywhere).
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+        with: {fetch-depth: 0}
+      - uses: astral-sh/setup-uv@v5
+      - uses: actions/setup-python@v5
+        with: {python-version: "3.12"}
+      - run: uv build
+      - run: uvx twine check dist/*
+      - run: python scripts/smoke_install.py "dist/*.whl"

@@ -1,5 +1,25 @@
 # Changelog
 
+## 1.0.0rc2
+
+- **Gate is advisory by default** (`--enforce` / Action input `enforce` to fail the build); the PR
+  comment says "(advisory)".
+- **Sandbox red-team pass 2** (`tests/test_sandbox_redteam.py`, `docs/THREAT_MODEL.md` 5b): the
+  in-process guard is now closure-scoped, binds the builtins it uses, has its own `realpath`, and
+  `gc`/frame/trace introspection is blocked (6 of 13 tampering variants defeated the old guard);
+  `copy_tree` no longer copies through repository symlinks (a host secret could be copied into the
+  sandbox); the sandbox root is scrubbed of escaping symlinks and hard-linked files (Node's
+  permission model follows symlinks out of the root); shared-memory modules, Node `inspector`, V8
+  flags and diagnostic reports blocked.
+- Linux CI caught two regressions of mine in the Node runner (blocking `process.reallyExit`, and
+  deleting `WebAssembly`, which Node's TypeScript stripping needs); both fixed.
+- `SECURITY.md` (states plainly: reviewed only by the author and an AI); PyPI metadata; CI package
+  job (build, `twine check`, clean-venv smoke test on Linux, macOS, Windows); Windows CI job passes
+  (non-executing tests; code-executing commands refuse with the WSL2 message).
+- `docs/dry_run/STUDY_DRY_RUN.md`: a pipeline test of `cdebt study` with synthetic fake participants.
+- Name check (2026-10-19, read-only): `cdebt` was not registered on PyPI, npm, or as a GitHub user
+  or organisation; see `docs/PACKAGING_CHECK.md`.
+
 ## 1.0.0rc1
 
 - **TypeScript/JavaScript quiz support** (Node 24+): sandboxed Node runner (permission model, network
