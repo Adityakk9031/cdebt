@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import json
-import shutil
 from pathlib import Path
 
 import pytest
@@ -167,4 +166,3 @@ def test_parse_document_roundtrip_is_stable() -> None:
     doc, found = parse_document(V1.read_text())
     again, found2 = parse_document(doc.model_dump_json())
     assert found == 1 and found2 == 2 and again.records == doc.records
-    shutil.copy  # keep import used on all platforms
