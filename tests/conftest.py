@@ -88,6 +88,7 @@ _NEEDS_POSIX = {
     "test_sandbox_node",
     "test_sandbox_fuzz",
     "test_sandbox_node_fuzz",
+    "test_sandbox_redteam",
     "test_probes",
     "test_js_probes",
     "test_attest",

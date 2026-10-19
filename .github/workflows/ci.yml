@@ -1,5 +1,12 @@
 name: ci
-on: [push, pull_request]
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
 jobs:
   test:
     strategy:
@@ -44,6 +51,7 @@ jobs:
       - run: docker pull python:3.11-slim && docker pull node:24-slim
       - run: uv run pytest tests/test_sandbox_docker.py tests/test_sandbox.py tests/test_sandbox_node.py -q -rs
   repeat-suite:
+    if: github.event_name != 'pull_request'
     # Flake gate: the whole suite 20 times in a row on a GitHub-hosted runner (Docker present,
     # so the Docker sandbox tests run too). Any single failure fails the job.
     runs-on: ubuntu-latest

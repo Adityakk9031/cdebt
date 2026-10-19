@@ -1,0 +1,13 @@
+name: cdebt-gate
+# Dogfooding the composite action on this repository's own pull requests. Advisory by default:
+# it posts/updates ONE sticky comment and never fails the build unless `enforce: "true"`.
+on: pull_request
+permissions: {contents: read, pull-requests: write, issues: write}
+jobs:
+  gate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with: {fetch-depth: 0}
+      - uses: ./
+        with: {version: ".", comment: "true"}
