@@ -40,34 +40,39 @@
 
 ## Probes
 
-- **Coverage is narrow on real code** (see `docs/CASE_STUDIES.md`): runtime probes need plain,
-  typed top-level Python functions with simple argument types, no keyword-only/variadic
-  parameters and a return annotation; most files in real repos yield few or none. TypeScript
-  and JavaScript can be mapped and gated but not quizzed.
+- **Coverage is narrow on real code** (see `docs/CASE_STUDIES.md`; run `cdebt coverage` first).
+  Python runtime probes need plain, typed top-level functions with simple argument types (no
+  keyword-only/variadic parameters, a return annotation) and no side effects.
+- **TypeScript/JavaScript** (Node 24 or newer) get runtime probes for top-level functions with
+  type annotations (or JSDoc `@param` types), constant probes, and call-graph probes through
+  `scip-typescript`. Not supported: JSX/TSX, enums and namespaces (not erasable), classes and
+  methods as runtime targets, generics and destructured parameters, and any module that imports
+  npm packages, path aliases or extensionless relative paths that plain Node cannot resolve. On a
+  React front-end repository that excludes most files; call-graph questions then carry most of
+  the verifiable share.
 - **Module-level code is only partly verifiable.** `constant` probes verify the values of
-  top-level constants (Python only). Everything else at module level (imports, class headers,
-  decorators, registrations, top-level calls) can only be **attested**, which is a human sign-off,
-  NON-VERIFIED, and trivially easy to over-use (one note can cover hundreds of units). It is
-  labelled NON-VERIFIED in the map, gate, plan and PR comment; `--require verified` ignores it and
-  `attested_weight` controls how much it counts in the score.
-- TypeScript/JavaScript cannot be quizzed at all (no runtime probes; call-graph probes need a
-  SCIP index for that language). They can only be attested. `cdebt coverage` shows this.
-
-- Runtime probes need typed, pure-ish Python functions with simple argument types and
-  literal return values. Anything touching files, network, time, randomness, subprocesses or
-  globals is skipped (with the reason shown). Skipped code cannot be verified by runtime
-  probes.
-- Call-graph probes need a fresh SCIP index (`cdebt index`, needs node + network for the
-  indexer). Dynamic dispatch, reflection and string-based calls are invisible to SCIP; an
+  top-level constants (Python and TypeScript/JavaScript). Everything else at module level
+  (imports, class headers, decorators, registrations, top-level calls) can only be **attested**,
+  which is a human sign-off, NON-VERIFIED, and trivially easy to over-use (one note can cover
+  hundreds of units). It is labelled NON-VERIFIED in the map, gate, plan and PR comment;
+  `--require verified` ignores it and `attested_weight` controls how much it counts.
+- Anything touching files, network, time, randomness, subprocesses or globals is skipped (with the
+  reason shown) and cannot be verified by runtime probes.
+- Call-graph probes need a fresh SCIP index (`cdebt index`, needs node and network for the
+  indexers). Dynamic dispatch, reflection and string-based calls are invisible to SCIP; an
   approximate answer is never used as quiz ground truth.
-- Mutation probes are Python-only, slow (a full test run per mutant), and only emitted when the
-  baseline suite is green and the true failing set is small.
-- The sandbox is layered containment against accidental or AI-generated side effects (static
-  screen, isolated interpreter, audit hook, rlimits, `sandbox-exec` on macOS, Docker if present).
-  **It is not a security boundary against deliberately hostile native code.** The Docker
-  path is tested (locally via Colima and on a GitHub runner) but only covers probe execution;
-  the mutation test runner uses the audit-hook and `sandbox-exec` layers. Run untrusted code in
-  a VM or container yourself.
+- Mutation probes are Python-only, slow (a full test run per mutant), only emitted when the
+  baseline suite is green and the true failing set is small, and need `--trusted` because they run
+  the project's own test suite.
+- **Isolation.** Repositories are untrusted by default: probes need Docker (image already pulled)
+  or macOS strict Seatbelt, else cdebt refuses; `--trusted` / `CDEBT_TRUSTED=1` opts out. On Linux
+  without Docker there is no OS-level layer in host mode. The sandbox is containment against
+  accidental and AI-written side effects, **not a security boundary against deliberately hostile
+  native code**; see `docs/THREAT_MODEL.md`.
+- **Windows is unsupported** for everything that executes code (`quiz`, `attest`, `coverage`,
+  `study init`); those commands exit with a message pointing to WSL2. `map`, `gate`, `plan`,
+  `migrate`, `backtest` and `study run/analyze` are written to work there, but the Windows CI job
+  has not been run (see `docs/V1_CHECKLIST.md`).
 
 ## Score
 

@@ -1,5 +1,23 @@
 # Changelog
 
+## 1.0.0rc1
+
+- **TypeScript/JavaScript quiz support** (Node 24+): sandboxed Node runner (permission model, network
+  entry points removed), tree-sitter + type-annotation driven runtime probes, constant probes,
+  `scip-typescript` call-graph probes; multi-project SCIP indexes merged per repo.
+- **Security:** `docs/THREAT_MODEL.md`; repositories are untrusted by default (Docker or strict
+  macOS Seatbelt, else refuse; `--trusted`/`CDEBT_TRUSTED=1` opt-out, never read from the repo);
+  Python reads restricted to the sandbox root and interpreter, signals and `sqlite3` file opens
+  blocked, output and process caps; fuzz suites (Python + Node) found and fixed six holes.
+- **Windows:** execution commands refuse with a clear message; Windows CI job added (NOT yet run).
+- **Performance/data:** on-disk result cache keyed by commit + blob + provider inputs; quadratic
+  blast-radius step fixed; `understanding.json` schema v2 with migrations and `cdebt migrate`.
+- **Validity study kit:** `cdebt study init/run/analyze/power`, `docs/STUDY_PROTOCOL.md`
+  (pre-registered; not run).
+- **Claims audit:** `scripts/check_claims.py` fails CI when a number in the README or launch post
+  has no source in the repo.
+- Not published; nothing has been released to PyPI or GitHub.
+
 ## 0.1.2
 
 - **Understanding now has three states**: *verified* (execution-verified probes), *attested*
