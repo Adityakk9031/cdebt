@@ -286,8 +286,99 @@ sys.stdout.write("\x00CDEBT-RESULT\x00" + json.dumps(out))
 sys.stdout.flush()
 """
 
+
+_NODE_RUNNER = r"""
+import { pathToFileURL } from 'node:url';
+import net from 'node:net';
+import dns from 'node:dns';
+import http from 'node:http';
+import https from 'node:https';
+import http2 from 'node:http2';
+import tls from 'node:tls';
+import dgram from 'node:dgram';
+const MARK = "\u0000CDEBT-RESULT\u0000";
+const violations = [];
+function blocked(name) {
+  return function () { violations.push(name); throw new Error('cdebt sandbox blocked ' + name); };
+}
+// The permission model blocks fs writes, child processes and workers; the network it does not
+// cover, so the well-known network entry points are disabled here (the OS layer and Docker's
+// --network none are the real boundary).
+const NET = [[net, ['connect', 'createConnection', 'createServer']],
+  [dns, ['lookup', 'resolve', 'resolve4', 'resolve6', 'resolveAny', 'reverse']],
+  [http, ['request', 'get', 'createServer']], [https, ['request', 'get', 'createServer']],
+  [http2, ['connect', 'createServer', 'createSecureServer']], [tls, ['connect', 'createServer']],
+  [dgram, ['createSocket']]];
+for (const [mod, names] of NET) for (const n of names) { try { mod[n] = blocked(n); } catch (e) {} }
+for (const g of ['fetch', 'WebSocket', 'EventSource', 'XMLHttpRequest']) { try { delete globalThis[g]; } catch (e) {} }
+try { net.Socket.prototype.connect = blocked('net.Socket.connect'); } catch (e) {}
+try { net.Server.prototype.listen = blocked('net.Server.listen'); } catch (e) {}
+try { for (const n of Object.keys(dns.promises)) dns.promises[n] = blocked('dns.promises.' + n); } catch (e) {}
+function lit(v, depth) {
+  depth = depth || 0;
+  if (depth > 6) throw new Error('too deep');
+  if (v === undefined) return 'undefined';
+  if (v === null) return 'null';
+  switch (typeof v) {
+    case 'number':
+      if (Number.isNaN(v)) return 'NaN';
+      if (v === Infinity) return 'Infinity';
+      if (v === -Infinity) return '-Infinity';
+      if (Object.is(v, -0)) return '-0';
+      return String(v);
+    case 'string': return JSON.stringify(v);
+    case 'boolean': return String(v);
+    case 'bigint': return v.toString() + 'n';
+    case 'object': {
+      if (Array.isArray(v)) return '[' + v.map((x) => lit(x, depth + 1)).join(', ') + ']';
+      const proto = Object.getPrototypeOf(v);
+      if (proto !== Object.prototype && proto !== null) throw new Error('unsupported object');
+      return '{' + Object.keys(v).map((k) => JSON.stringify(k) + ': ' + lit(v[k], depth + 1)).join(', ') + '}';
+    }
+    default: throw new Error('unsupported ' + typeof v);
+  }
+}
+const out = { violations };
+const realWrite = process.stdout.write.bind(process.stdout);
+try {
+  const chunks = [];
+  for await (const c of process.stdin) chunks.push(c);
+  const spec = JSON.parse(Buffer.concat(chunks).toString());
+  console.log = console.info = console.warn = console.error = console.debug = () => {};
+  process.stdout.write = () => true;
+  const url = pathToFileURL(spec.module).href;
+  if (spec.mode === 'call') {
+    const m = await import(url);
+    const fn = m[spec.func] !== undefined ? m[spec.func] : (m.default && m.default[spec.func]);
+    if (typeof fn !== 'function') throw new Error('not a function: ' + spec.func);
+    const args = JSON.parse(spec.args, (k, v) => (v && typeof v === 'object' && v.$undef ? undefined : v));
+    out.results = [];
+    for (let i = 0; i < 2; i++) {  // determinism check
+      try { out.results.push(['ok', lit(await Promise.resolve(fn(...args)))]); }
+      catch (e) {
+        if (violations.length) throw e;
+        out.results.push(['raises', (e && e.constructor && e.constructor.name) || 'Error']);
+      }
+    }
+  } else if (spec.mode === 'attrs') {
+    const first = await import(url);
+    const second = await import(url + '?second');
+    out.values = {};
+    for (const n of spec.names) {
+      let a, b;
+      try { a = lit(first[n]); b = lit(second[n]); } catch (e) { a = b = '<unsupported>'; }
+      out.values[n] = [a, b];
+    }
+  }
+} catch (e) {
+  out.error = ((e && e.constructor && e.constructor.name) || 'Error') + ': ' + String((e && e.message) || e).slice(0, 300) + (e && e.resource ? ' [' + e.resource + ']' : '');
+}
+process.stdout.write = realWrite;
+realWrite(MARK + JSON.stringify(out));
+process.exit(0);
+"""
+
 _SBX_OK: bool | None = None
-_DOCKER_OK: bool | None = None
 
 
 def _sandbox_exec_available() -> bool:
@@ -317,22 +408,29 @@ def _sbx_profile(root: str) -> str:
 
 
 DOCKER_IMAGE = "python:3.11-slim"
+NODE_IMAGE = "node:24-slim"
+NODE_RUNNER_NAME = ".cdebt_runner.mjs"
+_DOCKER_IMAGES: dict[str, bool] = {}
+
+
+class SandboxUnavailable(RuntimeError):
+    """The requested runtime/isolation is not available on this machine."""
 
 
 def docker_available(image: str = DOCKER_IMAGE) -> bool:
     """Needs a running Docker daemon and the image already pulled (never pulls by itself)."""
-    global _DOCKER_OK
-    if _DOCKER_OK is None:
-        _DOCKER_OK = False
+    if image not in _DOCKER_IMAGES:
+        ok = False
         if shutil.which("docker") and os.environ.get("CDEBT_NO_DOCKER") != "1":
             try:
                 p = subprocess.run(
                     ["docker", "image", "inspect", image], capture_output=True, timeout=15
                 )
-                _DOCKER_OK = p.returncode == 0
+                ok = p.returncode == 0
             except Exception:  # noqa: BLE001
-                _DOCKER_OK = False
-    return _DOCKER_OK
+                ok = False
+        _DOCKER_IMAGES[image] = ok
+    return _DOCKER_IMAGES[image]
 
 
 def _rss_kb(pid: int) -> int:
@@ -441,9 +539,11 @@ def run_in_sandbox(
     command: list[str] | None = None,
     use_os_isolation: bool = True,
     extra_env: dict[str, str] | None = None,
+    runtime: Literal["python", "node"] = "python",
 ) -> SandboxResult:
-    """Run the runner (mode call/exec) or, with `command`, an arbitrary command (policy
-    "tests") under the same containment. `root` is the only writable directory."""
+    """Run the runner (mode call/exec; `runtime` selects the Python or Node runner) or, with
+    `command`, an arbitrary command (policy "tests") under the same containment. `root` is the
+    only writable directory."""
     orig_root = str(root)
     root = Path(root).resolve()
     (root / "tmp").mkdir(exist_ok=True)
@@ -463,21 +563,36 @@ def run_in_sandbox(
     }
     env.update(extra_env or {})
     isolation = "audit+rlimit"
-    if command is not None:
+    node_flags = [
+        "--permission",  # Node's permission model: no fs writes, no child processes, no workers
+        f"--allow-fs-read={root}",
+        f"--max-old-space-size={max(64, mem_mb // 2)}",
+    ]
+    if runtime == "node":
+        node_bin = shutil.which("node")
+        if node_bin is None:
+            raise SandboxUnavailable("node is not installed")
+        (root / NODE_RUNNER_NAME).write_text(_NODE_RUNNER)
+        argv = [node_bin, *node_flags, str(root / NODE_RUNNER_NAME)]
+        stdin_data = json.dumps(spec)
+        runner_src = ""
+    elif command is not None:
         argv = list(command)
         stdin_data = None
+        runner_src = ""
     else:
         argv = [py, "-I", str(runner)]
         stdin_data = json.dumps(spec)
+        runner_src = runner.read_text()
     docker_name: str | None = None
-    if use_os_isolation and command is None and docker_available():
+    image = NODE_IMAGE if runtime == "node" else DOCKER_IMAGE
+    if use_os_isolation and command is None and docker_available(image):
         # Files are copied in with `docker cp` (no bind mounts: temp dirs are usually not
         # shared with the Docker VM). No network, capped memory/pids, no capabilities,
         # unprivileged user. The audit hook still runs inside the container.
         isolation = "docker"
         _reap_orphan_containers()
         docker_name = f"cdebt-{os.getpid()}-{int(time.time() * 1e6)}"
-        runner_src = runner.read_text()
         stdin_data = json.dumps(spec).replace(str(root), "/work").replace(orig_root, "/work")
         created = subprocess.run(
             [
@@ -510,11 +625,18 @@ def run_in_sandbox(
                 "PYTHONDONTWRITEBYTECODE=1",
                 "-e",
                 "PYTHONHASHSEED=0",
-                DOCKER_IMAGE,
-                "python",
-                "-I",
-                "-c",
-                runner_src,
+                image,
+                *(
+                    [
+                        "node",
+                        "--permission",
+                        "--allow-fs-read=/work",
+                        f"--max-old-space-size={max(64, mem_mb // 2)}",
+                        f"/work/{NODE_RUNNER_NAME}",
+                    ]
+                    if runtime == "node"
+                    else ["python", "-I", "-c", runner_src]
+                ),
             ],
             capture_output=True,
             timeout=60,
@@ -555,7 +677,7 @@ def run_in_sandbox(
         ) + ((("RLIMIT_FSIZE", 0),) if policy == "pure" and command is None else ()):
             with contextlib.suppress(ValueError, OSError):
                 resource.setrlimit(getattr(resource, name), (val, val))
-        if sys.platform != "darwin":  # RLIMIT_AS is not enforced on macOS
+        if sys.platform != "darwin" and runtime != "node":  # not enforced on macOS; breaks V8
             with contextlib.suppress(ValueError, OSError):
                 resource.setrlimit(resource.RLIMIT_AS, (mem_mb << 20, mem_mb << 20))
 

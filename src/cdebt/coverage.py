@@ -18,6 +18,7 @@ from pydantic import BaseModel
 
 from cdebt.config import Config
 from cdebt.mapper import compute_map
+from cdebt.probes.js import JS_EXT as JS_PROBE_EXT
 from cdebt.quiz import unit_probe_kinds
 from cdebt.sandbox import docker_available
 from cdebt.scip import ScipIndex, index_is_fresh
@@ -54,7 +55,7 @@ def compute_coverage(
     for f in [x for x in res.files if x.ai_lines > 0][:top_n]:
         kinds: set[str] = set()
         ver = att = noq = 0
-        if f.path.endswith(".py") or index_is_fresh(repo, cfg.extensions):
+        if f.path.endswith((".py", *JS_PROBE_EXT)) or index_is_fresh(repo, cfg.extensions):
             avail, _ = unit_probe_kinds(repo, f.path, cfg)
         else:
             avail = {}
@@ -63,7 +64,7 @@ def compute_coverage(
             if ks:
                 ver += n
                 kinds |= ks
-            elif f.path.endswith(".py"):
+            elif f.path.endswith((".py", *JS_PROBE_EXT)):
                 att += n
             else:
                 noq += n

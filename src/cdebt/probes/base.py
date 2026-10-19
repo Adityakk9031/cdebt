@@ -85,4 +85,4 @@ def copy_tree(repo: Path, dest: Path, *, max_mb: int = 100) -> None:
 
 
 def temp_root(prefix: str = "cdebt-") -> Path:
-    return Path(tempfile.mkdtemp(prefix=prefix))
+    return Path(tempfile.mkdtemp(prefix=prefix)).resolve()  # /var -> /private/var on macOS

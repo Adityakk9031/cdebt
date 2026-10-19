@@ -9,7 +9,7 @@ from pathlib import Path
 from cdebt import gitutil
 from cdebt.config import Config
 from cdebt.models import CodeUnit, Probe, Record
-from cdebt.probes import callgraph, constants, mutation, runtime
+from cdebt.probes import callgraph, constants, js, mutation, runtime
 from cdebt.probes.base import grade
 from cdebt.scip import index_is_fresh, index_path, load_index
 from cdebt.store import Store
@@ -38,8 +38,10 @@ def build_quiz(
     store = store or Store(repo)
     skips: list[str] = []
     pool: dict[str, list[Probe]] = {}
+    is_js = rel.endswith(js.JS_EXT + js.UNSUPPORTED_EXT)
     if "runtime" in kinds:
-        ps, sk = runtime.generate(repo, rel, source, units, seed, per_unit)
+        gen = js.generate_runtime if is_js else runtime.generate
+        ps, sk = gen(repo, rel, source, units, seed, per_unit)
         pool["runtime"], skips = ps, skips + sk
     if "callgraph" in kinds:
         if index_is_fresh(repo, cfg.extensions):
@@ -53,7 +55,8 @@ def build_quiz(
                 "approximate answers are never used"
             )
     if "constant" in kinds:
-        ps, sk = constants.generate(repo, rel, source, units, seed, per_unit)
+        cgen = js.generate_constants if is_js else constants.generate
+        ps, sk = cgen(repo, rel, source, units, seed, per_unit)
         pool["constant"], skips = ps, skips + sk
     if "mutation" in kinds:
         ps, sk = mutation.generate(repo, rel, source, units, seed)
@@ -136,10 +139,16 @@ def unit_probe_kinds(
     units = extract_units(rel, source)
     avail: dict[str, set[str]] = {}
     skips: list[str] = []
-    gens: list[tuple[list[Probe], list[str]]] = [
-        runtime.generate(repo, rel, source, units, 0, 1),
-        constants.generate(repo, rel, source, units, 0, 1),
-    ]
+    if rel.endswith(js.JS_EXT + js.UNSUPPORTED_EXT):
+        gens: list[tuple[list[Probe], list[str]]] = [
+            js.generate_runtime(repo, rel, source, units, 0, 1),
+            js.generate_constants(repo, rel, source, units, 0, 1),
+        ]
+    else:
+        gens = [
+            runtime.generate(repo, rel, source, units, 0, 1),
+            constants.generate(repo, rel, source, units, 0, 1),
+        ]
     if index_is_fresh(repo, cfg.extensions):
         gens.append(
             callgraph.generate(repo, rel, units, load_index(index_path(repo)), 0, per_unit=1)
