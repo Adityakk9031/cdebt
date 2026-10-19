@@ -434,7 +434,14 @@ def test_symlinks_planted_inside_the_sandbox_root(world: World, tmp_path: Path) 
 
 def test_oversized_output_is_cut_off(world: World) -> None:
     res = run("import sys\nwhile True:\n    sys.stdout.write('y' * 1000000)", "host", timeout=10)
-    assert res.killed_for_output or res.timed_out or res.killed_for_memory
+    # contained by the output cap, the deadline, the RSS watchdog (macOS) or RLIMIT_AS (Linux:
+    # the allocation fails with MemoryError inside the runner)
+    assert (
+        res.killed_for_output
+        or res.timed_out
+        or res.killed_for_memory
+        or "MemoryError" in res.payload
+    )
     assert res.stdout_len <= sandbox.MAX_OUTPUT + 70000
     world.check(res, "output flood")
 

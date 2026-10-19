@@ -585,6 +585,8 @@ def _kill_group(pgid: int) -> None:
     """SIGKILL a process group whose id is `pgid` (the sandbox child is a session leader, so
     pgid == its pid). Refuses if that pid now belongs to an unrelated process (PID reuse after
     the leader was reaped)."""
+    if sys.platform == "win32":
+        return
     try:
         cur: int | None = os.getpgid(pgid)
     except ProcessLookupError:
@@ -623,6 +625,8 @@ def _descendants(pid: int) -> list[int]:
 def _kill_tree(pid: int) -> None:
     """Kill the whole process tree: descendants first (they may have escaped the group), then
     the group, then the group again (a fork racing the first pass)."""
+    if sys.platform == "win32":
+        return
     for d in _descendants(pid):
         with contextlib.suppress(ProcessLookupError, PermissionError, OSError):
             os.kill(d, signal.SIGKILL)
@@ -683,7 +687,8 @@ def run_in_sandbox(
     """Run the runner (mode call/exec; `runtime` selects the Python or Node runner) or, with
     `command`, an arbitrary command (policy "tests") under the same containment. `root` is the
     only writable directory."""
-    require_posix()
+    if sys.platform == "win32":  # explicit so type checkers treat the rest as POSIX-only
+        raise SandboxUnavailable(WINDOWS_MESSAGE)
     orig_root = str(root)
     root = Path(root).resolve()
     (root / "tmp").mkdir(exist_ok=True)
@@ -924,7 +929,8 @@ def run_in_sandbox(
             payload = loaded if isinstance(loaded, dict) else None
         except json.JSONDecodeError:
             payload = None
-    viol = [str(v) for v in (payload or {}).get("violations", [])]  # type: ignore[attr-defined]
+    raw_viol = (payload or {}).get("violations", [])
+    viol = [str(v) for v in raw_viol] if isinstance(raw_viol, list) else []
     return SandboxResult(
         proc.returncode,
         text,
