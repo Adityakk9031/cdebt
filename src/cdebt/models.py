@@ -160,7 +160,8 @@ class Violation(BaseModel):
 
 
 class GateResult(BaseModel):
-    passed: bool
+    passed: bool  # the verdict; the exit code only reflects it when --enforce is given
+    enforced: bool = False  # False = advisory: report, never fail the build
     base: str
     head: str
     ai_lines_unverified: int

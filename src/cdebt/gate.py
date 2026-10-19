@@ -177,14 +177,19 @@ def _label(status: str) -> str:
 
 
 def to_markdown(r: GateResult) -> str:
-    icon = "PASS" if r.passed else "FAIL"
+    icon = ("PASS" if r.passed else "FAIL") + ("" if r.enforced else " (advisory)")
     out = [
         MARKER,
         f"## cdebt gate: {icon}",
         "",
         f"AI-attributed changed lines not cleared: "
         f"**{r.ai_lines_unverified}** (allowed: {r.max_ai_lines}). "
-        f"Policy: `--require {r.require}`.",
+        f"Policy: `--require {r.require}`."
+        + (
+            ""
+            if r.enforced
+            else " **Advisory: this does not block the merge** (use `--enforce` to fail the build)."
+        ),
         "",
     ]
     srcs = ", ".join(f"`{k}`: {v}" for k, v in r.attribution_sources.items()) or "none"

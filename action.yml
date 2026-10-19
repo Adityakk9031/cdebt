@@ -3,6 +3,7 @@ description: Fail a PR when AI-authored changed lines sit in code nobody has ver
 inputs:
   max-ai-lines: {description: "Allowed AI lines in un-understood units", default: "0"}
   strict-unknown: {description: "Fail on unknown attribution", default: "false"}
+  enforce: {description: "Fail the job when the gate fails (default: advisory, comment only)", default: "false"}
   comment: {description: "Post a sticky PR comment", default: "true"}
   version: {description: "cdebt version to install (pip spec)", default: "cdebt"}
   python-version: {description: "Python version", default: "3.12"}
@@ -17,6 +18,7 @@ runs:
       env:
         CDEBT_MAX_AI_LINES: ${{ inputs.max-ai-lines }}
         CDEBT_STRICT_UNKNOWN: ${{ inputs.strict-unknown }}
+        CDEBT_ENFORCE: ${{ inputs.enforce }}
         CDEBT_COMMENT: ${{ inputs.comment }}
         GITHUB_TOKEN: ${{ github.token }}
         PR_NUMBER: ${{ github.event.pull_request.number }}

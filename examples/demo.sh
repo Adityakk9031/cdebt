@@ -29,4 +29,5 @@ sed -i.bak 's/+ tax/+ tax + 0/' pkg/shop.py; rm pkg/shop.py.bak
 git commit -qam "tweak total
 
 Co-Authored-By: Claude <noreply@anthropic.com>"
-cdebt gate --base base || echo "(gate exit code $? : expected FAIL, total() changed and its understanding expired)"
+cdebt gate --base base   # advisory by default: reports, exits 0
+cdebt gate --base base --enforce || echo "(gate exit code $? with --enforce: expected 1, total() changed and its understanding expired)"

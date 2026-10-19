@@ -334,10 +334,19 @@ def gate_cmd(
             "functions quiz cannot verify; verified required otherwise.",
         ),
     ] = None,
+    enforce: Annotated[
+        bool,
+        typer.Option(
+            "--enforce",
+            help="exit 1 when the gate fails. Without it the gate is ADVISORY: it reports the "
+            "verdict (and the PR comment says so) but always exits 0.",
+        ),
+    ] = False,
     json_out: Annotated[bool, typer.Option("--json")] = False,
     markdown: Annotated[Path | None, typer.Option(help="write PR-comment markdown")] = None,
 ) -> None:
-    """CI check: fail when AI-authored changed lines sit in files nobody has understood."""
+    """CI check on AI-authored changed lines in code nobody has understood. Advisory by default;
+    pass --enforce to make a failing verdict exit 1 (exit 2 is always a tool error)."""
     from cdebt.gate import run_gate, to_markdown
 
     r = _repo(repo)
@@ -357,13 +366,15 @@ def gate_cmd(
     except gitutil.GitError as e:
         typer.echo(f"error: {e}", err=True)
         raise typer.Exit(2) from None
+    res.enforced = enforce
     if markdown:
         markdown.write_text(to_markdown(res))
     if json_out:
         typer.echo(json.dumps(json.loads(res.model_dump_json()), indent=2))
     else:
         console.print(
-            f"[bold]cdebt gate: {'PASS' if res.passed else 'FAIL'}[/] "
+            f"[bold]cdebt gate: {'PASS' if res.passed else 'FAIL'}"
+            f"{'' if enforce else ' (advisory, exit 0; use --enforce to fail)'}[/] "
             f"AI lines in un-understood units: {res.ai_lines_unverified} "
             f"(max {res.max_ai_lines}) | sources: {res.attribution_sources or 'none'}"
         )
@@ -379,7 +390,7 @@ def gate_cmd(
             )
         for n in res.notes:
             console.print(f"[yellow]{escape(n)}[/]")
-    raise typer.Exit(0 if res.passed else 1)
+    raise typer.Exit(0 if (res.passed or not enforce) else 1)
 
 
 @command("attest")

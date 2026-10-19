@@ -6,6 +6,7 @@ BASE_REF="${CDEBT_BASE:-origin/${GITHUB_BASE_REF:-main}}"
 ARGS=(gate --base "$BASE_REF" --markdown cdebt-gate.md --json)
 [ -n "${CDEBT_MAX_AI_LINES:-}" ] && ARGS+=(--max-ai-lines "$CDEBT_MAX_AI_LINES")
 [ "${CDEBT_STRICT_UNKNOWN:-false}" = "true" ] && ARGS+=(--strict-unknown)
+[ "${CDEBT_ENFORCE:-false}" = "true" ] && ARGS+=(--enforce)
 # Git AI notes are not fetched by default; best effort, read-only.
 git fetch --quiet origin '+refs/notes/ai:refs/notes/ai' 2>/dev/null || \
   echo "note: no refs/notes/ai on origin; attribution falls back to other sources"

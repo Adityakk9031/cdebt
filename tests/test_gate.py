@@ -72,13 +72,24 @@ def test_unknown_attribution_warns_but_strict_fails(make_repo) -> None:  # type:
     assert not strict.passed
 
 
-def test_cli_gate_exit_codes_and_json(make_repo) -> None:  # type: ignore[no-untyped-def]
+def test_cli_gate_is_advisory_by_default_and_enforce_fails(make_repo) -> None:  # type: ignore[no-untyped-def]
     r = _pr(make_repo)
     run = CliRunner()
-    out = run.invoke(app, ["gate", "--repo", str(r.path), "--base", "base", "--json"])
-    assert out.exit_code == 1 and json.loads(out.output)["passed"] is False
+    adv = run.invoke(app, ["gate", "--repo", str(r.path), "--base", "base", "--json"])
+    d = json.loads(adv.output)
+    assert adv.exit_code == 0 and d["passed"] is False and d["enforced"] is False
+    enf = run.invoke(app, ["gate", "--repo", str(r.path), "--base", "base", "--json", "--enforce"])
+    assert enf.exit_code == 1 and json.loads(enf.output)["enforced"] is True
+    txt = run.invoke(app, ["gate", "--repo", str(r.path), "--base", "base"])
+    assert txt.exit_code == 0 and "advisory" in " ".join(txt.output.split())
     md = r.path / "c.md"
-    out = run.invoke(
+    run.invoke(app, ["gate", "--repo", str(r.path), "--base", "base", "--markdown", str(md)])
+    assert "FAIL (advisory)" in md.read_text() and "does not block the merge" in md.read_text()
+    run.invoke(
+        app, ["gate", "--repo", str(r.path), "--base", "base", "--enforce", "--markdown", str(md)]
+    )
+    assert "(advisory)" not in md.read_text() and "FAIL" in md.read_text()
+    ok = run.invoke(
         app,
         [
             "gate",
@@ -88,13 +99,14 @@ def test_cli_gate_exit_codes_and_json(make_repo) -> None:  # type: ignore[no-unt
             "base",
             "--max-ai-lines",
             "5",
+            "--enforce",
             "--markdown",
             str(md),
         ],
     )
-    assert out.exit_code == 0 and "PASS" in md.read_text()
-    out = run.invoke(app, ["gate", "--repo", str(r.path), "--base", "nope"])
-    assert out.exit_code == 2
+    assert ok.exit_code == 0 and "PASS" in md.read_text()
+    bad = run.invoke(app, ["gate", "--repo", str(r.path), "--base", "nope"])
+    assert bad.exit_code == 2  # a tool error is never advisory
 
 
 def test_plan_ranks_by_priority(make_repo) -> None:  # type: ignore[no-untyped-def]
