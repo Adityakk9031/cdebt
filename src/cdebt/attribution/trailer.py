@@ -45,6 +45,9 @@ class TrailerProvider:
         self.repo, self.patterns = repo, patterns
         self._cache: dict[str, bool] = {}
 
+    def cache_key(self) -> str:
+        return "patterns:" + "|".join(self.patterns)
+
     def _ai(self, sha: str) -> bool:
         if sha not in self._cache:
             self._cache[sha] = is_ai_trailer(gitutil.commit_message(self.repo, sha), self.patterns)

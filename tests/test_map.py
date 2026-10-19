@@ -96,4 +96,4 @@ def test_cli_map_table(make_repo) -> None:  # type: ignore[no-untyped-def]
     r = _repo(make_repo)
     out = CliRunner().invoke(app, ["map", "--repo", str(r.path), "--no-scip"])
     assert out.exit_code == 0 and "a.py" in out.output and "trailer" in out.output
-    assert Path(r.path / ".cdebt").exists() is False  # map is read-only
+    assert not (r.path / ".cdebt" / "understanding.json").exists()  # map never records anything

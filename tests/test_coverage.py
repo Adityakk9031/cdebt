@@ -66,7 +66,7 @@ def test_coverage_cli_json_and_table_and_read_only(make_repo) -> None:  # type: 
     t = run.invoke(app, ["coverage", "--repo", str(r.path), "--no-scip"])
     text = " ".join(t.output.split())  # rich wraps lines
     assert t.exit_code == 0 and "can only be ATTESTED" in text and "no quiz support" in text
-    assert not (r.path / ".cdebt").exists()
+    assert not (r.path / ".cdebt" / "understanding.json").exists()  # only a cache may appear
 
 
 def test_scip_makes_typescript_partly_quizzable_only_with_index(make_repo) -> None:  # type: ignore[no-untyped-def]

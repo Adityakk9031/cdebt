@@ -1,0 +1,10 @@
+{
+  "repo": "Popoboxxo/agent-meta @ 8457634f1ed8 (509 files, 140,429 lines), MacBook Air M4, nice -n 5",
+  "before_v1_0_rc": {"map_seconds": 53.7, "plan_seconds": 69.7, "source": "docs/case_studies/timings.txt"},
+  "after": {
+    "map_no_cache_seconds": [26.7, 27.0],
+    "map_warm_cache_seconds": 9.8,
+    "plan_warm_attribution_cache_seconds": 18.8
+  },
+  "cause": "approx_blast was O(files x files x regex) (28 s of 45 s); git rev-parse HEAD ran once per file (8.5 s). Fixed with a one-pass token index and resolving the revision once; attribution and churn are cached on disk keyed by commit + file blob + provider inputs."
+}

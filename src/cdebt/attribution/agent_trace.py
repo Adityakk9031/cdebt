@@ -59,7 +59,19 @@ def index(records: list[dict[str, Any]]) -> dict[tuple[str, str], dict[int, Auth
 class AgentTraceProvider:
     source = AttributionSource.AGENT_TRACE
 
+    def cache_key(self) -> str:
+        return "agent-trace:" + self._digest
+
     def __init__(self, repo: Path, directory: Path | None = None) -> None:
+        import hashlib
+
+        d = directory or repo / ".agent-trace"
+        h = hashlib.sha256()
+        if d.is_dir():
+            for f in sorted(d.iterdir()):
+                if f.is_file():
+                    h.update(f.name.encode() + f.read_bytes())
+        self._digest = h.hexdigest()
         self._idx = index(load_records(directory or repo / ".agent-trace"))
 
     def claims(

@@ -125,6 +125,12 @@ class GitAiProvider:
         self.repo, self.ref = repo, ref
         self._cache: dict[str, ParsedNote | None] = {}
 
+    def cache_key(self) -> str:
+        out = gitutil.run(
+            ["rev-parse", "-q", "--verify", f"refs/notes/{self.ref}"], self.repo, check=False
+        )
+        return f"notes:{self.ref}:{out.strip() or 'none'}"  # any new/changed note changes this
+
     def _note(self, sha: str) -> ParsedNote | None:
         if sha not in self._cache:
             txt = gitutil.note(self.repo, sha, self.ref)

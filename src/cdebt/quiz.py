@@ -2,11 +2,14 @@
 
 from __future__ import annotations
 
+import hashlib
 import random
+import sys
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
-from cdebt import gitutil
+from cdebt import gitutil, sandbox
+from cdebt.cache import Cache, make_key
 from cdebt.config import Config
 from cdebt.models import CodeUnit, Probe, Record
 from cdebt.probes import callgraph, constants, js, mutation, runtime
@@ -127,6 +130,23 @@ def dirty(repo: Path, rel: str) -> bool:
     return head is None or head != (repo / rel).read_text()
 
 
+def _tree_fingerprint(repo: Path, cfg: Config) -> str:
+    """Hash of every tracked source file (probe availability can depend on any import). Computed
+    fresh each time: it is cheap next to running probes and must never be stale."""
+    from cdebt.scip import fingerprint
+
+    return fingerprint(repo, cfg.extensions)
+
+
+def _cdebt_version() -> str:
+    from importlib.metadata import PackageNotFoundError, version
+
+    try:
+        return version("cdebt")
+    except PackageNotFoundError:  # pragma: no cover
+        return "dev"
+
+
 def unit_probe_kinds(
     repo: Path, rel: str, cfg: Config, source: str | None = None
 ) -> tuple[dict[str, set[str]], list[str]]:
@@ -135,6 +155,23 @@ def unit_probe_kinds(
     f = repo / rel
     source = source if source is not None else f.read_text()
     units = extract_units(rel, source)
+    cache = Cache(repo)
+    ckey = make_key(
+        "probe-kinds",
+        _cdebt_version(),
+        rel,
+        hashlib.sha256(source.encode()).hexdigest(),
+        _tree_fingerprint(repo, cfg),
+        sandbox.DEFAULT_ISOLATION,
+        sandbox.docker_available(),
+        sandbox._sandbox_exec_available(),
+        sys.version_info[:2],
+        js.node_version(),
+        index_is_fresh(repo, cfg.extensions),
+    )
+    hit = cache.get("probe-kinds", ckey)
+    if hit is not None:
+        return {k: set(v) for k, v in hit["avail"].items()}, list(hit["skips"])
     avail: dict[str, set[str]] = {}
     skips: list[str] = []
     if rel.endswith(js.JS_EXT + js.UNSUPPORTED_EXT):
@@ -153,6 +190,9 @@ def unit_probe_kinds(
         skips += sk
         for p in ps:
             avail.setdefault(p.symbol, set()).add(p.kind)
+    cache.put(
+        "probe-kinds", ckey, {"avail": {k: sorted(v) for k, v in avail.items()}, "skips": skips}
+    )
     return avail, skips
 
 

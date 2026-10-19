@@ -5,12 +5,14 @@ from __future__ import annotations
 
 import math
 import re
+from collections import Counter
 from pathlib import Path
 
 from pydantic import BaseModel
 
 from cdebt import gitutil
 from cdebt.attribution.resolve import default_providers, resolve_file
+from cdebt.cache import Cache, make_key
 from cdebt.config import Config
 from cdebt.models import AttributionSource, AuthorKind, FileDebt
 from cdebt.scip import ScipIndex
@@ -46,6 +48,21 @@ class MapResult(BaseModel):
     files: list[FileDebt]
 
 
+def _churn(repo: Path, path: str, rev: str, days: int) -> int:
+    """Commits touching `path` in the last `days` days, cached by commit sha. (The window is
+    relative to now, so the cache key includes today's date.)"""
+    from datetime import date
+
+    cache = Cache(repo)
+    key = make_key("churn", gitutil.rev_sha(repo, rev), path, days, date.today().isoformat())
+    hit = cache.get("churn", key)
+    if isinstance(hit, int):
+        return hit
+    val = gitutil.file_churn(repo, path, rev, days)
+    cache.put("churn", key, val)
+    return val
+
+
 def blast_factor(refs: int, mode: str) -> float:
     return 1.0 + math.log1p(refs) if mode == "log" else float(max(1, refs))
 
@@ -63,19 +80,34 @@ def scip_blast(idx: ScipIndex, path: str) -> int:
     return len(sites)
 
 
-def approx_blast(repo: Path, rev: str, path: str, source: str, others: dict[str, str]) -> int:
+class TokenIndex:
+    """Word counts per file, built ONCE per map run (one regex pass over every source file), so
+    the name-match blast radius is O(tokens + names) instead of O(files x files x regex)."""
+
+    def __init__(self, sources: dict[str, str]) -> None:
+        self.per_file = {p: Counter(_WORD.findall(t)) for p, t in sources.items()}
+        self.total: Counter[str] = Counter()
+        for c in self.per_file.values():
+            self.total.update(c)
+
+
+_WORD = re.compile(r"\w+")
+
+
+def approx_blast(idx: TokenIndex, path: str, source: str) -> int:
     """Name-match fallback (labelled `approx`): word occurrences of this file's top-level
-    symbol names in other files. Over-counts common names. Never used for quiz answers."""
+    symbol names in OTHER files. Over-counts common names. Never used for quiz answers."""
     names = {
         u.symbol.split(".")[-1].split("#")[0]
         for u in extract_units(path, source)
         if not u.symbol.startswith("<")
     }
-    names = {n for n in names if len(n) > 2 and not n.startswith("__")}
-    if not names:
-        return 0
-    pat = re.compile(r"\b(?:" + "|".join(map(re.escape, sorted(names))) + r")\b")
-    return sum(len(pat.findall(t)) for p, t in others.items() if p != path)
+    own = idx.per_file.get(path, Counter())
+    return sum(
+        idx.total[n] - own[n]
+        for n in names
+        if len(n) > 2 and not n.startswith("__") and _WORD.fullmatch(n)
+    )
 
 
 def compute_map(
@@ -85,6 +117,7 @@ def compute_map(
     store: Store | None = None,
     scip_idx: ScipIndex | None = None,
 ) -> MapResult:
+    rev = gitutil.rev_sha(repo, rev)  # one `git rev-parse`, not one per file
     store = store or Store(repo)
     providers = default_providers(repo, use_trailers=cfg.use_trailers)
     paths = [p for p in gitutil.ls_files(repo, rev) if p.endswith(cfg.extensions)]
@@ -130,7 +163,7 @@ def compute_map(
         coarse = coarse or fa.coarse
         for k, v in fa.source_counts().items():
             agg_sources[k] = agg_sources.get(k, 0) + v
-        churn = gitutil.file_churn(repo, p, rev, cfg.churn_days)
+        churn = _churn(repo, p, rev, cfg.churn_days)
         rows.append(
             (
                 p,
@@ -147,6 +180,7 @@ def compute_map(
             )
         )
     max_churn = max((r[6] for r in rows), default=0) or 1
+    token_idx = TokenIndex(sources) if scip_idx is None else TokenIndex({})
     if scip_idx is not None:
         blast_src = "scip"
     elif rows:
@@ -158,7 +192,7 @@ def compute_map(
         if scip_idx is not None:
             refs = scip_blast(scip_idx, p)
         else:
-            refs = approx_blast(repo, rev, p, sources[p], sources)
+            refs = approx_blast(token_idx, p, sources[p])
         ai_share = ai / total
         und_share = (und + cfg.attested_weight * att) / ai if ai else 0.0
         c = churn / max_churn

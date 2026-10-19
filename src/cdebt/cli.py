@@ -5,6 +5,7 @@ from __future__ import annotations
 import contextlib
 import functools
 import json
+import os
 from collections.abc import Callable, Iterator
 from pathlib import Path
 from typing import Annotated, Any
@@ -41,6 +42,16 @@ TrustedOpt = Annotated[
         "Never read from the repository itself.",
     ),
 ]
+
+
+NoCacheOpt = Annotated[
+    bool, typer.Option("--no-cache", help="ignore and do not write .cdebt/cache (CDEBT_NO_CACHE=1)")
+]
+
+
+def _apply_cache(no_cache: bool) -> None:
+    if no_cache:
+        os.environ["CDEBT_NO_CACHE"] = "1"
 
 
 def _apply_isolation(trusted: bool) -> None:
@@ -174,9 +185,11 @@ def map_cmd(
     top: int = 20,
     no_scip: Annotated[bool, typer.Option("--no-scip")] = False,
     build_scip: Annotated[bool, typer.Option("--build-scip")] = False,
+    no_cache: NoCacheOpt = False,
 ) -> None:
     """Which files hold the most AI-written code nobody has verifiably understood?"""
     r = _repo(repo)
+    _apply_cache(no_cache)
     idx = None if no_scip else _scip(r, build_scip)
     res = compute_map(r, load_config(r), rev, scip_idx=idx)
     if json_out:
@@ -427,12 +440,14 @@ def coverage_cmd(
     json_out: Annotated[bool, typer.Option("--json")] = False,
     no_scip: Annotated[bool, typer.Option("--no-scip")] = False,
     trusted: TrustedOpt = False,
+    no_cache: NoCacheOpt = False,
 ) -> None:
     """What fraction of the top-N debt files can be VERIFIED, only ATTESTED, or not quizzed at
     all (incl. TypeScript)? Run this before trusting the gate."""
     from cdebt.coverage import compute_coverage
 
     r = _repo(repo)
+    _apply_cache(no_cache)
     _apply_isolation(trusted)
     with _sandbox_errors():
         res = compute_coverage(
@@ -512,11 +527,13 @@ def plan_cmd(
     top: int = 20,
     json_out: Annotated[bool, typer.Option("--json")] = False,
     no_scip: Annotated[bool, typer.Option("--no-scip")] = False,
+    no_cache: NoCacheOpt = False,
 ) -> None:
     """Ranked pay-down plan: what to read, review or rewrite first, with effort estimates."""
     from cdebt.plan import compute_plan
 
     r = _repo(repo)
+    _apply_cache(no_cache)
     items = compute_plan(r, load_config(r), rev, top, scip_idx=None if no_scip else _scip(r, False))
     if json_out:
         typer.echo(json.dumps([json.loads(i.model_dump_json()) for i in items], indent=2))

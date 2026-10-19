@@ -122,6 +122,35 @@ def commit_message(cwd: Path, sha: str) -> str:
     return run(["log", "-1", "--format=%B", sha], cwd)
 
 
+_REV: dict[tuple[str, str], str] = {}
+_BLOBS: dict[tuple[str, str], dict[str, str]] = {}
+
+
+def rev_sha(cwd: Path, rev: str) -> str:
+    """`resolve`, memoised for a branch/tag name only within one process and one HEAD move."""
+    key = (str(cwd), rev)
+    if key not in _REV or not re.fullmatch(r"[0-9a-f]{40}", rev):
+        _REV[key] = resolve(cwd, rev)
+    return _REV[key]
+
+
+def blob_shas(cwd: Path, rev: str) -> dict[str, str]:
+    """path -> blob sha for every file at `rev` (one `git ls-tree` per commit per process)."""
+    sha = rev_sha(cwd, rev)
+    key = (str(cwd), sha)
+    if key not in _BLOBS:
+        out: dict[str, str] = {}
+        for line in run(["ls-tree", "-r", "-z", sha], cwd).split("\0"):
+            if not line:
+                continue
+            meta, _, name = line.partition("\t")
+            parts = meta.split()
+            if len(parts) == 3:
+                out[name] = parts[2]
+        _BLOBS[key] = out
+    return _BLOBS[key]
+
+
 def file_churn(cwd: Path, path: str, rev: str, since_days: int) -> int:
     out = run(
         ["log", f"--since={since_days}.days.ago", "--format=%H", rev, "--", path], cwd, check=False

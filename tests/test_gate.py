@@ -112,4 +112,4 @@ def test_plan_ranks_by_priority(make_repo) -> None:  # type: ignore[no-untyped-d
     )
     out = CliRunner().invoke(app, ["plan", "--repo", str(r.path), "--no-scip", "--json"])
     assert out.exit_code == 0 and json.loads(out.output)[0]["rank"] == 1
-    assert not Path(r.path / ".cdebt").exists()
+    assert not (r.path / ".cdebt" / "understanding.json").exists()  # only a cache may appear
