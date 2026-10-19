@@ -107,7 +107,7 @@ repository symlink got a host file copied into the sandbox; all are fixed and no
 | Unix sockets including agent-style (`SSH_AUTH_SOCK`, `docker.sock`), `socketpair` | blocked | (held) |
 | Signal tricks (SIGSTOP of self, ignoring SIGTERM/SIGINT, itimers, `sigtimedwait`, `pause`) | none evaded the deadline | (held) |
 | Decompression and allocation bombs (zlib, gzip, bz2, lzma, zip in memory, 2^40-byte allocations, huge `mmap`) | contained | (held) |
-| Node: `inspector.open` (debugger port), V8 flags, diagnostic reports, WebAssembly memory | not shown to fail; added as precautions | `inspector.*`, `v8.setFlagsFromString/writeHeapSnapshot`, `process.report.writeReport` blocked, `WebAssembly` removed |
+| Node: `inspector.open` (debugger port), V8 flags, diagnostic reports, WebAssembly memory | not shown to fail; added as precautions | `inspector.*`, `v8.setFlagsFromString/writeHeapSnapshot`, `process.report.writeReport` blocked. (`WebAssembly` is NOT removed: Node's TypeScript type stripping needs it; wasm memory is bounded by the RSS watchdog and the OS layer.) |
 | Forging the probe result with a raw `os.write(1, ...)` | works | **accepted**: the repo already controls what its own functions return |
 
 Not shown by this pass: anything about hostile native code, kernel or Docker flaws, or timing

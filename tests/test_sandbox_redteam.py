@@ -320,7 +320,7 @@ class TestNode:
     @pytest.mark.parametrize(
         "code",
         [
-            "const m = new WebAssembly.Memory({initial: 65536});\nexport const R = 1;",
+            "const m = new WebAssembly.Memory({initial: 65536});\nnew Uint8Array(m.buffer).fill(1);\nexport const R = 1;",
             "export const R = Buffer.alloc(8e9).length;",
             "export const R = new Array(2 ** 32 - 1).fill(0).length;",
             "import v8 from 'node:v8';\nv8.setFlagsFromString('--allow-natives-syntax');\nexport const R = 1;",

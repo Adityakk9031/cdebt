@@ -422,13 +422,14 @@ const NET = [[net, ['connect', 'createConnection', 'createServer']],
   [http2, ['connect', 'createServer', 'createSecureServer']], [tls, ['connect', 'createServer']],
   [dgram, ['createSocket']]];
 for (const [mod, names] of NET) for (const n of names) { try { mod[n] = blocked(n); } catch (e) {} }
-// the permission model does not cover the debugger port, V8 flags, diagnostic reports or wasm memory
+// the permission model does not cover the debugger port, V8 flags, diagnostic reports
 for (const k of Object.keys(inspector)) { try { if (typeof inspector[k] === 'function') inspector[k] = blocked('inspector.' + k); } catch (e) {} }
 for (const k of ['setFlagsFromString', 'writeHeapSnapshot', 'setHeapSnapshotNearHeapLimit']) { try { v8[k] = blocked('v8.' + k); } catch (e) {} }
 try { process.report.writeReport = blocked('process.report.writeReport'); } catch (e) {}
-try { delete globalThis.WebAssembly; } catch (e) {}
+// NB: do not delete WebAssembly: Node's TypeScript type stripping (amaro) needs it. Wasm memory is
+// bounded by the RSS watchdog and the OS layer instead.
 for (const g of ['fetch', 'WebSocket', 'EventSource', 'XMLHttpRequest']) { try { delete globalThis[g]; } catch (e) {} }
-for (const k of ['kill', 'abort', 'reallyExit', 'dlopen', 'binding', '_linkedBinding']) { try { process[k] = blocked('process.' + k); } catch (e) {} }
+for (const k of ['kill', 'abort', 'dlopen', 'binding', '_linkedBinding']) { try { process[k] = blocked('process.' + k); } catch (e) {} }
 try { net.Socket.prototype.connect = blocked('net.Socket.connect'); } catch (e) {}
 try { net.Server.prototype.listen = blocked('net.Server.listen'); } catch (e) {}
 try { for (const n of Object.keys(dns.promises)) dns.promises[n] = blocked('dns.promises.' + n); } catch (e) {}
