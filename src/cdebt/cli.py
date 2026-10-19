@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
+import contextlib
 import json
+from collections.abc import Iterator
 from pathlib import Path
 from typing import Annotated
 
@@ -29,6 +31,34 @@ def _main() -> None:
     """cdebt: comprehension-debt toolkit."""
 
 
+TrustedOpt = Annotated[
+    bool,
+    typer.Option(
+        "--trusted",
+        help="I trust this repository's code: run probes with the host sandbox instead of "
+        "requiring strong isolation (Docker, or macOS sandbox-exec). Also CDEBT_TRUSTED=1. "
+        "Never read from the repository itself.",
+    ),
+]
+
+
+def _apply_isolation(trusted: bool) -> None:
+    from cdebt import sandbox
+
+    sandbox.set_default_isolation("host" if sandbox.is_trusted(trusted) else "strong")
+
+
+@contextlib.contextmanager
+def _sandbox_errors() -> Iterator[None]:
+    from cdebt.sandbox import SandboxUnavailable
+
+    try:
+        yield
+    except SandboxUnavailable as e:
+        typer.echo(f"error: {e}", err=True)
+        raise typer.Exit(2) from None
+
+
 RepoOpt = Annotated[Path, typer.Option("--repo", help="Repository path.")]
 
 
@@ -37,6 +67,18 @@ def _repo(p: Path) -> Path:
         return gitutil.repo_root(p)
     except gitutil.GitError:
         typer.echo(f"error: {p} is not a git repository", err=True)
+        raise typer.Exit(2) from None
+
+
+def _rel(file: Path, repo: Path) -> str:
+    """Repo-relative path of `file`: relative to the cwd if it exists there, else to --repo."""
+    cand = file if file.is_absolute() else Path.cwd() / file
+    if not cand.exists() and not file.is_absolute():
+        cand = repo / file
+    try:
+        return str(cand.resolve().relative_to(repo.resolve()))
+    except ValueError:
+        typer.echo(f"error: {file} is not inside the repository {repo}", err=True)
         raise typer.Exit(2) from None
 
 
@@ -158,6 +200,7 @@ def quiz_cmd(
     expires_days: Annotated[int | None, typer.Option()] = None,
     json_out: Annotated[bool, typer.Option("--json")] = False,
     verbose: Annotated[bool, typer.Option("--verbose", help="list every skipped unit")] = False,
+    trusted: TrustedOpt = False,
 ) -> None:
     """Ask questions whose answers come from EXECUTING the code, then record understanding."""
     from cdebt.models import Probe
@@ -166,9 +209,11 @@ def quiz_cmd(
 
     r = _repo(repo)
     cfg = load_config(r)
-    rel = str((file if file.is_absolute() else Path.cwd() / file).resolve().relative_to(r))
+    rel = _rel(file, r)
     ks = tuple(k.strip() for k in kinds.split(",") if k.strip())
-    probes, units, skips = build_quiz(r, rel, cfg, n=n, seed=seed, kinds=ks)
+    _apply_isolation(trusted)
+    with _sandbox_errors():
+        probes, units, skips = build_quiz(r, rel, cfg, n=n, seed=seed, kinds=ks)
     if skips and verbose:
         for s in skips:
             console.print(f"[dim]skipped: {s}[/]")
@@ -310,13 +355,16 @@ def attest_cmd(
     force: Annotated[
         bool, typer.Option("--force", help="attest even functions that quiz could verify")
     ] = False,
+    trusted: TrustedOpt = False,
 ) -> None:
     """Record a human sign-off. NON-VERIFIED: nothing is executed or checked. Hash-bound, so it
     expires when the code changes. Use for module-level or unquizzable code."""
     from cdebt.quiz import attest
+    from cdebt.sandbox import SandboxUnavailable
 
     r = _repo(repo)
-    rel = str((file if file.is_absolute() else Path.cwd() / file).resolve().relative_to(r))
+    rel = _rel(file, r)
+    _apply_isolation(trusted)
     try:
         recs, notes = attest(
             r,
@@ -329,6 +377,9 @@ def attest_cmd(
             force=force,
         )
     except (ValueError, FileNotFoundError) as e:
+        typer.echo(f"error: {e}", err=True)
+        raise typer.Exit(2) from None
+    except SandboxUnavailable as e:
         typer.echo(f"error: {e}", err=True)
         raise typer.Exit(2) from None
     for n in notes:
@@ -349,15 +400,18 @@ def coverage_cmd(
     rev: str = "HEAD",
     json_out: Annotated[bool, typer.Option("--json")] = False,
     no_scip: Annotated[bool, typer.Option("--no-scip")] = False,
+    trusted: TrustedOpt = False,
 ) -> None:
     """What fraction of the top-N debt files can be VERIFIED, only ATTESTED, or not quizzed at
     all (incl. TypeScript)? Run this before trusting the gate."""
     from cdebt.coverage import compute_coverage
 
     r = _repo(repo)
-    res = compute_coverage(
-        r, load_config(r), top_n, rev, scip_idx=None if no_scip else _scip(r, False)
-    )
+    _apply_isolation(trusted)
+    with _sandbox_errors():
+        res = compute_coverage(
+            r, load_config(r), top_n, rev, scip_idx=None if no_scip else _scip(r, False)
+        )
     if json_out:
         typer.echo(json.dumps(json.loads(res.model_dump_json()), indent=2))
         return

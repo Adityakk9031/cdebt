@@ -48,6 +48,8 @@ select = ["E", "F", "I", "UP", "B", "SIM"]
 "src/cdebt/probes/mutation.py" = ["E501"]
 "tests/test_sandbox_node.py" = ["E501"]  # JS payload strings
 "tests/test_js_probes.py" = ["E501"]  # JS source strings
+"tests/test_sandbox_fuzz.py" = ["E501", "F541"]  # payload strings
+"tests/test_sandbox_node_fuzz.py" = ["E501", "F541"]
 
 [tool.mypy]
 python_version = "3.11"

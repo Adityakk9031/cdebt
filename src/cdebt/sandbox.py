@@ -26,9 +26,10 @@ import sys
 import tempfile
 import threading
 import time
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Literal
+from typing import Any, Literal
 
 Policy = Literal["pure", "tests"]
 MARK = "\x00CDEBT-RESULT\x00"
@@ -193,6 +194,8 @@ class SandboxResult:
     stderr: str
     timed_out: bool = False
     killed_for_memory: bool = False
+    killed_for_output: bool = False  # produced more than MAX_OUTPUT bytes
+    killed_for_procs: bool = False  # spawned more than MAX_PROCS descendants
     violations: list[str] = field(default_factory=list)
     isolation: str = "audit+rlimit"
     payload: dict[str, object] | None = None  # JSON the runner emitted, if any
@@ -217,6 +220,25 @@ def _inside(p):
         return False
     rp = os.fsdecode(rp)
     return rp == ROOT or rp.startswith(ROOT + os.sep) or rp in ("/dev/null", "/dev/tty")
+import sysconfig
+def _real(p):
+    try:
+        return os.path.realpath(p)
+    except Exception:
+        return None
+_READ_OK = tuple(r for r in (_real(x) for x in {
+    ROOT, sys.prefix, sys.base_prefix, sys.exec_prefix, *sysconfig.get_paths().values(),
+    "/usr", "/System/Library", "/Library/Frameworks", "/lib", "/lib64", "/etc/localtime",
+    "/dev/null", "/dev/urandom", "/dev/random", "/dev/tty", "/private/var/db/timezone",
+    "/proc/self"}) if r)
+def _read_ok(p):
+    if isinstance(p, int) or p is None:
+        return True  # an already-open fd / the cwd (== ROOT)
+    try:
+        rp = os.fsdecode(os.path.realpath(p if isinstance(p, (str, bytes, os.PathLike)) else str(p)))
+    except Exception:
+        return False
+    return any(rp == a or rp.startswith(a + os.sep) for a in _READ_OK)
 def _deny(ev, why):
     violations.append(ev + ": " + why)
     raise PermissionError("cdebt sandbox blocked " + ev + " (" + why + ")")
@@ -225,6 +247,10 @@ def hook(event, args):
         _deny(event, "network/native")
     if event.startswith(_PROC) and POLICY == "pure":
         _deny(event, "process creation")
+    if event in ("os.kill", "os.killpg", "signal.pthread_kill"):
+        _deny(event, "signalling other processes")
+    if event == "sqlite3.connect" and args and str(args[0]) not in (":memory:", ""):
+        _deny(event, "sqlite3 would open a file in C, outside the audited open()")
     if event == "open":
         path, mode, flags = args
         write = False
@@ -234,6 +260,11 @@ def hook(event, args):
             write = True
         if write and not (POLICY == "tests" and _inside(path)):
             _deny(event, "file write")
+        if not write and not _read_ok(path):
+            _deny(event, "file read outside the sandbox")
+    elif event in ("os.listdir", "os.scandir"):
+        if not _read_ok(args[0] if args else None):
+            _deny(event, "directory listing outside the sandbox")
     elif event.startswith(_FS):
         paths = [a for a in args if isinstance(a, (str, bytes, os.PathLike))]
         if not (POLICY == "tests" and paths and all(_inside(p) for p in paths)):
@@ -311,6 +342,7 @@ const NET = [[net, ['connect', 'createConnection', 'createServer']],
   [dgram, ['createSocket']]];
 for (const [mod, names] of NET) for (const n of names) { try { mod[n] = blocked(n); } catch (e) {} }
 for (const g of ['fetch', 'WebSocket', 'EventSource', 'XMLHttpRequest']) { try { delete globalThis[g]; } catch (e) {} }
+for (const k of ['kill', 'abort', 'reallyExit', 'dlopen', 'binding', '_linkedBinding']) { try { process[k] = blocked('process.' + k); } catch (e) {} }
 try { net.Socket.prototype.connect = blocked('net.Socket.connect'); } catch (e) {}
 try { net.Server.prototype.listen = blocked('net.Server.listen'); } catch (e) {}
 try { for (const n of Object.keys(dns.promises)) dns.promises[n] = blocked('dns.promises.' + n); } catch (e) {}
@@ -398,15 +430,105 @@ def _sandbox_exec_available() -> bool:
     return _SBX_OK
 
 
-def _sbx_profile(root: str) -> str:
+def _sbx_profile(
+    root: str, *, strict: bool = False, allow_fork: bool = True, read_roots: list[str] | None = None
+) -> str:
+    """macOS Seatbelt profile. Always: no network, writes only under `root`. `strict` also hides
+    the user's HOME (ssh keys, other repos, tokens) except `read_roots` (interpreter prefixes and
+    the sandbox root) and, unless `allow_fork`, denies process creation at the OS level."""
     r = os.path.realpath(root)
-    return (
+    prof = (
         "(version 1)(allow default)(deny network*)(deny file-write*)"
         f'(allow file-write* (subpath "{r}") (literal "/dev/null") (literal "/dev/tty") '
         '(subpath "/dev/fd"))'
     )
+    prof += "(deny signal)(allow signal (target self))(allow signal (target same-sandbox))"
+    if strict:
+        home = os.path.realpath(os.path.expanduser("~"))
+        prof += f'(deny file-read* (subpath "{home}"))'
+        prof += "(allow file-read-metadata)"  # path traversal needs stat() on every ancestor
+        for x in [r, *(read_roots or [])]:
+            prof += f'(allow file-read* (subpath "{os.path.realpath(x)}"))'
+        if not allow_fork:
+            prof += "(deny process-fork)"
+    return prof
 
 
+def _strict_read_roots(py: str, node_bin: str | None) -> list[str]:
+    import sysconfig
+
+    roots = {sys.prefix, sys.base_prefix, sys.exec_prefix, *sysconfig.get_paths().values()}
+    roots.add(str(Path(os.path.realpath(py)).parent.parent))
+    if node_bin:
+        roots.add(str(Path(os.path.realpath(node_bin)).parent.parent))
+    return sorted(roots)
+
+
+Isolation = Literal["host", "strong", "docker"]
+DEFAULT_ISOLATION: Isolation = "host"  # library default; the CLI sets "strong" unless --trusted
+
+
+def set_default_isolation(mode: Isolation) -> None:
+    """host: audit hook/permission model + rlimits (+ Seatbelt on macOS). strong: Docker if
+    available, else strict Seatbelt (macOS), else REFUSE to run. docker: Docker or refuse."""
+    global DEFAULT_ISOLATION
+    DEFAULT_ISOLATION = mode
+
+
+def is_trusted(flag: bool = False) -> bool:
+    """A repo is trusted only by an explicit choice of the person running cdebt: `--trusted` or
+    CDEBT_TRUSTED=1. NEVER from a file inside the repo (a PR author controls those)."""
+    return flag or os.environ.get("CDEBT_TRUSTED") == "1"
+
+
+def _capped_communicate(
+    proc: subprocess.Popen[bytes],
+    stdin_bytes: bytes | None,
+    wait_timeout: float,
+    on_exceed: Callable[[], None],
+) -> tuple[bytes, bytes]:
+    """Like Popen.communicate but keeps at most MAX_OUTPUT / MAX_STDERR bytes and calls
+    `on_exceed` (kill) the moment a stream goes over, so a flood cannot exhaust our memory."""
+    bufs = {"out": bytearray(), "err": bytearray()}
+    caps = {"out": MAX_OUTPUT, "err": MAX_STDERR}
+    tripped = threading.Event()
+
+    def reader(stream: Any, key: str) -> None:
+        while True:
+            chunk = stream.read1(65536) if hasattr(stream, "read1") else stream.read(65536)
+            if not chunk:
+                return
+            room = caps[key] - len(bufs[key])
+            if room > 0:
+                bufs[key].extend(chunk[:room])
+            if len(chunk) > room and not tripped.is_set():
+                tripped.set()
+                on_exceed()
+
+    def writer() -> None:
+        with contextlib.suppress(BrokenPipeError, OSError):
+            if stdin_bytes and proc.stdin:
+                proc.stdin.write(stdin_bytes)
+        with contextlib.suppress(OSError):
+            if proc.stdin:
+                proc.stdin.close()
+
+    threads = [
+        threading.Thread(target=reader, args=(proc.stdout, "out"), daemon=True),
+        threading.Thread(target=reader, args=(proc.stderr, "err"), daemon=True),
+        threading.Thread(target=writer, daemon=True),
+    ]
+    for t in threads:
+        t.start()
+    proc.wait(timeout=wait_timeout)  # raises TimeoutExpired like communicate(timeout=...)
+    for t in threads:
+        t.join(timeout=3)
+    return bytes(bufs["out"]), bytes(bufs["err"])
+
+
+MAX_OUTPUT = 8 << 20  # bytes of stdout kept; more kills the run
+MAX_STDERR = 1 << 20
+MAX_PROCS = 64  # descendants allowed in "tests"/command mode
 DOCKER_IMAGE = "python:3.11-slim"
 NODE_IMAGE = "node:24-slim"
 NODE_RUNNER_NAME = ".cdebt_runner.mjs"
@@ -540,6 +662,7 @@ def run_in_sandbox(
     use_os_isolation: bool = True,
     extra_env: dict[str, str] | None = None,
     runtime: Literal["python", "node"] = "python",
+    isolation: Isolation | None = None,
 ) -> SandboxResult:
     """Run the runner (mode call/exec; `runtime` selects the Python or Node runner) or, with
     `command`, an arbitrary command (policy "tests") under the same containment. `root` is the
@@ -562,7 +685,7 @@ def run_in_sandbox(
         "PYTHONUNBUFFERED": "1",
     }
     env.update(extra_env or {})
-    isolation = "audit+rlimit"
+    iso_label = "audit+rlimit"
     node_flags = [
         "--permission",  # Node's permission model: no fs writes, no child processes, no workers
         f"--allow-fs-read={root}",
@@ -586,11 +709,36 @@ def run_in_sandbox(
         runner_src = runner.read_text()
     docker_name: str | None = None
     image = NODE_IMAGE if runtime == "node" else DOCKER_IMAGE
-    if use_os_isolation and command is None and docker_available(image):
+    mode: Isolation = isolation or DEFAULT_ISOLATION
+    strict_seatbelt = False
+    if use_os_isolation and mode in ("strong", "docker"):
+        docker_ok = command is None and docker_available(image)
+        if mode == "docker" and not docker_ok:
+            raise SandboxUnavailable(
+                f"Docker isolation requested but unavailable (needs a running Docker daemon with "
+                f"image {image} pulled, and cannot run a project's test suite)"
+            )
+        if mode == "strong" and not docker_ok:
+            if _sandbox_exec_available():
+                strict_seatbelt = True
+            else:
+                raise SandboxUnavailable(
+                    "this repository is not marked trusted, so probes need strong isolation: "
+                    f"Docker (with {image} pulled) or macOS sandbox-exec. Neither is available. "
+                    "Install/start Docker, or pass --trusted (or set CDEBT_TRUSTED=1) if you trust "
+                    "this repository's code."
+                )
+    want_docker = (
+        use_os_isolation
+        and command is None
+        and mode in ("strong", "docker")
+        and docker_available(image)
+    )
+    if want_docker:
         # Files are copied in with `docker cp` (no bind mounts: temp dirs are usually not
         # shared with the Docker VM). No network, capped memory/pids, no capabilities,
         # unprivileged user. The audit hook still runs inside the container.
-        isolation = "docker"
+        iso_label = "docker"
         _reap_orphan_containers()
         docker_name = f"cdebt-{os.getpid()}-{int(time.time() * 1e6)}"
         stdin_data = json.dumps(spec).replace(str(root), "/work").replace(orig_root, "/work")
@@ -653,15 +801,21 @@ def run_in_sandbox(
         )
         if not copied:
             _docker(["rm", "-f", docker_name], 30)
-            docker_name, isolation = None, "audit+rlimit"
+            docker_name, iso_label = None, "audit+rlimit"
         else:
             docker_bin = shutil.which("docker") or "docker"
             env["PATH"] = f"{Path(docker_bin).parent}:{env['PATH']}"
             env["HOME"] = os.environ.get("HOME", env["HOME"])  # docker CLI context lives there
             argv = [docker_bin, "start", "-a", "-i", docker_name]
     if docker_name is None and use_os_isolation and _sandbox_exec_available():
-        argv = ["sandbox-exec", "-p", _sbx_profile(str(root)), *argv]
-        isolation += "+sandbox-exec"
+        prof = _sbx_profile(
+            str(root),
+            strict=strict_seatbelt,
+            allow_fork=command is not None,  # test suites fork; probe runners never need to
+            read_roots=_strict_read_roots(py, shutil.which("node")) if strict_seatbelt else None,
+        )
+        argv = ["sandbox-exec", "-p", prof, *argv]
+        iso_label += "+sandbox-exec" + ("(strict)" if strict_seatbelt else "")
 
     client_only = docker_name is not None  # the docker CLI is only a client; limits live in the
     # container (a Go binary also cannot run under RLIMIT_AS: "failed to reserve page summary")
@@ -674,7 +828,7 @@ def run_in_sandbox(
             ("RLIMIT_CPU", int(timeout) + 2),
             ("RLIMIT_NOFILE", 256),
             ("RLIMIT_CORE", 0),
-        ) + ((("RLIMIT_FSIZE", 0),) if policy == "pure" and command is None else ()):
+        ) + ((("RLIMIT_FSIZE", 0 if command is None else 512 << 20),) if policy else ()):
             with contextlib.suppress(ValueError, OSError):
                 resource.setrlimit(getattr(resource, name), (val, val))
         if sys.platform != "darwin" and runtime != "node":  # not enforced on macOS; breaks V8
@@ -696,7 +850,7 @@ def run_in_sandbox(
         if docker_name:
             _docker(["rm", "-f", docker_name], 30)
         raise
-    flags = {"mem": False, "timeout": False}
+    flags = {"mem": False, "timeout": False, "output": False, "procs": False}
     done = threading.Event()
 
     def terminate(reason: str) -> None:
@@ -718,16 +872,22 @@ def run_in_sandbox(
             if docker_name is None and _rss_kb(proc.pid) > mem_mb * 1024:
                 terminate("mem")
                 return
+            if command is not None and len(_descendants(proc.pid)) > MAX_PROCS:
+                terminate("procs")  # fork bomb in a test suite (probe runners cannot fork)
+                return
 
     threading.Thread(target=rss_watch, daemon=True).start()
     try:
-        out, err = proc.communicate(
-            stdin_data.encode() if stdin_data else None, timeout=timeout + 5
+        out, err = _capped_communicate(
+            proc,
+            stdin_data.encode() if stdin_data else None,
+            timeout + 5,
+            lambda: terminate("output"),
         )
     except subprocess.TimeoutExpired:
         terminate("timeout")  # backstop if the timer thread could not run
         _kill_tree(proc.pid)
-        out, err = proc.communicate()
+        out, err = b"", b""
         flags["timeout"] = True
     t_end = time.monotonic()  # time until the code stopped running, before any cleanup
     done.set()
@@ -754,15 +914,22 @@ def run_in_sandbox(
         err.decode("utf-8", "replace")[-4000:],
         timed_out=flags["timeout"],
         killed_for_memory=flags["mem"],
+        killed_for_output=flags["output"],
+        killed_for_procs=flags["procs"],
         violations=viol,
-        isolation=isolation,
+        isolation=iso_label,
         payload=payload,
         elapsed=t_end - t0,
     )
 
 
 def run_code(
-    code: str, *, timeout: float = 5.0, mem_mb: int = 256, os_isolation: bool = True
+    code: str,
+    *,
+    timeout: float = 5.0,
+    mem_mb: int = 256,
+    os_isolation: bool = True,
+    isolation: Isolation | None = None,
 ) -> SandboxResult:
     """Run arbitrary Python text under the 'pure' policy in a fresh temp dir (used by tests
     and by probes). Cleans up its directory."""
@@ -774,6 +941,7 @@ def run_code(
             timeout=timeout,
             mem_mb=mem_mb,
             use_os_isolation=os_isolation,
+            isolation=isolation,
         )
     finally:
         shutil.rmtree(d, ignore_errors=True)

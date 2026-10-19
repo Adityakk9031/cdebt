@@ -64,3 +64,10 @@ def gitai_repo(tmp_path: Path) -> Path:
     )
     git(dst, "fetch", "-q", str(FIX / "gitai" / "repo.bundle"), "refs/notes/ai:refs/notes/ai")
     return dst
+
+
+@pytest.fixture(autouse=True)
+def _trusted_fixture_repos(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Test repos are throwaway fixtures we wrote: run them with the host sandbox so the suite
+    does not depend on Docker. tests/test_trust_policy.py exercises the untrusted default."""
+    monkeypatch.setenv("CDEBT_TRUSTED", "1")

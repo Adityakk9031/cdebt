@@ -1,0 +1,70 @@
+{
+ "files": [
+  "cmd/hivegui/frontend/src/app/state.ts",
+  "cmd/hivegui/frontend/src/store/store.ts",
+  "cmd/hivegui/frontend/test/e2e/hive-global.d.ts",
+  "cmd/hivegui/frontend/src/app/events.ts",
+  "cmd/hivegui/frontend/src/app/session-term.ts",
+  "cmd/hivegui/frontend/test/e2e/wails-mock.ts",
+  "cmd/hivegui/frontend/src/bridge.ts",
+  "cmd/hivegui/frontend/src/app/view.ts",
+  "cmd/hivegui/frontend/src/components/SessionRow.tsx",
+  "cmd/hivegui/frontend/src/lib/shortcuts.ts",
+  "cmd/hivegui/frontend/src/components/Sidebar.tsx",
+  "cmd/hivegui/frontend/src/lib/bindings.ts"
+ ],
+ "probes": {
+  "runtime": 0,
+  "constant": 0
+ },
+ "skip_reasons": [
+  [
+   "Cannot find module '/private/var/folders/pc/p2l50qpn46vg6gz7vm9f26cr00",
+   14
+  ],
+  [
+   "Cannot find package 'react-dom' imported from /private/var/folders/pc/",
+   12
+  ],
+  [
+   "skipped",
+   11
+  ],
+  [
+   "Cannot find package '@xterm/xterm' imported from /private/var/folders/",
+   9
+  ],
+  [
+   "type SessionInfo",
+   7
+  ],
+  [
+   "generic Readonly",
+   6
+  ],
+  [
+   "destructured parameter",
+   5
+  ],
+  [
+   "not a supported JS/TS file",
+   4
+  ],
+  [
+   "type readonly_type",
+   4
+  ],
+  [
+   "no environment-independent top-level constants",
+   3
+  ],
+  [
+   "type TermTile",
+   3
+  ],
+  [
+   "object member",
+   2
+  ]
+ ]
+}

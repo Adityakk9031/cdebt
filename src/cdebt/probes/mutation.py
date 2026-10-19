@@ -17,7 +17,7 @@ from pathlib import Path
 
 from cdebt.models import CodeUnit, Probe
 from cdebt.probes.base import NONE_OPTION, copy_tree, probe_id, shuffled, temp_root
-from cdebt.sandbox import SandboxResult, run_in_sandbox
+from cdebt.sandbox import SandboxResult, SandboxUnavailable, run_in_sandbox
 
 SWAP = {
     "<": "<=",
@@ -148,6 +148,23 @@ def generate(
     seed: int,
     per_unit: int = 1,
     timeout: float = 120.0,
+) -> tuple[list[Probe], list[str]]:
+    """Mutation probes run the PROJECT'S OWN TEST SUITE, so they need `--trusted` unless strict
+    macOS sandbox-exec is available (Docker cannot run an arbitrary project's tests)."""
+    try:
+        return _generate(repo, rel, source, units, seed, per_unit, timeout)
+    except SandboxUnavailable as e:
+        return [], [f"{rel}: mutation probes skipped ({e})"]
+
+
+def _generate(
+    repo: Path,
+    rel: str,
+    source: str,
+    units: list[CodeUnit],
+    seed: int,
+    per_unit: int,
+    timeout: float,
 ) -> tuple[list[Probe], list[str]]:
     if not rel.endswith(".py"):
         return [], [f"{rel}: mutation probes are Python-only in v1"]

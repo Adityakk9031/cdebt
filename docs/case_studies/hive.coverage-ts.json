@@ -1,0 +1,313 @@
+{
+  "top_n": 25,
+  "files": [
+    {
+      "path": "cmd/hivegui/frontend/src/app/state.ts",
+      "score": 13.136041581537095,
+      "ai_lines": 344,
+      "verifiable_lines": 5,
+      "attest_only_lines": 339,
+      "no_quiz_lines": 0,
+      "klass": "partly verifiable",
+      "probe_kinds": [
+        "callgraph"
+      ]
+    },
+    {
+      "path": "cmd/hivegui/frontend/src/store/store.ts",
+      "score": 12.429599006708719,
+      "ai_lines": 1540,
+      "verifiable_lines": 408,
+      "attest_only_lines": 1132,
+      "no_quiz_lines": 0,
+      "klass": "partly verifiable",
+      "probe_kinds": [
+        "callgraph"
+      ]
+    },
+    {
+      "path": "cmd/hivegui/frontend/test/e2e/hive-global.d.ts",
+      "score": 10.797646100297353,
+      "ai_lines": 162,
+      "verifiable_lines": 0,
+      "attest_only_lines": 162,
+      "no_quiz_lines": 0,
+      "klass": "attest-only",
+      "probe_kinds": []
+    },
+    {
+      "path": "cmd/hivegui/frontend/src/app/events.ts",
+      "score": 10.699100524167967,
+      "ai_lines": 1426,
+      "verifiable_lines": 847,
+      "attest_only_lines": 579,
+      "no_quiz_lines": 0,
+      "klass": "partly verifiable",
+      "probe_kinds": [
+        "callgraph"
+      ]
+    },
+    {
+      "path": "cmd/hivegui/frontend/src/app/session-term.ts",
+      "score": 9.599160895862406,
+      "ai_lines": 1778,
+      "verifiable_lines": 338,
+      "attest_only_lines": 1440,
+      "no_quiz_lines": 0,
+      "klass": "partly verifiable",
+      "probe_kinds": [
+        "callgraph"
+      ]
+    },
+    {
+      "path": "cmd/hivegui/frontend/test/e2e/wails-mock.ts",
+      "score": 8.921158108786635,
+      "ai_lines": 2268,
+      "verifiable_lines": 0,
+      "attest_only_lines": 2268,
+      "no_quiz_lines": 0,
+      "klass": "attest-only",
+      "probe_kinds": []
+    },
+    {
+      "path": "cmd/hivegui/frontend/src/bridge.ts",
+      "score": 8.790742728436664,
+      "ai_lines": 113,
+      "verifiable_lines": 0,
+      "attest_only_lines": 113,
+      "no_quiz_lines": 0,
+      "klass": "attest-only",
+      "probe_kinds": []
+    },
+    {
+      "path": "cmd/hivegui/frontend/src/app/view.ts",
+      "score": 8.667008848956469,
+      "ai_lines": 476,
+      "verifiable_lines": 287,
+      "attest_only_lines": 189,
+      "no_quiz_lines": 0,
+      "klass": "partly verifiable",
+      "probe_kinds": [
+        "callgraph"
+      ]
+    },
+    {
+      "path": "cmd/hivegui/frontend/src/components/SessionRow.tsx",
+      "score": 7.566900080860823,
+      "ai_lines": 429,
+      "verifiable_lines": 285,
+      "attest_only_lines": 0,
+      "no_quiz_lines": 144,
+      "klass": "partly verifiable",
+      "probe_kinds": [
+        "callgraph"
+      ]
+    },
+    {
+      "path": "cmd/hivegui/frontend/src/lib/shortcuts.ts",
+      "score": 7.346224386927424,
+      "ai_lines": 443,
+      "verifiable_lines": 44,
+      "attest_only_lines": 399,
+      "no_quiz_lines": 0,
+      "klass": "partly verifiable",
+      "probe_kinds": [
+        "callgraph"
+      ]
+    },
+    {
+      "path": "cmd/hivegui/frontend/src/components/Sidebar.tsx",
+      "score": 7.28571380637472,
+      "ai_lines": 743,
+      "verifiable_lines": 184,
+      "attest_only_lines": 0,
+      "no_quiz_lines": 559,
+      "klass": "partly verifiable",
+      "probe_kinds": [
+        "callgraph"
+      ]
+    },
+    {
+      "path": "cmd/hivegui/frontend/src/lib/bindings.ts",
+      "score": 7.169992459765142,
+      "ai_lines": 412,
+      "verifiable_lines": 152,
+      "attest_only_lines": 260,
+      "no_quiz_lines": 0,
+      "klass": "partly verifiable",
+      "probe_kinds": [
+        "callgraph"
+      ]
+    },
+    {
+      "path": "cmd/hivegui/frontend/src/lib/session-state.ts",
+      "score": 7.097143086030174,
+      "ai_lines": 237,
+      "verifiable_lines": 85,
+      "attest_only_lines": 152,
+      "no_quiz_lines": 0,
+      "klass": "partly verifiable",
+      "probe_kinds": [
+        "callgraph"
+      ]
+    },
+    {
+      "path": "scripts/workflow-proto/dsl.ts",
+      "score": 7.035449829786771,
+      "ai_lines": 554,
+      "verifiable_lines": 470,
+      "attest_only_lines": 84,
+      "no_quiz_lines": 0,
+      "klass": "partly verifiable",
+      "probe_kinds": [
+        "callgraph",
+        "constant"
+      ]
+    },
+    {
+      "path": "cmd/hivegui/frontend/src/lib/scrollback.ts",
+      "score": 6.931656171630144,
+      "ai_lines": 372,
+      "verifiable_lines": 372,
+      "attest_only_lines": 0,
+      "no_quiz_lines": 0,
+      "klass": "verifiable",
+      "probe_kinds": [
+        "callgraph",
+        "constant",
+        "runtime"
+      ]
+    },
+    {
+      "path": "cmd/hivegui/frontend/src/app/modals/choice-dialog.ts",
+      "score": 6.899014299108256,
+      "ai_lines": 104,
+      "verifiable_lines": 29,
+      "attest_only_lines": 75,
+      "no_quiz_lines": 0,
+      "klass": "partly verifiable",
+      "probe_kinds": [
+        "callgraph"
+      ]
+    },
+    {
+      "path": "cmd/hivegui/frontend/src/app/find-box.ts",
+      "score": 6.8897394286367515,
+      "ai_lines": 630,
+      "verifiable_lines": 353,
+      "attest_only_lines": 277,
+      "no_quiz_lines": 0,
+      "klass": "partly verifiable",
+      "probe_kinds": [
+        "callgraph"
+      ]
+    },
+    {
+      "path": "cmd/hivegui/frontend/src/app/dom.ts",
+      "score": 6.8489488832947,
+      "ai_lines": 72,
+      "verifiable_lines": 15,
+      "attest_only_lines": 57,
+      "no_quiz_lines": 0,
+      "klass": "partly verifiable",
+      "probe_kinds": [
+        "callgraph"
+      ]
+    },
+    {
+      "path": "cmd/hivegui/frontend/src/app/command-registry.ts",
+      "score": 6.801731432289746,
+      "ai_lines": 92,
+      "verifiable_lines": 28,
+      "attest_only_lines": 64,
+      "no_quiz_lines": 0,
+      "klass": "partly verifiable",
+      "probe_kinds": [
+        "callgraph"
+      ]
+    },
+    {
+      "path": "cmd/hivegui/frontend/src/lib/activity.ts",
+      "score": 6.698352145884868,
+      "ai_lines": 239,
+      "verifiable_lines": 96,
+      "attest_only_lines": 143,
+      "no_quiz_lines": 0,
+      "klass": "partly verifiable",
+      "probe_kinds": [
+        "callgraph"
+      ]
+    },
+    {
+      "path": "cmd/hivegui/frontend/src/components/modals/ModalShell.tsx",
+      "score": 6.6500645807022405,
+      "ai_lines": 165,
+      "verifiable_lines": 98,
+      "attest_only_lines": 0,
+      "no_quiz_lines": 67,
+      "klass": "partly verifiable",
+      "probe_kinds": [
+        "callgraph"
+      ]
+    },
+    {
+      "path": "cmd/hivegui/frontend/src/components/Button.tsx",
+      "score": 6.612220815878207,
+      "ai_lines": 52,
+      "verifiable_lines": 30,
+      "attest_only_lines": 0,
+      "no_quiz_lines": 22,
+      "klass": "partly verifiable",
+      "probe_kinds": [
+        "callgraph"
+      ]
+    },
+    {
+      "path": "cmd/hivegui/frontend/src/lib/plugin-api.ts",
+      "score": 6.573732042035826,
+      "ai_lines": 242,
+      "verifiable_lines": 131,
+      "attest_only_lines": 111,
+      "no_quiz_lines": 0,
+      "klass": "partly verifiable",
+      "probe_kinds": [
+        "callgraph"
+      ]
+    },
+    {
+      "path": "scripts/workflow-proto/node-shim.d.ts",
+      "score": 6.543494575108206,
+      "ai_lines": 61,
+      "verifiable_lines": 0,
+      "attest_only_lines": 61,
+      "no_quiz_lines": 0,
+      "klass": "attest-only",
+      "probe_kinds": []
+    },
+    {
+      "path": "cmd/hivegui/frontend/src/app/modals/launcher.ts",
+      "score": 6.501261678887951,
+      "ai_lines": 223,
+      "verifiable_lines": 121,
+      "attest_only_lines": 102,
+      "no_quiz_lines": 0,
+      "klass": "partly verifiable",
+      "probe_kinds": [
+        "callgraph"
+      ]
+    }
+  ],
+  "files_by_class": {
+    "partly verifiable": 20,
+    "attest-only": 4,
+    "verifiable": 1
+  },
+  "verifiable_share": 0.33224557941868404,
+  "attest_only_share": 0.6076496926462776,
+  "no_quiz_share": 0.06010472793503832,
+  "scip_index": true,
+  "sandbox": "host (audit hook + rlimits [+ sandbox-exec])",
+  "notes": [
+    "Mutation probes are opt-in and slow; not counted."
+  ]
+}

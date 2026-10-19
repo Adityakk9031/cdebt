@@ -129,7 +129,7 @@ def test_docker_container_is_killed_at_timeout_before_cleanup(
         real(args, timeout)
 
     monkeypatch.setattr(sandbox, "_docker", spy)
-    r = run_code(LOOP, timeout=2.0)
+    r = run_code(LOOP, timeout=2.0, isolation="docker")
     assert r.isolation == "docker" and r.timed_out
     assert state.get("running") == "false", state
 

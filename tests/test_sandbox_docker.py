@@ -8,11 +8,17 @@ from pathlib import Path
 
 import pytest
 
+from cdebt import sandbox
 from cdebt.probes import runtime
 from cdebt.sandbox import DOCKER_IMAGE, docker_available, run_code
 from cdebt.units import extract_units
 
 pytestmark = pytest.mark.skipif(not docker_available(), reason="docker + image not available")
+
+
+@pytest.fixture(autouse=True)
+def _docker_isolation(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(sandbox, "DEFAULT_ISOLATION", "docker")  # the point of this module
 
 
 def _leftover() -> list[str]:
@@ -23,7 +29,7 @@ def _leftover() -> list[str]:
 
 
 def test_runs_in_docker_and_cleans_up() -> None:
-    r = run_code("print('hi')")
+    r = run_code("print('hi')", isolation="docker")
     assert r.isolation == "docker" and r.payload and r.payload["stdout"] == "hi\n"
     assert _leftover() == []
 
@@ -33,13 +39,13 @@ def test_escapes_contained_in_docker(tmp_path: Path) -> None:
     assert run_code(f"open({str(f)!r}, 'w')").violations and not f.exists()
     r = run_code("import socket\nsocket.socket().connect(('127.0.0.1', 9))")
     assert r.isolation == "docker" and r.violations
-    assert run_code("import os\nos.fork()").violations
-    assert run_code("import ctypes\nctypes.CDLL(None)").violations
+    assert run_code("import os\nos.fork()", isolation="docker").violations
+    assert run_code("import ctypes\nctypes.CDLL(None)", isolation="docker").violations
     assert _leftover() == []
 
 
 def test_infinite_loop_killed_and_container_removed() -> None:
-    r = run_code("while True:\n    pass\n", timeout=3)
+    r = run_code("while True:\n    pass\n", timeout=3, isolation="docker")
     assert r.isolation == "docker" and r.timed_out
     assert _leftover() == []
 
