@@ -12,10 +12,25 @@ jobs:
       - uses: actions/checkout@v4
         with: {fetch-depth: 0}
       - uses: astral-sh/setup-uv@v5
+      - uses: actions/setup-node@v4
+        with: {node-version: "24"}
       - run: uv sync --all-extras --python ${{ matrix.python }}
       - run: uv run ruff check .
       - run: uv run mypy src
       - run: uv run pytest -q
+  windows:
+    # Windows: everything that does not execute code (map, gate, plan, attribution, store,
+    # backtest, caching, study analysis). Probe execution is unsupported there and fails with a
+    # clear message (tests/test_windows_message.py); the POSIX-sandbox tests are skipped.
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+        with: {fetch-depth: 0}
+      - uses: astral-sh/setup-uv@v5
+      - run: uv sync --all-extras --python 3.12
+      - run: uv run ruff check .
+      - run: uv run mypy src
+      - run: uv run pytest -q -rs
   docker-sandbox:
     runs-on: ubuntu-latest
     steps:
@@ -23,8 +38,10 @@ jobs:
         with: {fetch-depth: 0}
       - uses: astral-sh/setup-uv@v5
       - run: uv sync --all-extras --python 3.12
-      - run: docker pull python:3.11-slim
-      - run: uv run pytest tests/test_sandbox_docker.py tests/test_sandbox.py -q -rs
+      - uses: actions/setup-node@v4
+        with: {node-version: "24"}
+      - run: docker pull python:3.11-slim && docker pull node:24-slim
+      - run: uv run pytest tests/test_sandbox_docker.py tests/test_sandbox.py tests/test_sandbox_node.py -q -rs
   repeat-suite:
     # Flake gate: the whole suite 20 times in a row on a GitHub-hosted runner (Docker present,
     # so the Docker sandbox tests run too). Any single failure fails the job.

@@ -14,8 +14,14 @@ _ENV = {
     "GIT_AUTHOR_EMAIL": "dev@example.com",
     "GIT_COMMITTER_NAME": "Dev",
     "GIT_COMMITTER_EMAIL": "dev@example.com",
-    "GIT_CONFIG_GLOBAL": "/dev/null",
-    "GIT_CONFIG_SYSTEM": "/dev/null",
+    "GIT_CONFIG_GLOBAL": os.devnull,
+    "GIT_CONFIG_SYSTEM": os.devnull,
+    # byte-exact content hashes: no CRLF conversion on Windows
+    "GIT_CONFIG_COUNT": "2",
+    "GIT_CONFIG_KEY_0": "core.autocrlf",
+    "GIT_CONFIG_VALUE_0": "false",
+    "GIT_CONFIG_KEY_1": "core.safecrlf",
+    "GIT_CONFIG_VALUE_1": "false",
 }
 
 
@@ -71,3 +77,31 @@ def _trusted_fixture_repos(monkeypatch: pytest.MonkeyPatch) -> None:
     """Test repos are throwaway fixtures we wrote: run them with the host sandbox so the suite
     does not depend on Docker. tests/test_trust_policy.py exercises the untrusted default."""
     monkeypatch.setenv("CDEBT_TRUSTED", "1")
+
+
+# Windows: execution of probes is unsupported (docs/LIMITS.md); skip the tests that need the POSIX
+# sandbox so CI proves everything else works there.
+_NEEDS_POSIX = {
+    "test_sandbox",
+    "test_sandbox_docker",
+    "test_sandbox_kill",
+    "test_sandbox_node",
+    "test_sandbox_fuzz",
+    "test_sandbox_node_fuzz",
+    "test_probes",
+    "test_js_probes",
+    "test_attest",
+    "test_coverage",
+    "test_study_run",
+}
+
+
+def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item]) -> None:
+    import sys
+
+    if sys.platform != "win32":
+        return
+    skip = pytest.mark.skip(reason="needs the POSIX sandbox; Windows is unsupported for execution")
+    for it in items:
+        if it.module.__name__.split(".")[-1] in _NEEDS_POSIX:
+            it.add_marker(skip)

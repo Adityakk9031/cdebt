@@ -95,3 +95,26 @@ def test_runtime_probe_answers_inside_docker(tmp_path: Path) -> None:
     a = probes[0]
     args = eval(a.evidence["args"])  # noqa: S307 (literal tuple we generated)
     assert a.answer == repr(sum(args))
+
+
+@pytest.mark.skipif(not docker_available(sandbox.NODE_IMAGE), reason="node image not pulled")
+def test_node_probe_runs_in_docker(tmp_path: Path) -> None:
+    """The Node runner inside the node image: result computed, network/fs writes contained."""
+    root = tmp_path.resolve()
+    (root / "m.mjs").write_text(
+        "import fs from 'node:fs';\nimport net from 'node:net';\n"
+        "let blocked = 0;\n"
+        "try { fs.writeFileSync('x.txt', 'x'); } catch (e) { blocked++; }\n"
+        "try { net.connect(9, '127.0.0.1'); } catch (e) { blocked++; }\n"
+        "export const R = blocked;\nexport const S = 6 * 7;\n"
+    )
+    res = sandbox.run_in_sandbox(
+        {"mode": "attrs", "module": str(root / "m.mjs"), "names": ["R", "S"]},
+        root=root,
+        timeout=30,
+        runtime="node",
+        isolation="docker",
+    )
+    assert res.isolation == "docker" and res.payload, res.stderr
+    assert res.payload["values"]["S"][0] == "42" and res.payload["values"]["R"][0] == "2"
+    assert not (root / "x.txt").exists()

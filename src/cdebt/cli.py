@@ -45,6 +45,11 @@ TrustedOpt = Annotated[
 def _apply_isolation(trusted: bool) -> None:
     from cdebt import sandbox
 
+    try:
+        sandbox.require_posix()
+    except sandbox.SandboxUnavailable as e:
+        typer.echo(f"error: {e}", err=True)
+        raise typer.Exit(2) from None
     sandbox.set_default_isolation("host" if sandbox.is_trusted(trusted) else "strong")
 
 
@@ -76,7 +81,7 @@ def _rel(file: Path, repo: Path) -> str:
     if not cand.exists() and not file.is_absolute():
         cand = repo / file
     try:
-        return str(cand.resolve().relative_to(repo.resolve()))
+        return cand.resolve().relative_to(repo.resolve()).as_posix()
     except ValueError:
         typer.echo(f"error: {file} is not inside the repository {repo}", err=True)
         raise typer.Exit(2) from None

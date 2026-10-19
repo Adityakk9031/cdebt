@@ -18,7 +18,11 @@ import ast
 import contextlib
 import json
 import os
-import resource
+
+try:  # POSIX only; Windows is unsupported for execution (see run_in_sandbox)
+    import resource
+except ImportError:  # pragma: no cover - Windows
+    resource = None  # type: ignore[assignment]
 import shutil
 import signal
 import subprocess
@@ -535,6 +539,18 @@ NODE_RUNNER_NAME = ".cdebt_runner.mjs"
 _DOCKER_IMAGES: dict[str, bool] = {}
 
 
+WINDOWS_MESSAGE = (
+    "Windows is not supported for commands that execute code (quiz, attest, coverage, study run): "
+    "the sandbox needs POSIX process groups, rlimits and signals. Use WSL2 or Linux/macOS. "
+    "map, gate, plan, backtest and study analyze work on Windows."
+)
+
+
+def require_posix() -> None:
+    if sys.platform == "win32":
+        raise SandboxUnavailable(WINDOWS_MESSAGE)
+
+
 class SandboxUnavailable(RuntimeError):
     """The requested runtime/isolation is not available on this machine."""
 
@@ -667,6 +683,7 @@ def run_in_sandbox(
     """Run the runner (mode call/exec; `runtime` selects the Python or Node runner) or, with
     `command`, an arbitrary command (policy "tests") under the same containment. `root` is the
     only writable directory."""
+    require_posix()
     orig_root = str(root)
     root = Path(root).resolve()
     (root / "tmp").mkdir(exist_ok=True)
