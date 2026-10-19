@@ -50,6 +50,7 @@ select = ["E", "F", "I", "UP", "B", "SIM"]
 "tests/test_js_probes.py" = ["E501"]  # JS source strings
 "tests/test_sandbox_fuzz.py" = ["E501", "F541"]  # payload strings
 "tests/test_sandbox_node_fuzz.py" = ["E501", "F541"]
+"tests/test_claims.py" = ["E501"]
 
 [tool.mypy]
 python_version = "3.11"

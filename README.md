@@ -13,13 +13,15 @@ and nobody knows how big the gap is. `cdebt` makes it visible, testable and enfo
 | command | what it does |
 |---|---|
 | `cdebt map` | Which files hold the most AI-written code no human has verifiably understood? |
-| `cdebt quiz <file>` | Questions whose answers come from **executing** the code (function results, call graph, module constants); records what is now verified |
-| `cdebt attest <file> --note ...` | A human sign-off for code a quiz cannot cover. **NON-VERIFIED**, hash-bound, counts less (default 0.5) |
+| `cdebt quiz <file>` | Questions whose answers come from **executing** the code (function results, call graph, module constants) in Python and TypeScript/JavaScript (Node 24 or newer); records what is now verified |
+| `cdebt attest <file> --note ...` | A human sign-off for code a quiz cannot cover. **NON-VERIFIED**, hash-bound, counts less (default 0.5 [src: src/cdebt/config.py]) |
 | `cdebt coverage` | Before you trust the gate: how much of the top-N debt files can be verified, only attested, or not quizzed at all |
 | `cdebt gate --base origin/main` | CI check: fail a PR whose AI-authored changed lines sit in un-understood code |
 | `cdebt plan` | Ranked pay-down plan (quiz / review / rewrite-or-delete) with effort estimates |
 | `cdebt backtest` | Does the (proxy) score predict later fixes and reverts on AIDev? Reproducible, published as measured |
-| `cdebt index` | Build the SCIP index used for exact call-graph facts and blast radius |
+| `cdebt index` | Build the SCIP index/indexes (Python and TypeScript) used for exact call-graph facts and blast radius |
+| `cdebt study` | Validity-study kit: fixed question set, anonymous responses, team-level analysis (see [docs/STUDY_PROTOCOL.md](docs/STUDY_PROTOCOL.md)); not yet run |
+| `cdebt migrate` | Upgrade `.cdebt/understanding.json` to the current schema (reading always migrates in memory) |
 
 ## The four differentiators
 
@@ -31,7 +33,7 @@ and nobody knows how big the gap is. `cdebt` makes it visible, testable and enfo
    `git-ai | agent-trace | trailer | none`, where `none` means *unknown*, not "human".
 3. **Expiring understanding.** A record is bound to a hash of the code it covers and is stale
    the moment that code changes. Understanding has three states: **verified** (execution-checked),
-   **attested** (a human signed off; labelled NON-VERIFIED everywhere, weighted 0.5 in the score)
+   **attested** (a human signed off; labelled NON-VERIFIED everywhere, weighted 0.5 in the score [src: src/cdebt/config.py])
    and none. `cdebt gate --require verified|attested` picks the policy; by default attestation is
    accepted only for module-level code and for functions a quiz cannot verify.
 4. **Backtested.** `cdebt backtest` runs a pre-registered analysis on the AIDev dataset and
@@ -49,20 +51,22 @@ passes a real PR and keeps one sticky comment.
 **Don't know whether the score predicts trouble.** Two analyses on the AIDev dataset, both
 published as measured:
 
-- Analysis 1 (167,163 PR-file units, 1,551 repos): the proxy score had **no clear link** to
-  later fixes (risk ratio 0.997, 95% CI 0.66-1.52). Reverts were too rare to analyse (2 events).
-  Time-to-fix was *shorter* for the high-score group. Only an adjusted odds ratio pointed the
-  predicted way (1.93, CI 1.13-3.49).
-- Analysis 2 (within-repo matched pairs, PRs with no human review vs substantive review, same
-  agent/size/time): **null** (163 pairs, odds ratio 1.00, CI 0.54-2.00). Low power.
+- The first analysis (167,163 PR-file units in 1,551 repos [src: docs/RESULTS.md]): the proxy score
+  had **no clear link** to later fixes (risk ratio 0.997, 95% CI 0.657-1.524 [src: docs/RESULTS.md]).
+  Reverts were too rare to analyse (2 events [src: docs/RESULTS.md]). Time-to-fix was *shorter* for
+  the high-score group. Only an adjusted odds ratio pointed the predicted way (1.927, CI 1.126-3.487
+  [src: docs/RESULTS.md]).
+- The second analysis (within-repo matched pairs, PRs with no human review vs substantive review,
+  same agent/size/time): **null** (163 pairs, odds ratio 1.000, CI 0.542-2.000
+  [src: docs/RESULTS_MATCHED.md]). Low power.
 
-Both test only a proxy (human review evidence, plus churn in Analysis 1); the dataset has no
+Both test only a proxy (human review evidence, plus churn in the first analysis); the dataset has no
 cdebt records, no blast radius and no quiz results, and fixes are visible only when they are
 themselves agent PRs. So the honest reading is: **mostly null, proxy only, nothing here shows
 the score works, and nothing shows it doesn't.** See [docs/RESULTS.md](docs/RESULTS.md) and
 [docs/RESULTS_MATCHED.md](docs/RESULTS_MATCHED.md).
 
-**Also know (from the pilot on 3 real repos, [docs/CASE_STUDIES.md](docs/CASE_STUDIES.md)):**
+**Also know (from the pilot on three real repos, [docs/CASE_STUDIES.md](docs/CASE_STUDIES.md)):**
 quiz coverage is narrow today. Runtime probes need typed, side-effect-free Python functions and
 produced questions for only a minority of the most-flagged files; call-graph probes need a SCIP
 index; TypeScript files can be mapped and gated but not quizzed; and module-level code cannot be
@@ -121,11 +125,21 @@ comment. Verified on a real PR in a scratch repo (see [docs/VERIFICATION.md](doc
 
 ## Safety model
 
-Read-only on your repo (git calls are allow-listed read commands; writes go only to `.cdebt/`).
-Probe execution is sandboxed (isolated interpreter, temp cwd, timeout, no network, resource
-limits, `sandbox-exec` on macOS, Docker when available and the `python:3.11-slim` image is already pulled) and skips code with file, network,
-time or randomness side effects. The sandbox targets accidental/AI-generated side effects, not
-hostile native code. No network or API key is needed for any core feature.
+`cdebt quiz`, `coverage`, `attest` and `study init` **run code from the repository you point them
+at**. Read the [threat model](docs/THREAT_MODEL.md) first.
+
+- Repositories are **untrusted by default**: probes run in Docker (image already pulled) or, on
+  macOS, under a strict Seatbelt profile (no network, no writes outside a temp dir, cannot read
+  your home directory, cannot signal other processes). If neither is available cdebt refuses and
+  says why. `--trusted` or `CDEBT_TRUSTED=1`, set by the person running cdebt, switches to the host
+  sandbox; trust is never read from a file in the repository.
+- Probes skip code with file, network, time or randomness side effects, and mutation probes (which
+  run a project's own tests) need `--trusted`.
+- The sandbox targets accidental and AI-written side effects, not a determined attacker with
+  native-code exploits. On Windows, anything that executes code is unsupported and says so.
+- Read-only on your repo: git calls are allow-listed read commands; writes go only to `.cdebt/`
+  (understanding records, and a git-ignored result cache). No network or API key is needed for any
+  core feature.
 
 ## Development
 

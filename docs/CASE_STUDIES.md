@@ -192,3 +192,31 @@ Things this round showed that are worth knowing:
 - **Refusals are common where an index exists**: in agent-meta 229 functions in the top files were refused because a call-graph probe exists for them, i.e. the tool pushes people toward `cdebt quiz` rather than a sign-off. In space_chassis it refused 42; in hive 0 (nothing is quizzable in TypeScript).
 - **Attestation is cheap to over-use.** Nothing stops a reviewer from attesting hundreds of units with one note (the simulation did exactly that). It is hash-bound and labelled everywhere, but it is a sign-off, not evidence. The `attested_weight` (default 0.5) and `--require verified` are the levers for teams that want it to count less or not at all.
 - **Hive/TypeScript remains unverifiable**: 100% of the top-25 files' AI lines are `no-quiz`; the only way to clear them today is attestation.
+
+## 8. Round 3: TypeScript / JavaScript quiz support (hive)
+
+`cdebt coverage --top-n 25` on `lucascaro/hive` (the only TypeScript pilot repo), before and after Node-sandboxed runtime and constant probes and `scip-typescript` call-graph probes. Same clone, same commit, `CDEBT_NO_DOCKER=1`.
+
+| | AI lines verifiable | attest-only | no quiz at all | files by class |
+|---|---|---|---|---|
+| before (round 2) | 0% | 0% | 100% | {'no-quiz': 25} |
+| after | 33% | 61% | 6% | {'partly verifiable': 20, 'attest-only': 4, 'verifiable': 1} |
+
+Probe kinds in the top-25 files after: {'callgraph': 21, 'constant': 2, 'runtime': 1} (files with at least one probe of that kind). `scip-typescript` indexed the two tsconfig projects in about 5 s; the coverage run took about 412 s (it copies the repository per file; the new result cache makes repeats cheap).
+
+**Most of the gain is call-graph questions** (they need only the index). Runtime and constant probes almost never apply to hive's top files. Across the 12 highest-debt files, the generators produced 0 runtime and 0 constant probes, and the skip reasons were:
+
+| skipped | why |
+|---|---|
+| 14 | Cannot find module '/private/var/folders/pc/p2l50qpn46vg6gz7vm9f26cr00 |
+| 12 | Cannot find package 'react-dom' imported from /private/var/folders/pc/ |
+| 11 | skipped |
+| 9 | Cannot find package '@xterm/xterm' imported from /private/var/folders/ |
+| 7 | type SessionInfo |
+| 6 | generic Readonly |
+| 5 | destructured parameter |
+| 4 | not a supported JS/TS file |
+
+Reading: most of the code is React/DOM-heavy and imports npm packages (`react-dom`, `@xterm/xterm`) and extensionless relative paths that plain Node cannot resolve outside a configured build, plus `.tsx` (JSX is unsupported). So TypeScript is now quizzable in principle and on pure-logic modules, but for a typical front-end repository the practical coverage is call-graph questions plus attestation. `*.d.ts` files (type declarations) cannot be executed at all.
+
+Timing, on the 500-file Python pilot repo (`docs/case_studies/perf.json`): the name-match blast radius was quadratic and `git rev-parse` ran once per file; fixing both and adding an on-disk cache took `map` from 53.7 s to 26.8 s uncached and 9.8 s with a warm cache, and `plan` from 69.7 s to 18.8 s.

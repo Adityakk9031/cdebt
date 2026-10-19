@@ -1,6 +1,7 @@
 """Pilot round 2 (needs scripts/pilot.sh outputs): `cdebt coverage` per repo, then a SIMULATED
 attestation of the top-25 files in a throwaway copy of each clone, then the gate again.
 Usage: uv run python scripts/pilot_attest.py WORKDIR docs/case_studies"""
+
 from __future__ import annotations
 
 import json
@@ -40,23 +41,36 @@ for name in ("space_chassis", "hive", "agent-meta"):
     for rel in top:
         if not rel.endswith((".py", ".ts", ".tsx", ".js", ".jsx", ".mjs")):
             continue
-        a = run(["attest", rel, "--repo", str(copy), "--note", "pilot simulation: not a real review"],
-                cwd=copy)
+        a = run(
+            ["attest", rel, "--repo", str(copy), "--note", "pilot simulation: not a real review"],
+            cwd=copy,
+        )
         refused += a.stdout.count("REFUSED")
         attested += a.stdout.count("attested (")
     gate = {}
-    for pol, extra in (("default", []), ("verified", ["--require", "verified"]),
-                       ("attested", ["--require", "attested"])):
+    for pol, extra in (
+        ("default", []),
+        ("verified", ["--require", "verified"]),
+        ("attested", ["--require", "attested"]),
+    ):
         g = run(["gate", "--repo", str(copy), "--base", "HEAD~25", "--json", *extra], cwd=copy)
         d = json.loads(g.stdout)
-        gate[pol] = {"passed": d["passed"], "ai_lines_unverified": d["ai_lines_unverified"],
-                     "violating_units": len(d["violations"]),
-                     "attested_accepted_lines": d["attested_accepted_lines"]}
+        gate[pol] = {
+            "passed": d["passed"],
+            "ai_lines_unverified": d["ai_lines_unverified"],
+            "violating_units": len(d["violations"]),
+            "attested_accepted_lines": d["attested_accepted_lines"],
+        }
     before = json.loads((out / f"{name}.gate.json").read_text())
-    summary[name] = {"top_files": len(top), "units_attested": attested,
-                     "attest_refused_quizzable": refused,
-                     "gate_before": {"ai_lines_unverified": before["ai_lines_unverified"],
-                                     "violating_units": before["violations_total"]},
-                     "gate_after_attesting_top25": gate}
+    summary[name] = {
+        "top_files": len(top),
+        "units_attested": attested,
+        "attest_refused_quizzable": refused,
+        "gate_before": {
+            "ai_lines_unverified": before["ai_lines_unverified"],
+            "violating_units": before["violations_total"],
+        },
+        "gate_after_attesting_top25": gate,
+    }
     print(name, json.dumps(summary[name]))
 (out / "attest_simulation.json").write_text(json.dumps(summary, indent=1))

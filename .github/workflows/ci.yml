@@ -17,6 +17,7 @@ jobs:
       - run: uv sync --all-extras --python ${{ matrix.python }}
       - run: uv run ruff check .
       - run: uv run mypy src
+      - run: uv run python scripts/check_claims.py README.md docs/LAUNCH_POST.md
       - run: uv run pytest -q
   windows:
     # Windows: everything that does not execute code (map, gate, plan, attribution, store,

@@ -198,7 +198,11 @@ def test_cli_end_to_end(make_repo, monkeypatch, tmp_path: Path) -> None:  # type
     assert res.exit_code == 0, res.output
     study = S.StudyFile.model_validate_json(sf.read_text())
     sec = S.SecretFile.model_validate_json(kf.read_text())
-    assert 2 <= len(study.probes) <= 2 * 3 and max(sum(1 for q in study.probes if q.path == x.path) for x in study.probes) <= 2 and "answer" not in sf.read_text().replace("answers", "")
+    assert (
+        2 <= len(study.probes) <= 2 * 3
+        and max(sum(1 for q in study.probes if q.path == x.path) for x in study.probes) <= 2
+        and "answer" not in sf.read_text().replace("answers", "")
+    )
     assert sec.key not in sf.read_text()
     # participants answer by scripted answers: correct ones come from the secret via the real probes
     from cdebt.config import Config
