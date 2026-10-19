@@ -2,7 +2,8 @@
 
 **Comprehension debt** is the gap between the code that exists in a repo and the code any human
 actually understands. AI agents write much of the code, reviews get skipped or rubber-stamped,
-and nobody knows how big the gap is. `cdebt` makes it visible, testable and enforceable.
+and nobody knows how big the gap is. `cdebt` tries to make it visible and testable, and can warn
+(or, if you choose, block) when AI-written changes land in code nobody has understood.
 
 > **cdebt measures code and teams, never individuals.** There are no leaderboards and no
 > per-person scores in any report. An optional audit label is stored but never aggregated.
@@ -10,13 +11,30 @@ and nobody knows how big the gap is. `cdebt` makes it visible, testable and enfo
 > **A quiz is not a lie detector.** It cannot stop anyone pasting the questions into an AI.
 > cdebt gives *visibility*, not proof of understanding. See [docs/LIMITS.md](docs/LIMITS.md).
 
+## Status (read this before using it)
+
+Pre-release (1.0.0 release candidate), **not published**: not on PyPI, no stable release.
+
+- **The debt score is unvalidated.** The two backtests were mostly null and test only a proxy (see
+  below). Nothing here shows that a high score means real trouble.
+- **The quizzes are unvalidated.** A study to test whether they separate people who know the code
+  from people who don't is written and pre-registered ([docs/STUDY_PROTOCOL.md](docs/STUDY_PROTOCOL.md)) and
+  **has not been run**.
+- **Most clearing will be NON-VERIFIED attestation, not quizzing**: on two of the three pilot repos
+  most AI lines in the top files could only be attested, not verified (details below).
+- **The gate is advisory by default**; it only fails a build with `--enforce`.
+- **Windows is unsupported** for anything that executes code (`quiz`, `attest`, `coverage`,
+  `study init`); those commands exit with a message pointing to WSL2. The Windows CI job covers the
+  rest; see [docs/V1_CHECKLIST.md](docs/V1_CHECKLIST.md) for its current status.
+- Reviewed only by its author and an AI, not independently; see [SECURITY.md](SECURITY.md).
+
 | command | what it does |
 |---|---|
 | `cdebt map` | Which files hold the most AI-written code no human has verifiably understood? |
 | `cdebt quiz <file>` | Questions whose answers come from **executing** the code (function results, call graph, module constants) in Python and TypeScript/JavaScript (Node 24 or newer); records what is now verified |
 | `cdebt attest <file> --note ...` | A human sign-off for code a quiz cannot cover. **NON-VERIFIED**, hash-bound, counts less (default 0.5 [src: src/cdebt/config.py]) |
 | `cdebt coverage` | Before you trust the gate: how much of the top-N debt files can be verified, only attested, or not quizzed at all |
-| `cdebt gate --base origin/main` | CI check: fail a PR whose AI-authored changed lines sit in un-understood code |
+| `cdebt gate --base origin/main` | CI check on a PR whose AI-authored changed lines sit in un-understood code. **Advisory by default** (it reports and the build stays green); `--enforce` makes a failing verdict fail the build |
 | `cdebt plan` | Ranked pay-down plan (quiz / review / rewrite-or-delete) with effort estimates |
 | `cdebt backtest` | Does the (proxy) score predict later fixes and reverts on AIDev? Reproducible, published as measured |
 | `cdebt index` | Build the SCIP index/indexes (Python and TypeScript) used for exact call-graph facts and blast radius |
@@ -42,11 +60,12 @@ and nobody knows how big the gap is. `cdebt` makes it visible, testable and enfo
 
 ## What we know and don't know
 
-**Know (tested, with evidence in [docs/VERIFICATION.md](docs/VERIFICATION.md)):**
+**Know (tested; evidence in [docs/VERIFICATION.md](docs/VERIFICATION.md) and [docs/V1_CHECKLIST.md](docs/V1_CHECKLIST.md)):**
 the tool runs end to end on real repos; the Git AI notes parser handles real notes from
-git-ai 1.0.0-1.7.5; the sandbox contains file-write, network, fork-bomb, infinite-loop and
-memory-bomb payloads (also inside Docker, on a GitHub runner); the GitHub Action fails and
-passes a real PR and keeps one sticky comment.
+git-ai versions 1.0.0 through 1.7.5; the sandbox contains the escape payloads in its test and fuzz suites,
+including a second adversarial pass that found and fixed real holes
+([docs/THREAT_MODEL.md](docs/THREAT_MODEL.md)); the GitHub Action posts and then edits a single PR
+comment (see VERIFICATION.md for the run URLs).
 
 **Don't know whether the score predicts trouble.** Two analyses on the AIDev dataset, both
 published as measured:
@@ -67,26 +86,31 @@ the score works, and nothing shows it doesn't.** See [docs/RESULTS.md](docs/RESU
 [docs/RESULTS_MATCHED.md](docs/RESULTS_MATCHED.md).
 
 **Also know (from the pilot on three real repos, [docs/CASE_STUDIES.md](docs/CASE_STUDIES.md)):**
-quiz coverage is narrow today. Runtime probes need typed, side-effect-free Python functions and
-produced questions for only a minority of the most-flagged files; call-graph probes need a SCIP
-index; TypeScript files can be mapped and gated but not quizzed; and module-level code cannot be
-cleared by a quiz at all.
+quiz coverage is narrow and varies a lot by repo. On the 25 highest-debt files, the share of AI
+lines a quiz could verify was 19% for one Python repo, 77% for another (with a call-graph index) and
+33% for the TypeScript repo; the rest could only be attested (23%, 81% and 61%) or, for JSX files,
+not covered at all (6%)
+[src: docs/case_studies/space_chassis.coverage.json, docs/case_studies/agent-meta.coverage.json, docs/case_studies/hive.coverage-ts.json].
+Runtime probes need typed, side-effect-free functions and, for TypeScript, modules plain Node can
+resolve; call-graph probes need a SCIP index. Run `cdebt coverage` before trusting any gate.
 
 ## 60-second demo
 
 ```bash
-pip install cdebt            # Python 3.11+
+# not on PyPI yet: install from a checkout
+pip install .                # Python 3.11+
 bash examples/demo.sh        # builds a throwaway repo and walks map -> quiz -> map -> gate
 ```
 
 What it shows (real output, see `examples/demo.sh`):
 
 ```
-cdebt map     ... AI lines understood: 0%   | AI units understood: 0/3
+cdebt map     ... AI lines verified: 0%   | AI units verified: 0/3
 cdebt quiz    ... total: 2/2 -> UNDERSTOOD (bound to hash ccffd334cb)
-cdebt map     ... AI lines understood: 67%  | AI units understood: 2/3
+cdebt map     ... AI lines verified: 67%  | AI units verified: 2/3
 (edit total() and commit)
-cdebt gate    ... FAIL  pkg/shop.py::total  1 AI lines [stale, trailer]
+cdebt gate    ... FAIL (advisory; use --enforce to fail the build)   pkg/shop.py::total  1 AI lines [stale, trailer]
+cdebt gate --enforce  ... same verdict, non-zero exit status
 ```
 
 Interactive use:
@@ -97,7 +121,7 @@ cdebt quiz src/billing.py --n 5        # answer in the terminal
 git add .cdebt/understanding.json && git commit -m "record understanding"
 cdebt coverage                         # what can a quiz actually clear here?
 cdebt attest src/settings.py --note "read; constants match the deploy config"
-cdebt gate --base origin/main --strict-unknown
+cdebt gate --base origin/main --strict-unknown   # advisory; add --enforce to block
 cdebt plan --top 10
 ```
 
@@ -116,12 +140,12 @@ cdebt only reads the notes; it never writes to your repo except `.cdebt/`.
 ```yaml
 - uses: actions/checkout@v4
   with: {fetch-depth: 0}
-- uses: <owner>/cdebt@v0.1.0
-  with: {max-ai-lines: "0", strict-unknown: "false"}
+- uses: <owner>/cdebt@<ref>     # not published yet
+  with: {max-ai-lines: "0", strict-unknown: "false", enforce: "false"}   # advisory by default
 ```
 
 It runs `cdebt gate`, fetches `refs/notes/ai` best-effort, writes a job summary and a sticky PR
-comment. Verified on a real PR in a scratch repo (see [docs/VERIFICATION.md](docs/VERIFICATION.md)).
+comment. It is advisory unless you set `enforce: "true"`. See [docs/VERIFICATION.md](docs/VERIFICATION.md) for what was tested on a real PR.
 
 ## Safety model
 
@@ -138,8 +162,8 @@ at**. Read the [threat model](docs/THREAT_MODEL.md) first.
 - The sandbox targets accidental and AI-written side effects, not a determined attacker with
   native-code exploits. On Windows, anything that executes code is unsupported and says so.
 - Read-only on your repo: git calls are allow-listed read commands; writes go only to `.cdebt/`
-  (understanding records, and a git-ignored result cache). No network or API key is needed for any
-  core feature.
+  (understanding records, and a git-ignored result cache). No API key is needed. Network is needed
+  only to build SCIP indexes (`cdebt index`, via `npx`) and to download the backtest dataset.
 
 ## Development
 

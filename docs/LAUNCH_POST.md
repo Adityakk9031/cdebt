@@ -3,7 +3,7 @@
 AI agents now write a large share of the code in some repositories, reviews get skipped or
 rubber-stamped, and nobody can say how big the gap is between the code that exists and the code a
 human has actually understood. cdebt is an open-source tool that tries to make that gap visible,
-testable and enforceable. This post says what it does, what we measured, and, more importantly,
+testable, and optionally enforceable. This post says what it does, what we measured, and, more importantly,
 what we could not show.
 
 ## What it does
@@ -13,8 +13,8 @@ what we could not show.
   call graphs, module constants), never from a model grading free text.
 - **`cdebt attest`** records a human sign-off for code a quiz cannot cover. It is labelled
   NON-VERIFIED everywhere and counts for less.
-- **`cdebt gate`** fails a pull request that changes AI-attributed lines in code nobody has
-  understood. **`cdebt coverage`** tells you, before you trust the gate, how much of your
+- **`cdebt gate`** reports on a pull request that changes AI-attributed lines in code nobody has
+  understood. It is advisory by default; `--enforce` makes it fail the build. **`cdebt coverage`** tells you, before you trust the gate, how much of your
   highest-debt code a quiz can actually cover.
 
 Attribution comes from Git AI notes or Agent Trace records when they exist, and from
@@ -73,7 +73,8 @@ model before running it on code you do not trust.
   planning estimate is about 46 participants [src: docs/study_power.json]. We have not run it.
   `cdebt study` gives any team the kit to run it on their own repository and share only
   team-level aggregates.
-- **Not finished.** Windows is unsupported for anything that executes code. Mutation probes are
+- **Not finished, and not published.** This is a pre-release that has not been published anywhere;
+  it was reviewed only by its author and an AI. Windows is unsupported for anything that executes code. Mutation probes are
   Python-only. Attestation is easy to over-use. See `docs/LIMITS.md`.
 
 ## What we need
