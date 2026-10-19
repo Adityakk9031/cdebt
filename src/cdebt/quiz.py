@@ -11,7 +11,7 @@ from cdebt.config import Config
 from cdebt.models import CodeUnit, Probe, Record
 from cdebt.probes import callgraph, constants, js, mutation, runtime
 from cdebt.probes.base import grade
-from cdebt.scip import index_is_fresh, index_path, load_index
+from cdebt.scip import index_is_fresh, load_all
 from cdebt.store import Store
 from cdebt.units import extract_units
 
@@ -45,9 +45,7 @@ def build_quiz(
         pool["runtime"], skips = ps, skips + sk
     if "callgraph" in kinds:
         if index_is_fresh(repo, cfg.extensions):
-            ps, sk = callgraph.generate(
-                repo, rel, units, load_index(index_path(repo)), seed, per_unit=per_unit
-            )
+            ps, sk = callgraph.generate(repo, rel, units, load_all(repo), seed, per_unit=per_unit)
             pool["callgraph"], skips = ps, skips + sk
         else:
             skips.append(
@@ -150,9 +148,7 @@ def unit_probe_kinds(
             constants.generate(repo, rel, source, units, 0, 1),
         ]
     if index_is_fresh(repo, cfg.extensions):
-        gens.append(
-            callgraph.generate(repo, rel, units, load_index(index_path(repo)), 0, per_unit=1)
-        )
+        gens.append(callgraph.generate(repo, rel, units, load_all(repo), 0, per_unit=1))
     for ps, sk in gens:
         skips += sk
         for p in ps:

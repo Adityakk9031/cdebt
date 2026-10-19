@@ -12,6 +12,7 @@ import shutil
 import subprocess
 from dataclasses import dataclass, field
 from pathlib import Path
+from typing import Any
 
 DEFINITION = 0x1
 
@@ -97,7 +98,7 @@ def _occurrence(b: bytes) -> Occurrence | None:
     return Occurrence(rng[0] + 1, sym, bool(roles & DEFINITION))
 
 
-def parse_index(data: bytes) -> ScipIndex:
+def parse_index(data: bytes, prefix: str = "") -> ScipIndex:
     idx = ScipIndex()
     for fn, _wt, v in _fields(data):
         if fn != 2 or not isinstance(v, bytes):
@@ -111,16 +112,27 @@ def parse_index(data: bytes) -> ScipIndex:
                 if o:
                     occs.append(o)
         if path:
-            idx.docs[path] = occs
+            idx.docs[prefix + path] = occs
     return idx
 
 
-def load_index(path: Path) -> ScipIndex:
-    return parse_index(path.read_bytes())
+def load_index(path: Path, prefix: str = "") -> ScipIndex:
+    return parse_index(path.read_bytes(), prefix)
+
+
+LANG_EXT: dict[str, tuple[str, ...]] = {
+    "python": (".py",),
+    "typescript": (".ts", ".tsx", ".js", ".jsx", ".mjs", ".cjs", ".mts"),
+}
 
 
 def index_path(repo: Path) -> Path:
+    """The (legacy / Python) index file."""
     return repo / ".cdebt" / "cache" / "index.scip"
+
+
+def meta_path(repo: Path) -> Path:
+    return repo / ".cdebt" / "cache" / "index.meta.json"
 
 
 def fingerprint(repo: Path, extensions: tuple[str, ...]) -> str:
@@ -136,36 +148,101 @@ def fingerprint(repo: Path, extensions: tuple[str, ...]) -> str:
     return h.hexdigest()
 
 
-def meta_path(repo: Path) -> Path:
-    return repo / ".cdebt" / "cache" / "index.meta.json"
+def _meta(repo: Path) -> dict[str, Any]:
+    import json
+
+    try:
+        data = json.loads(meta_path(repo).read_text())
+        return data if isinstance(data, dict) else {}
+    except (OSError, ValueError):
+        return {}
+
+
+def index_files(repo: Path) -> list[tuple[Path, str, str]]:
+    """(file, path prefix, language) for every existing index of this repo."""
+    meta = _meta(repo)
+    out: list[tuple[Path, str, str]] = []
+    for pr in meta.get("projects", []):
+        f = repo / ".cdebt" / "cache" / str(pr.get("file"))
+        if f.exists():
+            out.append((f, str(pr.get("prefix", "")), str(pr.get("language", "python"))))
+    if not out and index_path(repo).exists():  # legacy single Python index
+        out.append((index_path(repo), "", "python"))
+    return out
+
+
+def load_all(repo: Path) -> ScipIndex:
+    """All of the repo's indexes merged (Python and TypeScript projects)."""
+    merged = ScipIndex()
+    for f, prefix, _lang in index_files(repo):
+        merged.docs.update(load_index(f, prefix).docs)
+    return merged
 
 
 def index_is_fresh(repo: Path, extensions: tuple[str, ...]) -> bool:
+    files = index_files(repo)
+    if not files:
+        return False
+    meta = _meta(repo)
+    fps = meta.get("fingerprints")
+    try:
+        if isinstance(fps, dict):
+            return all(
+                fps.get(lang) == fingerprint(repo, LANG_EXT.get(lang, extensions))
+                for lang in {lang for _f, _p, lang in files}
+            )
+        return bool(meta.get("fingerprint") == fingerprint(repo, extensions))  # legacy meta
+    except OSError:
+        return False
+
+
+def _tsconfig_dirs(repo: Path) -> list[str]:
+    """Directories (relative, '' = root) holding a tsconfig.json, shallowest first, max 6."""
+    from cdebt import gitutil
+
+    dirs = sorted(
+        {
+            str(Path(p).parent).replace("\\", "/").lstrip(".")
+            for p in gitutil.ls_files(repo)
+            if Path(p).name == "tsconfig.json"
+        },
+        key=lambda d: (d.count("/"), d),
+    )
+    return [d.strip("/") for d in dirs][:6]
+
+
+def _run(cmd: list[str], cwd: Path, timeout: int) -> bool:
+    try:
+        return subprocess.run(cmd, cwd=cwd, capture_output=True, timeout=timeout).returncode == 0
+    except (subprocess.TimeoutExpired, OSError):
+        return False
+
+
+def build_indexes(
+    repo: Path, languages: tuple[str, ...] = ("python",), timeout: int = 600
+) -> list[Path]:
+    """Run the SCIP indexers (optional external tools; need node/npx). Writes only under
+    .cdebt/cache/ (a TypeScript project without a tsconfig is indexed in a TEMP COPY so the
+    repo itself is never modified). Returns the index files written."""
     import json
 
-    mp = meta_path(repo)
-    if not (index_path(repo).exists() and mp.exists()):
-        return False
-    try:
-        return bool(json.loads(mp.read_text()).get("fingerprint") == fingerprint(repo, extensions))
-    except (OSError, ValueError):
-        return False
-
-
-def build_index(repo: Path, language: str = "python", timeout: int = 600) -> Path | None:
-    """Run the SCIP indexer (optional external tool). Writes only under .cdebt/cache/.
-    Returns None if node/npx are unavailable or indexing fails."""
     npx = shutil.which("npx")
     if npx is None:
-        return None
-    out = index_path(repo)
-    out.parent.mkdir(parents=True, exist_ok=True)
-    pkg = {"python": "@sourcegraph/scip-python", "typescript": "@sourcegraph/scip-typescript"}
-    if language == "python":
+        return []
+    cache = repo / ".cdebt" / "cache"
+    cache.mkdir(parents=True, exist_ok=True)
+    meta = _meta(repo)
+    projects: list[dict[str, str]] = [
+        p for p in meta.get("projects", []) if p.get("language") not in languages
+    ]
+    fps: dict[str, str] = dict(meta.get("fingerprints", {}))
+    written: list[Path] = []
+    if "python" in languages:
+        out = index_path(repo)
         cmd = [
             npx,
             "--yes",
-            pkg[language],
+            "@sourcegraph/scip-python",
             "index",
             "--project-name",
             repo.name,
@@ -175,17 +252,56 @@ def build_index(repo: Path, language: str = "python", timeout: int = 600) -> Pat
             str(out),
             ".",
         ]
-    else:
-        cmd = [npx, "--yes", pkg[language], "index", "--output", str(out)]
-    try:
-        p = subprocess.run(cmd, cwd=repo, capture_output=True, timeout=timeout)
-    except (subprocess.TimeoutExpired, OSError):
-        return None
-    if p.returncode != 0 or not out.exists():
-        return None
-    import json
+        if _run(cmd, repo, timeout) and out.exists():
+            projects.append({"file": out.name, "prefix": "", "language": "python"})
+            fps["python"] = fingerprint(repo, LANG_EXT["python"])
+            written.append(out)
+    if "typescript" in languages:
+        dirs = _tsconfig_dirs(repo)
+        ok_any = False
+        if dirs:
+            for k, d in enumerate(dirs):
+                out = cache / f"index.typescript.{k}.scip"
+                cwd = repo / d if d else repo
+                cmd = [npx, "--yes", "@sourcegraph/scip-typescript", "index", "--output", str(out)]
+                if _run(cmd, cwd, timeout) and out.exists():
+                    projects.append(
+                        {"file": out.name, "prefix": d + "/" if d else "", "language": "typescript"}
+                    )
+                    written.append(out)
+                    ok_any = True
+        else:  # no tsconfig: infer one inside a temp copy (the tool writes tsconfig.json)
+            import tempfile
 
-    from cdebt.config import Config
+            from cdebt.probes.base import copy_tree
 
-    meta_path(repo).write_text(json.dumps({"fingerprint": fingerprint(repo, Config().extensions)}))
-    return out
+            tmp = Path(tempfile.mkdtemp(prefix="cdebt-scip-ts-")).resolve()
+            try:
+                copy_tree(repo, tmp)
+                out = cache / "index.typescript.0.scip"
+                cmd = [
+                    npx,
+                    "--yes",
+                    "@sourcegraph/scip-typescript",
+                    "index",
+                    "--infer-tsconfig",
+                    "--output",
+                    str(out),
+                ]
+                if _run(cmd, tmp, timeout) and out.exists():
+                    projects.append({"file": out.name, "prefix": "", "language": "typescript"})
+                    written.append(out)
+                    ok_any = True
+            finally:
+                shutil.rmtree(tmp, ignore_errors=True)
+        if ok_any:
+            fps["typescript"] = fingerprint(repo, LANG_EXT["typescript"])
+    if written:
+        meta_path(repo).write_text(json.dumps({"projects": projects, "fingerprints": fps}))
+    return written
+
+
+def build_index(repo: Path, language: str = "python", timeout: int = 600) -> Path | None:
+    """Back-compat wrapper: index one language, return the first file written."""
+    w = build_indexes(repo, (language,), timeout)
+    return w[0] if w else None

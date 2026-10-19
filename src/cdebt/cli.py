@@ -14,7 +14,7 @@ from rich.table import Table
 from cdebt import gitutil
 from cdebt.config import load_config
 from cdebt.mapper import MapResult, compute_map
-from cdebt.scip import ScipIndex, index_path, load_index
+from cdebt.scip import ScipIndex, index_files, load_all
 
 app = typer.Typer(
     add_completion=False,
@@ -41,12 +41,11 @@ def _repo(p: Path) -> Path:
 
 
 def _scip(repo: Path, build: bool) -> ScipIndex | None:
-    from cdebt.scip import build_index
+    from cdebt.scip import build_indexes
 
-    ip = index_path(repo)
-    if build and not ip.exists():
-        build_index(repo)
-    return load_index(ip) if ip.exists() else None
+    if build and not index_files(repo):
+        build_indexes(repo, ("python",))
+    return load_all(repo) if index_files(repo) else None
 
 
 def render_map(res: MapResult, top: int) -> None:
@@ -119,16 +118,27 @@ def map_cmd(
 
 
 @app.command("index")
-def index_cmd(repo: RepoOpt = Path("."), language: str = "python") -> None:
-    """Build the SCIP index (needs node/npx; writes only .cdebt/cache/)."""
-    from cdebt.scip import build_index
+def index_cmd(
+    repo: RepoOpt = Path("."),
+    language: Annotated[
+        str, typer.Option(help="python, typescript or all (detected from tracked files)")
+    ] = "all",
+) -> None:
+    """Build the SCIP index/indexes (needs node/npx; writes only .cdebt/cache/)."""
+    from cdebt.scip import LANG_EXT, build_indexes
 
     r = _repo(repo)
-    out = build_index(r, language)
-    if out is None:
+    if language == "all":
+        files = gitutil.ls_files(r)
+        langs = tuple(lg for lg, ext in LANG_EXT.items() if any(f.endswith(ext) for f in files))
+    else:
+        langs = (language,)
+    written = build_indexes(r, langs) if langs else []
+    if not written:
         typer.echo("error: indexing failed (need node/npx and network for the indexer)", err=True)
         raise typer.Exit(2)
-    typer.echo(f"wrote {out}")
+    for w in written:
+        typer.echo(f"wrote {w}")
 
 
 @app.command("quiz")

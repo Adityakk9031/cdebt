@@ -28,7 +28,7 @@ def untyped(x):
 def _repo(make_repo) -> Repo:  # type: ignore[no-untyped-def]
     r: Repo = make_repo()
     r.write("a.py", PY)
-    r.write("web/app.ts", "export function f(x: number): number {\n  return x + 1\n}\n")
+    r.write("web/app.tsx", "export function f(x: number): number {\n  return x + 1\n}\n")
     r.commit(f"ai\n\n{AI}")
     return r
 
@@ -37,10 +37,10 @@ def test_coverage_buckets(make_repo) -> None:  # type: ignore[no-untyped-def]
     r = _repo(make_repo)
     res = compute_coverage(r.path, Config(), top_n=10, scip_idx=None)
     by = {f.path: f for f in res.files}
-    a, ts = by["a.py"], by["web/app.ts"]
+    a, ts = by["a.py"], by["web/app.tsx"]
     assert a.klass == "partly verifiable" and a.verifiable_lines > 0 and a.attest_only_lines > 0
     assert {"runtime", "constant"} <= set(a.probe_kinds)
-    assert ts.klass == "no-quiz" and ts.no_quiz_lines == ts.ai_lines  # TypeScript, no index
+    assert ts.klass == "no-quiz" and ts.no_quiz_lines == ts.ai_lines  # TSX: JSX unsupported
     tot = a.ai_lines + ts.ai_lines
     assert res.verifiable_share == a.verifiable_lines / tot
     assert res.no_quiz_share == ts.ai_lines / tot and not res.scip_index
@@ -62,7 +62,7 @@ def test_coverage_cli_json_and_table_and_read_only(make_repo) -> None:  # type: 
     j = json.loads(
         run.invoke(app, ["coverage", "--repo", str(r.path), "--no-scip", "--json"]).output
     )
-    assert j["top_n"] == 25 and {f["path"] for f in j["files"]} == {"a.py", "web/app.ts"}
+    assert j["top_n"] == 25 and {f["path"] for f in j["files"]} == {"a.py", "web/app.tsx"}
     t = run.invoke(app, ["coverage", "--repo", str(r.path), "--no-scip"])
     text = " ".join(t.output.split())  # rich wraps lines
     assert t.exit_code == 0 and "can only be ATTESTED" in text and "no quiz support" in text
