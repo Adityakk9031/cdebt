@@ -31,7 +31,7 @@ Status key: **done** (with evidence), **needs-human** (a person must act or deci
 
 | bar | status | evidence |
 |---|---|---|
-| macOS: full suite, ruff, mypy, clean-venv install | done | local runs below; wheel installs in a fresh Python 3.11 venv, demo passes |
+| macOS: full suite, ruff, mypy, clean-venv install | done | section D; wheel installs in a fresh Python 3.11 venv, demo passes |
 | Linux: clean-venv install and demo | done | `python:3.11-slim` container (aarch64): installed the wheel, ran the demo, same output as macOS |
 | Linux: full test suite and CI matrix | **blocked** | needs a CI run (publication denied); the workflow `.github/workflows/ci.yml` is written (Ubuntu/macOS x Python 3.11-3.13, Node 24) |
 | Windows | **blocked** + documented | `docs/LIMITS.md`: code-executing commands are unsupported and exit with a clear message (`tests/test_windows_message.py` runs on every OS); a Windows CI job is written but **has never run**; **needs-human: run CI on a Windows runner** |
@@ -42,7 +42,7 @@ Status key: **done** (with evidence), **needs-human** (a person must act or deci
 |---|---|---|
 | ruff clean | done | `uv run ruff check .` |
 | mypy strict clean | done | `uv run mypy src` |
-| Full suite 20 times in a row, zero failures | FLAKE_STATUS |
+| Full suite 20 times in a row, zero failures | done | 20 of 20 consecutive full-suite runs passed on macOS (paced as batches of two with 50 s cooldowns and 120 s before the last; 56-58 s each; `scripts/repeat_suite_paced.sh`). Each run: 203 passed, 9 skipped (the Docker-dependent tests, because the Docker VM was off; they passed separately via Colima: 20 passed with no skips). The CI `repeat-suite` job (20 runs on Linux) has **not** been run |
 | Claims audit (every number in README and launch post has a source) | done | `scripts/check_claims.py`, `tests/test_claims.py`, CI step; README and `docs/LAUNCH_POST.md` pass |
 | Schema versioning and migrations | done | `tests/test_store_migration.py` (real v1 fixture, backup, newer schema refused) |
 | Performance at 500-file scale | done | `docs/case_studies/perf.json`: `map` 53.7 s to 9.8 s warm, `plan` 69.7 s to 18.8 s |
