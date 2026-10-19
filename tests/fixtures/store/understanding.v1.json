@@ -1,0 +1,40 @@
+{
+  "records": [
+    {
+      "audit_label": "legacy-audit",
+      "content_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "created_at": "2026-10-17T20:00:00Z",
+      "expires_at": null,
+      "passed": true,
+      "probes": [
+        {
+          "answer": "5",
+          "correct": true,
+          "evidence": {"isolation": "audit+rlimit+sandbox-exec", "deterministic_runs": 2},
+          "id": "p1",
+          "kind": "runtime",
+          "options": ["4", "5", "6"],
+          "path": "pkg/mathy.py",
+          "question": "What does `add(2, 3)` evaluate to?",
+          "seed": 0,
+          "symbol": "add",
+          "user_answer": "5",
+          "verified_by": "sandbox-exec"
+        }
+      ],
+      "unit_path": "pkg/mathy.py",
+      "unit_symbol": "add"
+    },
+    {
+      "audit_label": null,
+      "content_hash": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "created_at": "2026-10-17T20:05:00Z",
+      "expires_at": null,
+      "passed": false,
+      "probes": [],
+      "unit_path": "pkg/mathy.py",
+      "unit_symbol": "shout"
+    }
+  ],
+  "schema_version": 1
+}

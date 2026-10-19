@@ -105,6 +105,9 @@ class Probe(BaseModel):
 class Record(BaseModel):
     """Understanding record, bound to the content hash of the unit it covers."""
 
+    # unknown fields (from a newer minor version) are preserved on save, not dropped
+    model_config = ConfigDict(extra="allow")
+
     unit_path: str
     unit_symbol: str
     content_hash: str

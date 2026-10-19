@@ -3,10 +3,11 @@
 from __future__ import annotations
 
 import contextlib
+import functools
 import json
-from collections.abc import Iterator
+from collections.abc import Callable, Iterator
 from pathlib import Path
-from typing import Annotated
+from typing import Annotated, Any
 
 import typer
 from rich.console import Console
@@ -87,6 +88,26 @@ def _rel(file: Path, repo: Path) -> str:
         raise typer.Exit(2) from None
 
 
+def command(name: str) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
+    """`app.command` plus uniform handling of unreadable `.cdebt/understanding.json`
+    (corrupt, or written by a newer cdebt): `error: ...`, exit 2, no traceback."""
+
+    def deco(fn: Callable[..., Any]) -> Callable[..., Any]:
+        @functools.wraps(fn)
+        def wrapper(*a: Any, **k: Any) -> Any:
+            from cdebt.store import StoreError
+
+            try:
+                return fn(*a, **k)
+            except StoreError as e:
+                typer.echo(f"error: {e}", err=True)
+                raise typer.Exit(2) from None
+
+        return app.command(name)(wrapper)
+
+    return deco
+
+
 def _scip(repo: Path, build: bool) -> ScipIndex | None:
     from cdebt.scip import build_indexes
 
@@ -145,7 +166,7 @@ def render_map(res: MapResult, top: int) -> None:
         console.print("[yellow]* coarse: commit-level trailer heuristic, not line-level.[/]")
 
 
-@app.command("map")
+@command("map")
 def map_cmd(
     repo: RepoOpt = Path("."),
     rev: str = "HEAD",
@@ -164,7 +185,7 @@ def map_cmd(
         render_map(res, top)
 
 
-@app.command("index")
+@command("index")
 def index_cmd(
     repo: RepoOpt = Path("."),
     language: Annotated[
@@ -188,7 +209,7 @@ def index_cmd(
         typer.echo(f"wrote {w}")
 
 
-@app.command("quiz")
+@command("quiz")
 def quiz_cmd(
     file: Path,
     repo: RepoOpt = Path("."),
@@ -281,7 +302,7 @@ def quiz_cmd(
     console.print("Quizzes show visibility, not proof: they cannot stop answers being looked up.")
 
 
-@app.command("gate")
+@command("gate")
 def gate_cmd(
     repo: RepoOpt = Path("."),
     base: str = "origin/main",
@@ -345,7 +366,7 @@ def gate_cmd(
     raise typer.Exit(0 if res.passed else 1)
 
 
-@app.command("attest")
+@command("attest")
 def attest_cmd(
     file: Path,
     note: Annotated[str, typer.Option("--note", help="what you read / why it is fine (required)")],
@@ -398,7 +419,7 @@ def attest_cmd(
         raise typer.Exit(1)
 
 
-@app.command("coverage")
+@command("coverage")
 def coverage_cmd(
     repo: RepoOpt = Path("."),
     top_n: Annotated[int, typer.Option("--top-n", help="number of highest-debt files")] = 25,
@@ -449,7 +470,42 @@ def coverage_cmd(
         console.print(f"[dim]{n}[/]")
 
 
-@app.command("plan")
+@command("migrate")
+def migrate_cmd(
+    repo: RepoOpt = Path("."),
+    check: Annotated[
+        bool, typer.Option("--check", help="exit 1 if .cdebt/understanding.json needs migrating")
+    ] = False,
+) -> None:
+    """Upgrade .cdebt/understanding.json to the current schema (keeps a .bak copy of the old file).
+    Reading always migrates in memory; this makes it permanent."""
+    from cdebt.store import CURRENT_SCHEMA, Store, StoreError
+
+    r = _repo(repo)
+    try:
+        st = Store(r)
+    except StoreError as e:
+        typer.echo(f"error: {e}", err=True)
+        raise typer.Exit(2) from None
+    if not st.needs_migration():
+        typer.echo(
+            f"understanding.json is already schema {CURRENT_SCHEMA} (or absent): nothing to do"
+        )
+        return
+    old = st.migrated_from
+    if check:
+        typer.echo(
+            f"understanding.json is schema {old}; current is {CURRENT_SCHEMA}: run `cdebt migrate`"
+        )
+        raise typer.Exit(1)
+    st.save()
+    typer.echo(
+        f"migrated understanding.json: schema {old} -> {CURRENT_SCHEMA} "
+        f"({len(st.records)} records; backup understanding.v{old}.bak.json)"
+    )
+
+
+@command("plan")
 def plan_cmd(
     repo: RepoOpt = Path("."),
     rev: str = "HEAD",
@@ -482,7 +538,7 @@ def plan_cmd(
     console.print(t)
 
 
-@app.command("backtest")
+@command("backtest")
 def backtest_cmd(
     data: Annotated[Path, typer.Option(help="dir with AIDev parquet subset")] = Path("data/aidev"),
     fetch: Annotated[
