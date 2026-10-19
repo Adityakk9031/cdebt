@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.1.2 (unreleased until tagged)
+## 0.1.2
 
 - **Understanding now has three states**: *verified* (execution-verified probes), *attested*
   (a human signed off with `cdebt attest`; **NON-VERIFIED**, hash-bound, expires on change,
@@ -19,7 +19,14 @@
   reaped; `elapsed` is measured at kill time.
 - Fixed: `quiz` printed noisy skip lists, a literal `None` answer was graded wrong,
   runtime probes were rejected at file level (now function level).
-- Test suite is repeated 20 times in CI and was run 20 times locally with zero failures.
+- Flake gate: the suite was run 20 times in a row locally with **zero failures**. Runs 1-9 were
+  unpaced with the Docker VM up (122 tests, ~80 s each); runs 10-20 were paced (batches of two,
+  50 s cooldowns, 120 s before the last; `scripts/repeat_suite_paced.sh`) with the Docker VM off,
+  so 8 Docker tests were skipped (~22 s each). The Docker tests are covered by the CI
+  `docker-sandbox` job, and CI also has a `repeat-suite` job (20 runs); that job has NOT been run
+  on a GitHub runner for this version (the scratch remote was removed).
+- The CPU-stress test's burner processes now stop by themselves after 20 s (they had leaked and
+  heated the machine when a run was killed).
 
 ## 0.1.1
 

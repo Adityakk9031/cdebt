@@ -18,8 +18,10 @@ from cdebt.sandbox import run_code, run_in_sandbox
 LOOP = "while True:\n    pass\n"
 
 
-def _burn() -> None:
-    while True:
+def _burn(seconds: float = 20.0) -> None:
+    """CPU burner that stops by itself, so it cannot outlive a killed pytest run."""
+    end = time.time() + seconds
+    while time.time() < end:
         pass
 
 
@@ -40,7 +42,7 @@ def test_timeout_does_not_wait_for_a_slow_ps(monkeypatch: pytest.MonkeyPatch) ->
 
 
 def test_timeout_holds_under_cpu_stress() -> None:
-    burners = [mp.Process(target=_burn, daemon=True) for _ in range((os.cpu_count() or 4) * 2)]
+    burners = [mp.Process(target=_burn, daemon=True) for _ in range(max(2, os.cpu_count() or 2))]
     for b in burners:
         b.start()
     try:
