@@ -103,5 +103,7 @@ def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item
         return
     skip = pytest.mark.skip(reason="needs the POSIX sandbox; Windows is unsupported for execution")
     for it in items:
-        if it.module.__name__.split(".")[-1] in _NEEDS_POSIX:
+        if it.module.__name__.split(".")[-1] in _NEEDS_POSIX or it.get_closest_marker(
+            "posix_sandbox"
+        ):
             it.add_marker(skip)

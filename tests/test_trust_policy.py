@@ -26,6 +26,7 @@ def _no_strong(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(sandbox, "_sandbox_exec_available", lambda: False)
 
 
+@pytest.mark.posix_sandbox
 def test_strong_refuses_when_nothing_strong_is_available(monkeypatch: pytest.MonkeyPatch) -> None:
     _no_strong(monkeypatch)
     with pytest.raises(SandboxUnavailable, match="not marked trusted"):
@@ -44,6 +45,7 @@ def test_is_trusted_only_from_flag_or_env(monkeypatch: pytest.MonkeyPatch, tmp_p
     assert not sandbox.is_trusted(False)
 
 
+@pytest.mark.posix_sandbox
 def test_repo_config_cannot_mark_itself_trusted(make_repo, monkeypatch) -> None:  # type: ignore[no-untyped-def]
     """A PR author controls files in the repo; a `trusted = true` there must have no effect."""
     r: Repo = make_repo()
@@ -56,6 +58,7 @@ def test_repo_config_cannot_mark_itself_trusted(make_repo, monkeypatch) -> None:
     assert res.exit_code == 2 and "not marked trusted" in res.output
 
 
+@pytest.mark.posix_sandbox
 def test_cli_trusted_flag_and_env(make_repo, monkeypatch) -> None:  # type: ignore[no-untyped-def]
     r: Repo = make_repo()
     r.write("m.py", "def f(a: int) -> int:\n    return a + 1\n")
@@ -82,6 +85,7 @@ def test_cli_trusted_flag_and_env(make_repo, monkeypatch) -> None:  # type: igno
     assert cov.exit_code in (0, 2)  # no AI lines in this repo: nothing to run, or refusal
 
 
+@pytest.mark.posix_sandbox
 def test_mutation_probes_skipped_when_tests_cannot_be_isolated(make_repo, monkeypatch) -> None:  # type: ignore[no-untyped-def]
     from cdebt.probes import mutation
     from cdebt.units import extract_units

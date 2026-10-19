@@ -33,6 +33,7 @@ packages = ["src/cdebt"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+markers = ["posix_sandbox: needs the POSIX sandbox (skipped on Windows)"]
 addopts = "-q"
 timeout = 120
 

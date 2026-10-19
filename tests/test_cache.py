@@ -140,6 +140,7 @@ def test_unwritable_cache_never_breaks_a_run(make_repo, monkeypatch) -> None:  #
     assert resolve_file(r.path, "a.py", "HEAD", default_providers(r.path)).ai_lines == 6
 
 
+@pytest.mark.posix_sandbox
 def test_probe_kinds_cached_and_invalidated_by_file_edit(make_repo, monkeypatch) -> None:  # type: ignore[no-untyped-def]
     from cdebt import quiz
 

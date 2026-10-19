@@ -166,6 +166,7 @@ def test_power_estimate_is_sane() -> None:
     assert S.design_effect(1, 0.5) == 1.0 and S.design_effect(12, 0.1) == pytest.approx(2.1)
 
 
+@pytest.mark.posix_sandbox
 def test_cli_end_to_end(make_repo, monkeypatch, tmp_path: Path) -> None:  # type: ignore[no-untyped-def]
     r: Repo = make_repo()
     body = "".join(
