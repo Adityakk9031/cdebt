@@ -71,8 +71,9 @@
   native code**; see `docs/THREAT_MODEL.md`.
 - **Windows is unsupported** for everything that executes code (`quiz`, `attest`, `coverage`,
   `study init`); those commands exit with a message pointing to WSL2. `map`, `gate`, `plan`,
-  `migrate`, `backtest` and `study run/analyze` are written to work there, but the Windows CI job
-  has not been run (see `docs/V1_CHECKLIST.md`).
+  `migrate`, `backtest` and `study run/analyze` are written to work there, and the Windows CI job
+  (tests that do not execute code, ruff, mypy) passed on a hosted runner; see
+  `docs/VERIFICATION.md` and `docs/V1_CHECKLIST.md`. It is not a supported platform for quizzing.
 
 ## Score
 

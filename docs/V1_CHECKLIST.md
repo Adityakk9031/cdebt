@@ -1,18 +1,19 @@
-# v1.0 release checklist (release candidate 1)
+# v1.0 release checklist (release candidate 2)
 
 Status key: **done** (with evidence), **needs-human** (a person must act or decide), **blocked**
-(could not be done in this environment; reason given). Nothing has been published.
+(could not be done in this environment; reason given). Nothing has been published: the repository
+is private, nothing is on PyPI, there is no public release or stable Action ref.
 
 ## A. Product claims (the four differentiators)
 
 | bar | status | evidence |
 |---|---|---|
-| Quiz answers come from execution / call graph / mutation, never a model | done | `tests/test_probes.py` (Python), `tests/test_js_probes.py` (TypeScript/JavaScript, cross-checked against a plain `node` evaluation), `tests/test_attest.py` (constants); grading is a rule (`cdebt.probes.base.grade`, HMAC in `cdebt.study`) |
+| Quiz answers come from execution / call graph / mutation, never a model | done | `tests/test_probes.py` (Python), `tests/test_js_probes.py` (TypeScript/JavaScript, cross-checked against plain `node`), `tests/test_attest.py` (constants); grading is a rule (`cdebt.probes.base.grade`, HMAC in `cdebt.study`) |
 | Real line-level attribution from Git AI, verified on real output | done | `docs/GITAI_FORMATS.md`: real binaries 1.0.0-1.7.5, fixtures in `tests/fixtures/gitai*`, `tests/test_gitai_versions.py` |
 | Understanding expires with the code (hash-bound) | done | `tests/test_store.py`, `tests/test_attest.py::test_attestation_is_hash_bound`, `tests/test_gate.py` |
-| Backtest reproducible and published as measured | done | `docs/RESULTS.md`, `docs/RESULTS_MATCHED.md`, pre-registrations `docs/METHOD.md` and `docs/PREREGISTRATION.md` (committed before the runs); results are **mostly null** |
-| The score predicts real trouble | **not shown** | the two backtests above; see README "What we know and don't know". This is a finding, not a pending task |
-| Quiz questions measure understanding | **not shown** | study kit and pre-registered protocol exist (`docs/STUDY_PROTOCOL.md`); **needs-human: run it** |
+| Backtest reproducible and published as measured | done | `docs/RESULTS.md`, `docs/RESULTS_MATCHED.md`, pre-registrations `docs/METHOD.md`, `docs/PREREGISTRATION.md`; results are **mostly null** |
+| The score predicts real trouble | **not shown** | the two backtests above; a finding, not a pending task |
+| Quiz questions measure understanding | **not shown** | the study has **not been run**; kit and protocol exist (`docs/STUDY_PROTOCOL.md`); pipeline dry run on fake data only (`docs/dry_run/STUDY_DRY_RUN.md`, not evidence). **needs-human: run the study** |
 
 ## B. Security
 
@@ -20,56 +21,59 @@ Status key: **done** (with evidence), **needs-human** (a person must act or deci
 |---|---|---|
 | Threat model written | done | `docs/THREAT_MODEL.md` |
 | Sandbox escape tests (writes, network, fork bomb, loops, memory) | done | `tests/test_sandbox.py`, `tests/test_sandbox_node.py`, `tests/test_sandbox_kill.py` |
-| Fuzz / property suite, findings fixed | done | `tests/test_sandbox_fuzz.py`, `tests/test_sandbox_node_fuzz.py`; six real holes found and fixed (listed in the threat model section 5); soak run with a second seed passed |
-| Untrusted repos get strong isolation by default, `--trusted` opt-out, trust never read from the repo | done | `tests/test_trust_policy.py`; strict Seatbelt verified on macOS |
-| Docker isolation path verified against the hardened code | done | `tests/test_sandbox_docker.py` (Python and Node images) passed locally via Colima, no leaked containers |
-| Independent security review | **needs-human** | nobody but the author has reviewed the sandbox |
-| Docker/Linux host-mode isolation on a GitHub runner for this version | **blocked** | pushing to a scratch repo to run CI was denied as a publication ("do not publish"); the earlier Docker CI run was for 0.1.1 |
-| Hostile-native-code defence | not a goal | documented as a residual risk |
+| Fuzz suites, findings fixed | done | `tests/test_sandbox_fuzz.py`, `tests/test_sandbox_node_fuzz.py` |
+| Second adversarial pass (new payload classes), findings fixed, regression tests | done | `tests/test_sandbox_redteam.py`; findings and residual risks in `docs/THREAT_MODEL.md` (section 5b). One of my own hardening changes broke the Node runner and was caught by Linux CI (`docs/VERIFICATION.md`) |
+| Untrusted repos get strong isolation by default; `--trusted` opt-out; trust never read from the repo | done | `tests/test_trust_policy.py` |
+| Docker path verified | done | `docker-sandbox` CI job (run 39302371977) and local Colima runs (`docs/VERIFICATION.md`) |
+| **Independent security review** | **needs-human** | reviewed only by its author and AI, not independently (`SECURITY.md`) |
+| Hostile-native-code defence | not a goal | documented residual risk |
 
 ## C. Platforms
 
 | bar | status | evidence |
 |---|---|---|
-| macOS: full suite, ruff, mypy, clean-venv install | done | section D; wheel installs in a fresh Python 3.11 venv, demo passes |
-| Linux: clean-venv install and demo | done | `python:3.11-slim` container (aarch64): installed the wheel, ran the demo, same output as macOS |
-| Linux: full test suite and CI matrix | **blocked** | needs a CI run (publication denied); the workflow `.github/workflows/ci.yml` is written (Ubuntu/macOS x Python 3.11-3.13, Node 24) |
-| Windows | **blocked** + documented | `docs/LIMITS.md`: code-executing commands are unsupported and exit with a clear message (`tests/test_windows_message.py` runs on every OS); a Windows CI job is written but **has never run**; **needs-human: run CI on a Windows runner** |
+| macOS: CI (3.11-3.13) | done | run 39302371977, `docs/VERIFICATION.md` |
+| Linux: CI (3.11-3.13), Docker job | done | same run |
+| Windows | **unsupported** for anything that executes code | exits with the WSL2 message (`tests/test_windows_message.py`). The Windows CI job (non-executing tests, ruff, mypy, package smoke) passes: same run. Real-world use on Windows untested |
 
 ## D. Quality gates
 
 | bar | status | evidence |
 |---|---|---|
-| ruff clean | done | `uv run ruff check .` |
-| mypy strict clean | done | `uv run mypy src` |
-| Full suite 20 times in a row, zero failures | done | 20 of 20 consecutive full-suite runs passed on macOS (paced as batches of two with 50 s cooldowns and 120 s before the last; 56-58 s each; `scripts/repeat_suite_paced.sh`). Each run: 203 passed, 9 skipped (the Docker-dependent tests, because the Docker VM was off; they passed separately via Colima: 20 passed with no skips). The CI `repeat-suite` job (20 runs on Linux) has **not** been run |
-| Claims audit (every number in README and launch post has a source) | done | `scripts/check_claims.py`, `tests/test_claims.py`, CI step; README and `docs/LAUNCH_POST.md` pass |
-| Schema versioning and migrations | done | `tests/test_store_migration.py` (real v1 fixture, backup, newer schema refused) |
-| Performance at 500-file scale | done | `docs/case_studies/perf.json`: `map` 53.7 s to 9.8 s warm, `plan` 69.7 s to 18.8 s |
+| ruff clean | done | `uv run ruff check .` (rerun before tagging) |
+| mypy strict clean, also `--platform win32` | done | `uv run mypy src` (rerun before tagging) |
+| Flake gate: full suite 20 times in a row | done on CI, **incomplete locally** | CI `repeat-suite`: 20 consecutive Ubuntu runs, success (run 39302371977). Local paced macOS run: 13 of 20 passed, 0 failed, stopped because the laptop slept on battery (`docs/VERIFICATION.md`). **needs-human: rerun the local 20 on mains power if you want the macOS count** |
+| One load-dependent test flake seen in CI (macOS, once) | done, cause UNVERIFIED | `test_runtime_is_seeded` now checks determinism of probes present in both runs and that drops are reported skips |
+| Claims audit | done | `scripts/check_claims.py README.md docs/LAUNCH_POST.md` (rerun before tagging), `tests/test_claims.py`, CI step |
+| Schema versioning and migrations | done | `tests/test_store_migration.py` |
+| Performance at 500-file scale | done | `docs/case_studies/perf.json` |
 
-## E. Coverage of real code (what users will see)
+## E. Coverage of real code
 
 | bar | status | evidence |
 |---|---|---|
 | Users can see limits before trusting the gate | done | `cdebt coverage` (`tests/test_coverage.py`) |
-| TypeScript/JavaScript quizzable | done, limited | `docs/CASE_STUDIES.md` section 8: 0% to 33% verifiable on the pilot TypeScript repo, mostly call-graph questions; React/npm-heavy code stays attest-only |
+| TypeScript/JavaScript quizzable | done, limited | `docs/CASE_STUDIES.md`; most clearing on real repos will be NON-VERIFIED attestation |
 | Mutation probes for TypeScript | not done | Python-only; documented |
 
 ## F. Release mechanics
 
 | bar | status | evidence / next step |
 |---|---|---|
-| Wheel builds | done | `uv build` produces `cdebt-1.0.0rc1` |
-| Public repository, PyPI publish, release tag on a remote | **needs-human** | not published by design |
-| GitHub Action re-verified on a real PR for this version | **needs-human** | verified on 0.1.0 code (`docs/VERIFICATION.md`); re-run after publishing |
+| Wheel and sdist build, `twine check`, clean-venv install | done | CI `package` job on Linux, macOS, Windows; `docs/PACKAGING_CHECK.md`; nothing uploaded |
+| Name `cdebt` free on PyPI, npm and GitHub | done (read-only check) | `docs/PACKAGING_CHECK.md`: free today; a related project `comprehension-debt` exists on PyPI. **needs-human: decide the name and register it** |
+| GitHub Action re-verified on a real PR for this version | done | PR 1: comment created, then the same comment edited (`docs/VERIFICATION.md`) |
+| Action from a real fork | **needs-human** | only a read-only-token simulation was run (PR 2); a real fork needs a second account |
+| Public repository, PyPI publish, stable Action ref, release | **needs-human** | not done by design |
 | Launch post | **needs-human** | `docs/LAUNCH_POST.md` is a draft; decide whether and where to publish |
-| Cleanup of scratch repos, Docker VM, third-party app | **needs-human** | `docs/CLEANUP.md` (commands not run) |
+| Cleanup of scratch repos, Docker VM, third-party apps | **needs-human** | `docs/CLEANUP.md` (commands not run) |
 | Feedback from teams outside the author | **needs-human** | none yet |
 
-## G. Known gaps that remain after rc1 (not blockers by themselves, but say so in the release notes)
+## G. Known gaps (say so in any release notes)
 
-- Quiz coverage on real code is narrow, and most clearing will be NON-VERIFIED attestation.
-- The debt score is unvalidated (mostly null backtests); the study has not been run.
-- Windows and Linux CI have not been run for this version.
+- The debt score is unvalidated and the backtests are mostly null; the validity study has not been run.
+- Quiz coverage on real code is narrow; most clearing will be NON-VERIFIED attestation.
+- Windows cannot run anything that executes code.
+- The sandbox has had no independent review.
 - Attribution is usually coarse (commit trailers); Git AI notes are rare in practice.
 - `index` runs npm-distributed tools on the repository and is not sandboxed.

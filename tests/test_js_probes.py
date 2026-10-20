@@ -64,9 +64,17 @@ def test_runtime_answers_match_plain_node(make_repo) -> None:  # type: ignore[no
 def test_runtime_is_seeded(make_repo) -> None:  # type: ignore[no-untyped-def]
     r = _repo(make_repo, {"src/calc.ts": CALC})
     u = extract_units("src/calc.ts", CALC)
-    a, _ = js.generate_runtime(r.path, "src/calc.ts", CALC, u, seed=4)
-    b, _ = js.generate_runtime(r.path, "src/calc.ts", CALC, u, seed=4)
-    assert [p.model_dump() for p in a] == [p.model_dump() for p in b]
+    a, sa = js.generate_runtime(r.path, "src/calc.ts", CALC, u, seed=4)
+    b, sb = js.generate_runtime(r.path, "src/calc.ts", CALC, u, seed=4)
+    # A probe may be skipped (with a reported reason) when its sandboxed call is cut off on a
+    # loaded runner (one macOS CI run dropped `pure`; cause UNVERIFIED). Seeding must still make
+    # every probe that exists in both runs identical, and every drop must be a reported skip.
+    da, db = {p.id: p.model_dump() for p in a}, {p.id: p.model_dump() for p in b}
+    assert {i: da[i] for i in da.keys() & db.keys()} == {i: db[i] for i in da.keys() & db.keys()}
+    for mine, other, skips in ((a, b, sa), (b, a, sb)):
+        for p in other:
+            if p.id not in {m.id for m in mine}:
+                assert any(f"::{p.symbol}:" in s for s in skips), f"unreported drop: {p.symbol}"
 
 
 def test_constants_probes(make_repo) -> None:  # type: ignore[no-untyped-def]

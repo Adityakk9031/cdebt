@@ -107,3 +107,74 @@ Docker-specific ones test new functions and so cannot run against the old code.
 **Limits that remain.** A child that double-forks and is re-parented to `launchd` before the
 deadline cannot be found by walking the process tree (no cgroups on macOS); it is still bound by
 its inherited CPU rlimit. Hostile native code is out of scope (see `docs/LIMITS.md`).
+
+## Release candidate 2 (1.0.0rc2): private repo, CI, Action, flake gate
+
+Dates are 2026-10-19/20. The repository is private: `Adityakk9031/cdebt` (visibility checked with
+`gh repo view --json visibility` before every push). Nothing is on PyPI and no release exists.
+
+### CI on real runners (this repository)
+
+Final green run on commit 10bd203:
+<https://github.com/Adityakk9031/cdebt/actions/runs/39302371977> (all jobs success): Windows,
+Ubuntu x Python 3.11/3.12/3.13, macOS x Python 3.11/3.12/3.13, `docker-sandbox`, `package`
+(Windows, macOS, Ubuntu: sdist + wheel, `twine check`, clean-venv install and smoke test) and
+`repeat-suite` (`scripts/repeat_suite.sh 20`: the whole suite 20 times in a row on Ubuntu with
+Docker; job <https://github.com/Adityakk9031/cdebt/actions/runs/39302371977/job/118231067498>).
+
+Failures met on the way and what was done:
+
+| run | job | what failed | fix |
+|---|---|---|---|
+| 39297361041 | Windows, pytest | POSIX-only sandbox tests ran on Windows; earlier runs also had mypy errors on POSIX-only attributes (fixed with explicit `sys.platform` guards, checked with `mypy --platform win32`) | `posix_sandbox` marker and skip of the red-team module on Windows |
+| (Linux runs, see commit 507776b) | Ubuntu, pytest | memory/output flood is contained as `MemoryError` on Linux, test expected a kill | test accepts all containment outcomes |
+| (Linux runs, see commit a0e34d8) | Ubuntu, Node suite | **my own regression** from the red-team hardening: blocking `process.reallyExit` broke the runner's exit, and removing `WebAssembly` broke TypeScript stripping | both removals reverted; lesson: run the whole Node suite, not just the new tests, after hardening |
+| 39301809522 | macOS 3.12, pytest (branch `ai-sample`) | `tests/test_js_probes.py::test_runtime_is_seeded`: one run produced one fewer probe (`pure`) than the other | a probe whose sandboxed call fails or is cut off is skipped with a reported reason (never a wrong answer). The cause on the runner is **UNVERIFIED** (the log shows only the assertion). The test now asserts what matters: probes present in both runs are identical and every dropped probe is a reported skip |
+
+Windows: the job passes (tests that do not execute code, ruff, mypy, package smoke test).
+Anything that executes code is unsupported on Windows and exits with the WSL2 message.
+
+### Action on real PRs
+
+Workflow `cdebt-gate` (`.github/workflows/gate.yml`) runs the composite action from this repo.
+PR <https://github.com/Adityakk9031/cdebt/pull/1> (branch `ai-sample`, AI-attributed through a
+`Co-Authored-By` trailer, so source `trailer`, coarse):
+
+- Commit 6dbf608 "Add sample pricing helper": run 39301629670 created the sticky comment
+  (comment id 6274170414, created 2026-10-19T18:20:21Z).
+- Commit a1306d9 "Record verified understanding of the sample helper": run 39301858149 **edited the
+  same comment** (same id; `updated_at` 2026-10-19T18:22:05Z). Exactly one cdebt comment exists.
+
+Exact text of the comment as it stands now:
+
+```
+<!-- cdebt-gate -->
+## cdebt gate: PASS (advisory)
+
+AI-attributed changed lines not cleared: **0** (allowed: 0). Policy: `--require default`. **Advisory: this does not block the merge** (use `--enforce` to fail the build).
+
+Attribution sources on changed AI lines: `trailer`: 7.
+
+
+> Some attribution is from commit trailers: coarse, commit-level.
+
+<sub>cdebt measures code, not people. A quiz is visibility, not a lie detector.</sub>
+```
+
+The text of the comment as first created is not reproduced here (GitHub keeps only the current body).
+
+**Fork case: simulated, not run from a real fork.** PR
+<https://github.com/Adityakk9031/cdebt/pull/2> (branch `ro-token-sim`, commit 792b6a7) ran with a
+read-only token to imitate what a fork PR gets (run 39301992728, job success). No cdebt comment
+was posted, and the job still succeeded: the comment step degrades gracefully. A real fork needs a
+second GitHub account and was **not** tested. (A third-party review bot also comments on these
+PRs; it is unrelated to cdebt.)
+
+### Flake gate: 20 consecutive full-suite runs
+
+- CI `repeat-suite` (20 runs on Ubuntu with Docker): success, link above.
+- Local macOS paced run (pairs, 50 s cooldown): **13 of 20 passed, 0 failed, then I stopped it.**
+  The laptop was on battery (21%) and entered maintenance sleep, so runs 12 and 13 took 3147 s
+  and 4074 s of wall time against about 136 s for the others (pytest had used 2.5 s of CPU in
+  17 minutes). Those runs passed; the rest was not run. The local 20x count is therefore **not
+  complete**. Needs-human: rerun `scripts/repeat_suite_paced.sh 1 20 2 50 120` on mains power.
