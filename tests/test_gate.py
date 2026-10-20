@@ -124,3 +124,27 @@ def test_plan_ranks_by_priority(make_repo) -> None:  # type: ignore[no-untyped-d
     out = CliRunner().invoke(app, ["plan", "--repo", str(r.path), "--no-scip", "--json"])
     assert out.exit_code == 0 and json.loads(out.output)[0]["rank"] == 1
     assert not (r.path / ".cdebt" / "understanding.json").exists()  # only a cache may appear
+
+
+def test_plan_says_nothing_is_left_to_quiz_when_everything_is_cleared(make_repo) -> None:  # type: ignore[no-untyped-def]
+    r: Repo = make_repo()
+    src = "def f(x):\n    return x + 1\n"
+    r.write("a.py", src)
+    r.commit(f"ai\n\n{AI}")
+    f = {u.symbol: u for u in extract_units("a.py", src)}["f"]
+    st = Store(r.path)
+    st.add(
+        Record(
+            unit_path="a.py",
+            unit_symbol="f",
+            content_hash=f.content_hash,
+            passed=True,
+            kind="attested",
+        )
+    )
+    st.save()
+    r.commit("attest")
+    items = compute_plan(r.path, Config(), scip_idx=None)
+    assert len(items) == 1 and items[0].action == "review"
+    assert "nothing left to quiz" in items[0].reason and "NON-VERIFIED" in items[0].reason
+    assert "can be verified" not in items[0].reason

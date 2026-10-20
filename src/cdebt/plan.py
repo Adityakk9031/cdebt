@@ -75,6 +75,14 @@ def compute_plan(
             why = (
                 "mostly AI, nothing outside references it (per SCIP): delete or rewrite is cheaper"
             )
+        elif not need:
+            action = "review"
+            why = (
+                f"nothing left to quiz: {attested} AI line(s) cleared on NON-VERIFIED attestation; "
+                "the remaining score is the attestation discount and blast radius"
+                if attested
+                else "nothing left to clear in the AI lines"
+            )
         elif residual > lines / 2 or not f.path.endswith(".py"):
             action = "review"
             why = (
