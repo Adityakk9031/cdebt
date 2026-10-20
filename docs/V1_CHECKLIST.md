@@ -42,7 +42,7 @@ is private, nothing is on PyPI, there is no public release or stable Action ref.
 |---|---|---|
 | ruff clean | done | `uv run ruff check .` (rerun before tagging) |
 | mypy strict clean, also `--platform win32` | done | `uv run mypy src` (rerun before tagging) |
-| Flake gate: full suite 20 times in a row | done on CI, **incomplete locally** | CI `repeat-suite`: 20 consecutive Ubuntu runs, success (run 39302371977). Local paced macOS run: 13 of 20 passed, 0 failed, stopped because the laptop slept on battery (`docs/VERIFICATION.md`). **needs-human: rerun the local 20 on mains power if you want the macOS count** |
+| Flake gate: full suite 20 times in a row | done | CI `repeat-suite`: 20 consecutive Ubuntu runs, success (run 39302371977). Local paced macOS run: 20 of 20 passed, 0 failed (runs 1-13 on commit 10bd203, runs 14-20 on 3b0eb0d after a pause caused by the laptop sleeping; details in `docs/VERIFICATION.md`) |
 | One load-dependent test flake seen in CI (macOS, once) | done, cause UNVERIFIED | `test_runtime_is_seeded` now checks determinism of probes present in both runs and that drops are reported skips |
 | Claims audit | done | `scripts/check_claims.py README.md docs/LAUNCH_POST.md` (rerun before tagging), `tests/test_claims.py`, CI step |
 | Schema versioning and migrations | done | `tests/test_store_migration.py` |

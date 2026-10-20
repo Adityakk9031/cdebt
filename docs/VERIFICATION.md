@@ -173,8 +173,11 @@ PRs; it is unrelated to cdebt.)
 ### Flake gate: 20 consecutive full-suite runs
 
 - CI `repeat-suite` (20 runs on Ubuntu with Docker): success, link above.
-- Local macOS paced run (pairs, 50 s cooldown): **13 of 20 passed, 0 failed, then I stopped it.**
-  The laptop was on battery (21%) and entered maintenance sleep, so runs 12 and 13 took 3147 s
-  and 4074 s of wall time against about 136 s for the others (pytest had used 2.5 s of CPU in
-  17 minutes). Those runs passed; the rest was not run. The local 20x count is therefore **not
-  complete**. Needs-human: rerun `scripts/repeat_suite_paced.sh 1 20 2 50 120` on mains power.
+- Local macOS paced run (pairs, 50 s cooldown, 120 s before the last), in two parts:
+  - Runs 1-13 on commit 10bd203: all passed. The laptop was on battery and slept, so runs 12 and
+    13 took 3147 s and 4074 s of wall time against about 136 s for the others (pytest had used
+    2.5 s of CPU in 17 minutes); I stopped the run there.
+  - Runs 14-20 on commit 3b0eb0d (resumed with the laptop awake): all passed, 139-141 s each
+    (`scripts/repeat_suite_paced.sh 14 20 2 50 120` reported `ALL 7 RUNS (14..20) PASSED`).
+  - Total: **20 of 20 passed, 0 failed**, but not on a single commit and not in one continuous
+    sitting. The only code change between the two parts was the `test_runtime_is_seeded` test.
