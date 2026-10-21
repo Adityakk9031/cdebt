@@ -686,8 +686,10 @@ def migrate_cmd(
 @command("mcp")
 def mcp_cmd(
     session: Annotated[Path, typer.Option(help="session directory made by `cdebt quiz`")],
+    trusted: TrustedOpt = False,
 ) -> None:
     """Run the cdebt MCP server (stdio) for a coding agent. Started BY the agent, not by hand."""
+    _apply_isolation(trusted)  # agent-written harnesses get the same isolation as `cdebt quiz`
     try:
         from cdebt.agents.mcp_server import serve
     except ModuleNotFoundError as e:

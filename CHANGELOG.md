@@ -1,5 +1,31 @@
 # Changelog
 
+## 1.1.0rc1
+
+- **Questions from the developer's own coding agent.** `cdebt agent connect` (opt-in, saved in the
+  USER config, never read from a repo) lets Claude Code / Codex / Cursor / any command propose
+  questions, call inputs and test harnesses through `cdebt mcp` (tools `get_targets`,
+  `propose_probe`; the reply is only accepted/rejected, never an answer). cdebt executes every
+  proposal in the sandbox, twice, and discards anything it cannot verify, including harnesses
+  whose execution trace shows the real target did not run. Python only. Only the Claude Code
+  adapter's flags were checked against a real CLI; a full agent run was not possible (the CLI was
+  not logged in): UNVERIFIED end to end. `codex` and `cursor` adapters are UNVERIFIED.
+- **Adaptive quiz.** Easy/hard labels, a harder question after a wrong answer, up to 3 rounds per
+  unit, and 1-2 timed follow-ups (answered by tracing the real execution) when a hard question was
+  answered no slower than the easy ones. Timing is kept in memory only and never stored.
+  `--no-timer`, `.cdebt/policy.toml`, and a `status_reason` on every record (about the code).
+- **Pre-push flow.** `cdebt init` (consent per step; never overwrites; chains existing hooks;
+  workflow file; optional GitHub ruleset), a pre-push hook that quizzes on the terminal, writes
+  `refs/notes/cdebt` and pushes the notes before the branch (never blocks; `--no-verify` skips it),
+  and `cdebt quiz --pr N`.
+- **CI.** `gate --recheck` re-executes recorded probes so hand-edited answers fail; the sticky
+  comment lists units with line ranges and reasons (no person named); a `cdebt / gate` check run
+  (neutral when advisory); `/cdebt recheck` comment trigger for owners, members and collaborators.
+- The gate ignores blank and comment-only lines. The MCP server applies the same untrusted-by-default
+  isolation as `cdebt quiz`.
+- Rules changed (CLAUDE.md, METHOD): the agent may propose, never decide; `refs/notes/cdebt` and the
+  consented hook are the only writes besides `.cdebt/`; no timing data, no per-person flags.
+
 ## 1.0.0rc2
 
 - **Gate is advisory by default** (`--enforce` / Action input `enforce` to fail the build); the PR

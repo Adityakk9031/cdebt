@@ -9,6 +9,7 @@ from __future__ import annotations
 import os
 import signal
 import subprocess
+import sys
 import time
 from pathlib import Path
 
@@ -45,10 +46,13 @@ def _run_agent(
         out, _ = p.communicate(timeout=timeout)
         return p.returncode, (out or "")[-400:]
     except subprocess.TimeoutExpired:
-        try:
-            os.killpg(p.pid, signal.SIGKILL)
-        except (ProcessLookupError, PermissionError):
+        if sys.platform == "win32":  # explicit so type checkers treat the rest as POSIX-only
             p.kill()
+        else:
+            try:
+                os.killpg(p.pid, signal.SIGKILL)
+            except (ProcessLookupError, PermissionError):
+                p.kill()
         out, _ = p.communicate()
         return None, f"timed out after {timeout:.0f} s"
 

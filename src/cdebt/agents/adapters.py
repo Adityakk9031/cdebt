@@ -43,10 +43,23 @@ class AgentRun:
     notes: list[str] = field(default_factory=list)
 
 
+def _trusted() -> bool:
+    """Whether the person running cdebt chose the host sandbox (`--trusted` / CDEBT_TRUSTED=1).
+    The MCP server is a separate process, so the choice is passed on explicitly; it is never
+    taken from anything in the repository."""
+    from cdebt import sandbox
+
+    return sandbox.DEFAULT_ISOLATION == "host"
+
+
 def mcp_argv(session_dir: Path) -> list[str]:
     """How an agent launches the cdebt MCP server (stdio)."""
     code = "from cdebt.cli import app; app()"
-    return [sys.executable, "-c", code, "mcp", "--session", str(session_dir)]
+    return [
+        sys.executable, "-c", code, "mcp",
+        *(["--trusted"] if _trusted() else []),
+        "--session", str(session_dir),
+    ]  # fmt: skip
 
 
 def find_claude() -> str | None:

@@ -209,4 +209,18 @@ def test_claude_adapter_is_read_only_and_cdebt_tools_only(tmp_path) -> None:  # 
     assert allowed == "mcp__cdebt__get_targets,mcp__cdebt__propose_probe"
     assert a[a.index("--permission-mode") + 1] == "dontAsk"
     cfg = json.loads((tmp_path / "mcp.json").read_text())
-    assert cfg["mcpServers"]["cdebt"]["args"][-3:-1] == ["mcp", "--session"]
+    args = cfg["mcpServers"]["cdebt"]["args"]
+    assert args[args.index("mcp") + 1 :][-2:] == ["--session", str(tmp_path)]
+
+
+def test_mcp_server_applies_untrusted_isolation_unless_the_user_chose_trusted(tmp_path) -> None:  # type: ignore[no-untyped-def]
+    from cdebt import sandbox
+
+    old = sandbox.DEFAULT_ISOLATION
+    try:
+        sandbox.set_default_isolation("strong")
+        assert "--trusted" not in adapters.mcp_argv(tmp_path)
+        sandbox.set_default_isolation("host")
+        assert "--trusted" in adapters.mcp_argv(tmp_path)
+    finally:
+        sandbox.set_default_isolation(old)

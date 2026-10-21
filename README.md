@@ -27,6 +27,11 @@ Pre-release (1.0.0 release candidate), **not published**: not on PyPI, no stable
   `study init`); those commands exit with a message pointing to WSL2. The Windows CI job covers the
   rest; see [docs/V1_CHECKLIST.md](docs/V1_CHECKLIST.md) for its current status.
 - Reviewed only by its author and an AI, not independently; see [SECURITY.md](SECURITY.md).
+- **Newest features, lightly tested:** questions proposed by your own coding agent, the adaptive quiz
+  and the pre-push flow were tested with a fake agent and real git, not with a real agent end to
+  end (the only real CLI available was not logged in). A record is made locally, so a determined
+  person can forge one; CI re-execution catches wrong answers, not hand-written correct ones
+  ([docs/LIMITS.md](docs/LIMITS.md)).
 
 | command | what it does |
 |---|---|
@@ -39,6 +44,9 @@ Pre-release (1.0.0 release candidate), **not published**: not on PyPI, no stable
 | `cdebt backtest` | Does the (proxy) score predict later fixes and reverts on AIDev? Reproducible, published as measured |
 | `cdebt index` | Build the SCIP index/indexes (Python and TypeScript) used for exact call-graph facts and blast radius |
 | `cdebt study` | Validity-study kit: fixed question set, anonymous responses, team-level analysis (see [docs/STUDY_PROTOCOL.md](docs/STUDY_PROTOCOL.md)); not yet run |
+| `cdebt init` | Sets up the pre-push flow, asking before every change: a pre-push hook (never overwrites an existing one), `.cdebt/policy.toml`, a GitHub workflow, and optionally a GitHub ruleset that requires the `cdebt / gate` check |
+| `cdebt quiz --pr N` | Take the quiz for an existing PR, push the notes, and ask CI to re-check |
+| `cdebt agent connect` | Opt in to letting your own coding agent propose the quiz questions (cdebt still runs every question to get the answer) |
 | `cdebt migrate` | Upgrade `.cdebt/understanding.json` to the current schema (reading always migrates in memory) |
 
 ## The four differentiators
@@ -93,6 +101,21 @@ not covered at all (6%)
 [src: docs/case_studies/space_chassis.coverage.json, docs/case_studies/agent-meta.coverage.json, docs/case_studies/hive.coverage-ts.json].
 Runtime probes need typed, side-effect-free functions and, for TypeScript, modules plain Node can
 resolve; call-graph probes need a SCIP index. Run `cdebt coverage` before trusting any gate.
+
+## How a team uses it
+
+1. Someone runs `cdebt init` once and commits the workflow and policy files.
+2. A developer's coding agent writes code. On `git push`, the pre-push hook finds AI-written lines
+   that nobody has understood and asks questions on the terminal. Each answer is checked by running
+   the code in a sandbox. A wrong answer earns a harder question, and a hard question answered
+   suspiciously evenly earns one or two short timed follow-ups. The records go to
+   `refs/notes/cdebt` and are pushed before the branch. With no terminal (an agent pushing on its
+   own) the hook prints a notice and lets the push through.
+3. On the pull request the Action re-runs the recorded questions, posts one comment that marks
+   CODE as understood or not (never a person), and sets a `cdebt / gate` check that is `neutral`
+   in advisory mode. `git push --no-verify` skips the hook, and CI then shows the code as not
+   understood. To block merges, make `cdebt / gate` a required check and turn `enforce` on.
+4. Anyone can run `cdebt quiz --pr 123` and comment `/cdebt recheck` to clear it.
 
 ## 60-second demo
 
@@ -161,6 +184,9 @@ at**. Read the [threat model](docs/THREAT_MODEL.md) first.
   run a project's own tests) need `--trusted`.
 - The sandbox targets accidental and AI-written side effects, not a determined attacker with
   native-code exploits. On Windows, anything that executes code is unsupported and says so.
+- Your coding agent (if you connect one) only sees the code of functions being quizzed and two
+  tools; it is never told an answer, and its other tools are limited to read-only. The agent choice
+  lives in your user config, never in the repository.
 - Read-only on your repo except `.cdebt/` (understanding records, policy, and a git-ignored result
   cache), the git ref `refs/notes/cdebt`, and the pre-push hook that `cdebt init` installs only
   with your explicit consent; other git calls are allow-listed read commands. No API key is needed. Network is needed
