@@ -16,7 +16,7 @@ given). Nothing has been published: the repository is private, nothing is on PyP
 | Sticky comment names no person; check run `cdebt / gate` | comment done locally; **check run UNVERIFIED** | PR 3 / PR 4 comments; a personal token cannot create check runs |
 | **CI green on Linux, macOS, Windows for this version** | **blocked** | GitHub refused to start any job: billing / spending limit (`docs/VERIFICATION.md`). Needs-human: fix billing, re-run CI |
 | **GitHub-hosted Action run (comment edit, check run, `/cdebt recheck`)** | **blocked** | same reason; the script was run locally instead |
-| Local full suite 20 times in paced pairs | see `docs/VERIFICATION.md` (in progress when written) | `scripts/repeat_suite_paced.sh` |
+| Local full suite 20 times in paced pairs (macOS) | done | 20 of 20 passed (`docs/VERIFICATION.md`); the Linux `repeat-suite` job has not run for this version |
 | Real fork test, independent security review, validity study, name/publish decisions, `docs/CLEANUP.md` | **needs-human** | unchanged from the previous round |
 | `scripts/action_run.sh` ignores API error bodies | done | checked locally against a missing PR and PR 4 |
 | Full CI matrix (macOS, Windows, 20x repeat-suite) | **needs-human** | now manual (`workflow_dispatch`) to save free minutes; run it once billing or the monthly quota allows |
