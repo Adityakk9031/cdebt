@@ -18,7 +18,8 @@ given). Nothing has been published: the repository is private, nothing is on PyP
 | **GitHub-hosted Action run (comment edit, check run, `/cdebt recheck`)** | **blocked** | same reason; the script was run locally instead |
 | Local full suite 20 times in paced pairs | see `docs/VERIFICATION.md` (in progress when written) | `scripts/repeat_suite_paced.sh` |
 | Real fork test, independent security review, validity study, name/publish decisions, `docs/CLEANUP.md` | **needs-human** | unchanged from the previous round |
-| Known fix still open | to do | `scripts/action_run.sh` must not treat an API error body as a comment id |
+| `scripts/action_run.sh` ignores API error bodies | done | checked locally against a missing PR and PR 4 |
+| Full CI matrix (macOS, Windows, 20x repeat-suite) | **needs-human** | now manual (`workflow_dispatch`) to save free minutes; run it once billing or the monthly quota allows |
 
 Everything below is the previous release candidate's checklist (1.0.0rc2) and is unchanged except
 where it says "CI": its CI evidence is for that version only.

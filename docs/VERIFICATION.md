@@ -249,6 +249,15 @@ sandbox).
 - Wrong-answer handling asked the harder question only in the next round and burned the question
   budget; now one immediate harder question per round.
 - `scripts/action_run.sh` treated a 404 error body as a comment id when the PR did not exist
-  (seen when I opened PR 4 incorrectly first); to be fixed (listed in the checklist).
+  (seen when I opened PR 4 incorrectly first). Fixed (only a numeric id counts); checked locally:
+  a missing PR now gives one clean 404, and PR 4's comment was edited in place again (same id).
 - I made two mistakes in this run: a first attempt created an empty branch (the `demo/` folder only
   existed on the other branch) before PR 4 was opened properly; no harm beyond the stray branch.
+
+### CI cost (free minutes)
+
+Because the account ran out of Actions minutes, `.github/workflows/ci.yml` now runs only the cheap
+Ubuntu checks on each push or PR (one Python, the Docker sandbox job, the Ubuntu package build).
+The full matrix (macOS x3 Pythons, Windows, the 20x repeat-suite, macOS/Windows package smoke
+tests) runs on a manual "Run workflow" (`workflow_dispatch`) and should be run once before any
+release. **None of it has run for this version** (see above).

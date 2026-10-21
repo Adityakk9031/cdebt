@@ -28,8 +28,12 @@ RC=$?
 cat cdebt-gate.md >> "${GITHUB_STEP_SUMMARY:-/dev/null}"
 if [ "${CDEBT_COMMENT:-true}" = "true" ] && [ -n "${GITHUB_TOKEN:-}" ] && [ -n "$PR" ] \
    && command -v gh >/dev/null; then
-  ID=$(gh api "repos/${GITHUB_REPOSITORY}/issues/${PR}/comments" --paginate \
-        --jq '.[] | select(.body | contains("<!-- cdebt-gate -->")) | .id' | head -1)
+  ID=""
+  if LIST=$(gh api "repos/${GITHUB_REPOSITORY}/issues/${PR}/comments" --paginate \
+        --jq '.[] | select(.body | contains("<!-- cdebt-gate -->")) | .id' 2>/dev/null); then
+    ID=$(printf '%s\n' "$LIST" | head -1)
+  fi
+  case "$ID" in ''|*[!0-9]*) ID="" ;; esac   # only a numeric id counts, never an error body
   if [ -n "$ID" ]; then
     gh api -X PATCH "repos/${GITHUB_REPOSITORY}/issues/comments/${ID}" -F body=@cdebt-gate.md >/dev/null || true
   else
