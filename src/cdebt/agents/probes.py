@@ -136,7 +136,23 @@ def execute(
     source: str | None = None,
 ) -> Probe:
     """Verify one proposal by execution and return the Probe (with its true answer) or raise
-    Rejected. The returned Probe holds the answer: it is for cdebt, never for the agent."""
+    Rejected. The returned Probe holds the answer: it is for cdebt, never for the agent. The
+    proposal itself is stored in `evidence["spec"]` so CI can re-execute it (cdebt.recheck)."""
+    p = _execute(repo, rel, prop, cfg, proposer=proposer, seed=seed, source=source)
+    p.evidence["spec"] = prop.model_dump(exclude_none=True)
+    return p
+
+
+def _execute(
+    repo: Path,
+    rel: str,
+    prop: Proposal,
+    cfg: Config,
+    *,
+    proposer: str,
+    seed: int = 0,
+    source: str | None = None,
+) -> Probe:
     if not rel.endswith(".py"):
         raise Rejected("agent-proposed probes support Python files only (TypeScript: UNVERIFIED)")
     source = source if source is not None else (repo / rel).read_text()

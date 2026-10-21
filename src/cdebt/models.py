@@ -171,8 +171,12 @@ class Violation(BaseModel):
     path: str
     symbol: str
     ai_lines: list[int]
-    status: Literal["none", "stale", "attested"]  # attested = NON-VERIFIED, not accepted here
+    # attested = NON-VERIFIED, not accepted here; verified = understood; recheck_failed = a record
+    # exists but CI re-execution did not confirm it
+    status: Literal["none", "stale", "attested", "verified", "recheck_failed"]
     attribution_source: AttributionSource
+    ranges: list[tuple[int, int]] = Field(default_factory=list)  # unit line ranges (1-indexed)
+    reason: str | None = None  # why the CODE is not understood; never about a person
 
 
 class GateResult(BaseModel):
@@ -188,6 +192,8 @@ class GateResult(BaseModel):
     require: Literal["default", "verified", "attested"] = "default"
     attested_accepted: list[Violation] = Field(default_factory=list)  # NON-VERIFIED, accepted
     attested_accepted_lines: int = 0
+    understood: list[Violation] = Field(default_factory=list)  # cleared by verified records
+    rechecked: bool = False  # records were re-executed in this run
     unknown_changed_lines: int = 0
     attribution_sources: dict[str, int] = Field(default_factory=dict)
     notes: list[str] = Field(default_factory=list)

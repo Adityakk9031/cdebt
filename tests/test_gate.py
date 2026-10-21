@@ -39,7 +39,7 @@ def test_gate_fails_on_ai_change_in_unverified_unit(make_repo) -> None:  # type:
         "trailer",
     )
     md = to_markdown(res)
-    assert "FAIL" in md and "`f`" in md and "cdebt quiz a.py" in md and "Dev" not in md
+    assert "NOT UNDERSTOOD" in md and "a.py::f" in md and "cdebt quiz" in md and "Dev" not in md
 
 
 def test_gate_passes_after_understanding_committed_and_fails_again_on_edit(make_repo) -> None:  # type: ignore[no-untyped-def]
@@ -84,11 +84,12 @@ def test_cli_gate_is_advisory_by_default_and_enforce_fails(make_repo) -> None:  
     assert txt.exit_code == 0 and "advisory" in " ".join(txt.output.split())
     md = r.path / "c.md"
     run.invoke(app, ["gate", "--repo", str(r.path), "--base", "base", "--markdown", str(md)])
-    assert "FAIL (advisory)" in md.read_text() and "does not block the merge" in md.read_text()
+    assert "not understood (advisory)" in md.read_text()
+    assert "does not block the merge" in md.read_text()
     run.invoke(
         app, ["gate", "--repo", str(r.path), "--base", "base", "--enforce", "--markdown", str(md)]
     )
-    assert "(advisory)" not in md.read_text() and "FAIL" in md.read_text()
+    assert "(advisory)" not in md.read_text() and "not understood" in md.read_text()
     ok = run.invoke(
         app,
         [
@@ -104,7 +105,7 @@ def test_cli_gate_is_advisory_by_default_and_enforce_fails(make_repo) -> None:  
             str(md),
         ],
     )
-    assert ok.exit_code == 0 and "PASS" in md.read_text()
+    assert ok.exit_code == 0 and "within the allowed 5" in md.read_text()
     bad = run.invoke(app, ["gate", "--repo", str(r.path), "--base", "nope"])
     assert bad.exit_code == 2  # a tool error is never advisory
 

@@ -150,7 +150,7 @@ def test_gate_policies(make_repo) -> None:  # type: ignore[no-untyped-def]
     assert {v.symbol for v in res.attested_accepted} == {"<module>", "untyped"}
     assert res.attested_accepted_lines > 0
     md = to_markdown(res)
-    assert "NON-VERIFIED" in md and "Accepted on attestation" in md
+    assert "NON-VERIFIED" in md and "accepted on attestation" in md
     # --require verified: nothing attested is accepted
     res_v = run_gate(r.path, cfg, "base", require="verified")
     assert {v.symbol for v in res_v.violations} >= {"<module>", "untyped", "typed"}

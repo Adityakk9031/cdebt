@@ -89,3 +89,35 @@
 See `docs/RESULTS.md`. It tests only a proxy (review evidence x churn) on agent-authored PRs,
 observes outcomes only through other agent PRs in the curated set, and cannot establish
 causation. Blast radius and the quiz itself are not evaluated.
+
+## v1.1: agent questions, adaptive quiz, pre-push flow
+
+- **Records are created locally, so a determined person can forge one.** The Action re-executes
+  every recorded probe it can in the CI sandbox (`gate --recheck`) and rejects records whose
+  answers do not match, whose grading is inconsistent, or that hold no probes. That catches wrong
+  or hand-edited answers. It does **not** catch someone who never sat the quiz and wrote *correct*
+  answers into a record by hand. UNVERIFIED: only a quiz run inside a service cdebt controls (for
+  example a future GitHub App web quiz) would close that gap. Call-graph and mutation probes are
+  not re-executed (they depend on an index or the project's tests); a record holding only those is
+  accepted but not re-checked.
+- **An AI in the editor can still answer quickly.** The adaptive quiz raises the effort of copying
+  answers (harder questions after a wrong answer, timed follow-ups answered by tracing the real
+  execution when a hard question was answered no slower than easy ones) but does not prevent it.
+  Timing is weak evidence: it only triggers extra questions and is never stored or reported.
+  With `--no-timer` or `timer = false` follow-ups are untimed and the check is weaker.
+- **The developer's agent proposes; it does not decide.** Questions it proposes are only kept if
+  cdebt can execute them, twice, and the real target's lines run (a harness that tests a mock is
+  rejected). The agent is never told an answer, but the same agent (or any AI the developer
+  pastes the questions into) can answer them. Agent-proposed probes are Python-only.
+- **The pre-push hook never blocks.** `git push --no-verify` skips it, an agent that pushes with no
+  terminal gets a notice, and it exits 0 on any problem. Only CI can stop a merge, and only if
+  `cdebt / gate` is a required check **and** the gate is in `enforce` mode; the default is
+  advisory (the check is `neutral`). Rulesets on private repositories need a paid GitHub plan.
+- **Notes belong to commits.** Records are written as a note on the pushed tip commit. They stay
+  valid for any later commit whose unit code is unchanged (they are hash-bound), but a rebase or
+  squash moves the commits and the notes stay on the old ones: re-run `cdebt quiz --pr`.
+- **Blank and comment-only lines are not gated.** They carry no behaviour. Changes to behaviour
+  hidden in a comment-only line do not exist; a change to a string or docstring still counts.
+- **Adapters.** Only the Claude Code adapter was exercised against a real CLI (2.1.299). The
+  `codex` and `cursor` adapters are UNVERIFIED (those CLIs were not installed); `command` is the
+  generic route.

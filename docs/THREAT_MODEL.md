@@ -148,3 +148,18 @@ side channels. Passing these tests is evidence, not proof.
 - On a laptop: macOS gets strict Seatbelt automatically; Linux needs Docker.
 - Report a sandbox escape privately to the maintainers; include the payload (the fuzz harness
   `tests/_fuzz_worker.py` reproduces a payload in a disposable process).
+
+## 6. v1.1 surfaces: agent connection, MCP server, pre-push hook, notes
+
+| surface | what could go wrong | mitigation | residual |
+|---|---|---|---|
+| The agent reads an answer | A leaked answer lets the agent (or a prompt injection in the repo) answer for the developer | `propose_probe` returns only `accepted` / `rejected: <reason>`; the session directory holds targets and proposal *specs*, never an answer, because the parent re-executes every accepted spec itself; test `test_end_to_end_with_a_fake_mcp_agent` has the fake agent scan the session directory | The agent can run the same code itself if it has more tools than we grant |
+| The agent edits or runs things | A prompt injection in the repo makes the agent act | Claude Code adapter: `--tools Read,Grep,Glob` (no Bash/Edit/Write), `--allowedTools` only the two cdebt tools, `--permission-mode dontAsk`, `--strict-mcp-config`, `--max-budget-usd`, hard timeout that kills the process group | Read tools can read any file the user can; other adapters are UNVERIFIED |
+| A repo chooses the agent | A malicious repo makes cdebt launch its own command | The agent choice lives only in `~/.config/cdebt/config.toml` (or `$CDEBT_USER_CONFIG`); nothing under the repo is read for it (`.cdebt/policy.toml` has no agent or trust keys) | None found |
+| Agent-written harness code | Hostile or buggy code runs | Harnesses run only in the sandbox under the same rules as other probes; the runner installs the tracer before the audit guard (which forbids `sys.settrace`), so a harness cannot remove it; the target may not be replaced; two runs must agree | Same limits as the sandbox (docs section 5): not a defence against native-code exploits |
+| Forged records | A record claims understanding that never happened | CI re-execution (`gate --recheck`); see `docs/LIMITS.md` | Correct answers written by hand are not detectable |
+| The hook | It runs on every push | Installed only with consent; never overwrites (appends a marked block or refuses); fail-open; recursion guarded by `CDEBT_IN_HOOK`; pushes notes with `--no-verify`, fast-forward only | `--no-verify` bypasses it by design |
+| `issue_comment` workflow | A comment triggers a run on PR code with a write token | Only `OWNER`/`MEMBER`/`COLLABORATOR` comments trigger it; PR code runs in Docker with `--network none`; the token is not passed into the container | Still runs untrusted PR code on the runner; review before enabling on public repos |
+| Branch rule | A wrong API call could replace protection | `init --github` uses the rulesets API (adds a ruleset, replaces nothing), prints the call, and asks first | Needs admin rights; unavailable on free private repos |
+
+Reviewed only by its author and AI, not independently.

@@ -4,7 +4,8 @@ inputs:
   max-ai-lines: {description: "Allowed AI lines in un-understood units", default: "0"}
   strict-unknown: {description: "Fail on unknown attribution", default: "false"}
   enforce: {description: "Fail the job when the gate fails (default: advisory, comment only)", default: "false"}
-  comment: {description: "Post a sticky PR comment", default: "true"}
+  comment: {description: "Post a sticky PR comment and the `cdebt / gate` check run", default: "true"}
+  recheck: {description: "Re-execute recorded probes in the sandbox (needs Docker)", default: "true"}
   version: {description: "cdebt version to install (pip spec)", default: "cdebt"}
   python-version: {description: "Python version", default: "3.12"}
 runs:
@@ -20,6 +21,9 @@ runs:
         CDEBT_STRICT_UNKNOWN: ${{ inputs.strict-unknown }}
         CDEBT_ENFORCE: ${{ inputs.enforce }}
         CDEBT_COMMENT: ${{ inputs.comment }}
+        CDEBT_RECHECK: ${{ inputs.recheck }}
+        ISSUE_NUMBER: ${{ github.event.issue.number }}
+        HEAD_SHA: ${{ github.event.pull_request.head.sha || '' }}
         GITHUB_TOKEN: ${{ github.token }}
         PR_NUMBER: ${{ github.event.pull_request.number }}
       run: bash "${{ github.action_path }}/scripts/action_run.sh"

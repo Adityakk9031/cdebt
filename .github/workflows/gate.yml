@@ -1,13 +1,26 @@
 name: cdebt-gate
 # Dogfooding the composite action on this repository's own pull requests. Advisory by default:
-# it posts/updates ONE sticky comment and never fails the build unless `enforce: "true"`.
-on: pull_request
-permissions: {contents: read, pull-requests: write, issues: write}
+# it posts/updates ONE sticky comment, creates a `cdebt / gate` check run (neutral when the gate
+# fails in advisory mode) and never fails the build unless `enforce: "true"`.
+# Triggers: a PR is opened/updated, or someone comments `/cdebt recheck` on it.
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+  issue_comment:
+    types: [created]
+permissions: {contents: read, pull-requests: write, issues: write, checks: write}
 jobs:
   gate:
+    if: >-
+      github.event_name == 'pull_request' ||
+      (github.event.issue.pull_request && contains(github.event.comment.body, '/cdebt recheck') &&
+       contains(fromJSON('["OWNER","MEMBER","COLLABORATOR"]'), github.event.comment.author_association))
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-        with: {fetch-depth: 0}
+        with:
+          fetch-depth: 0
+          ref: ${{ github.event_name == 'issue_comment' && format('refs/pull/{0}/head', github.event.issue.number) || '' }}
+      - run: docker pull python:3.11-slim
       - uses: ./
         with: {version: ".", comment: "true"}

@@ -125,6 +125,11 @@ class Store:
     def add(self, record: Record) -> None:
         self._doc.records.append(record)
 
+    def extend_readonly(self, records: list[Record]) -> None:
+        """Merge records from another source (git notes) for this process only; never saved
+        unless `save()` is called, and the gate never calls it."""
+        self._doc.records.extend(records)
+
     def save(self) -> None:
         self.dir.mkdir(parents=True, exist_ok=True)
         if self.migrated_from is not None and self.file.exists():
@@ -173,6 +178,20 @@ class Store:
             x.unit_path == unit.path and x.unit_symbol == unit.symbol for x in self._doc.records
         )
         return "stale" if seen else "none"
+
+    def latest_reason(self, unit: CodeUnit) -> str:
+        """Why `unit` is not understood, in words about the CODE record (never a person)."""
+        mine = [
+            r
+            for r in self._doc.records
+            if r.unit_path == unit.path and r.unit_symbol == unit.symbol
+        ]
+        if not mine:
+            return "not_quizzed"
+        last = max(mine, key=lambda r: r.created_at)
+        if last.content_hash != unit.content_hash:
+            return "code_changed"
+        return last.status_reason or ("not_cleared" if not last.passed else "expired")
 
     def is_understood(self, unit: CodeUnit) -> bool:
         """VERIFIED understanding only (attestation does not count here)."""

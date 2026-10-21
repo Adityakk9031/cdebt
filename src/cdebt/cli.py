@@ -8,6 +8,7 @@ import json
 import math
 import os
 import random
+import sys
 from collections.abc import Callable, Iterator
 from datetime import UTC, datetime
 from pathlib import Path
@@ -225,10 +226,67 @@ def index_cmd(
         typer.echo(f"wrote {w}")
 
 
+def _quiz_pr(r: Path, pr: int, trusted: bool) -> None:
+    """Take the quiz for an existing PR, push the notes, and ask CI to re-check."""
+    import shutil
+    import subprocess
+
+    from cdebt import hook, notes
+
+    gh = os.environ.get("CDEBT_GH") or shutil.which("gh")
+    if not gh:
+        typer.echo("error: `gh` (GitHub CLI) is needed for --pr", err=True)
+        raise typer.Exit(2)
+    p = subprocess.run(
+        [gh, "pr", "view", str(pr), "--json", "baseRefName,headRefOid"],
+        capture_output=True,
+        text=True,
+        cwd=r,
+    )
+    if p.returncode != 0:
+        typer.echo(f"error: gh could not read PR {pr}: {p.stderr.strip()[-200:]}", err=True)
+        raise typer.Exit(2)
+    info = json.loads(p.stdout)
+    head = gitutil.resolve(r, "HEAD")
+    if head != info["headRefOid"]:
+        typer.echo(
+            f"error: check out the PR branch first (HEAD is {head[:10]}, the PR head is "
+            f"{info['headRefOid'][:10]})",
+            err=True,
+        )
+        raise typer.Exit(2)
+    base = f"origin/{info['baseRefName']}"
+    _apply_isolation(trusted)
+    with _sandbox_errors():
+        s = hook.quiz_changes(r, load_config(r), base, head, console.print)
+    for line in s.skipped:
+        console.print(f"[dim]{line}[/]")
+    if not s.wrote_notes:
+        console.print("nothing to record")
+        return
+    ok, msg = notes.push_notes(r, "origin")
+    console.print("notes pushed" if ok else f"[red]could not push notes: {msg}[/]")
+    if ok:
+        c = subprocess.run(
+            [gh, "pr", "comment", str(pr), "--body", "/cdebt recheck"],
+            capture_output=True,
+            text=True,
+            cwd=r,
+        )
+        console.print(
+            "asked CI to re-check"
+            if c.returncode == 0
+            else "comment /cdebt recheck on the PR yourself"
+        )
+
+
 @command("quiz")
 def quiz_cmd(
-    file: Path,
+    file: Annotated[Path | None, typer.Argument()] = None,
     repo: RepoOpt = Path("."),
+    pr: Annotated[
+        int | None, typer.Option("--pr", help="quiz the AI-written code of an existing PR")
+    ] = None,
     n: int = 5,
     seed: int = 0,
     kinds: Annotated[
@@ -264,6 +322,12 @@ def quiz_cmd(
     from cdebt.quiz import build_quiz, dirty, record_results
 
     r = _repo(repo)
+    if pr is not None:
+        _quiz_pr(r, pr, trusted)
+        return
+    if file is None:
+        typer.echo("error: give a FILE or --pr NUMBER", err=True)
+        raise typer.Exit(2)
     cfg = load_config(r)
     rel = _rel(file, r)
     ks = tuple(k.strip() for k in kinds.split(",") if k.strip())
@@ -411,22 +475,40 @@ def gate_cmd(
     ] = False,
     json_out: Annotated[bool, typer.Option("--json")] = False,
     markdown: Annotated[Path | None, typer.Option(help="write PR-comment markdown")] = None,
+    recheck: Annotated[
+        bool,
+        typer.Option(
+            "--recheck",
+            help="re-execute recorded probes in the sandbox and reject records whose answers do "
+            "not match (needs Docker or macOS strict isolation, or --trusted)",
+        ),
+    ] = False,
+    pr: Annotated[int | None, typer.Option(help="PR number, shown in the comment hint")] = None,
+    no_notes: Annotated[
+        bool, typer.Option("--no-notes", help="ignore refs/notes/cdebt records")
+    ] = False,
+    trusted: TrustedOpt = False,
 ) -> None:
     """CI check on AI-authored changed lines in code nobody has understood. Advisory by default;
     pass --enforce to make a failing verdict exit 1 (exit 2 is always a tool error)."""
     from cdebt.gate import run_gate, to_markdown
 
     r = _repo(repo)
+    if recheck:
+        _apply_isolation(trusted)
     try:
-        res = run_gate(
-            r,
-            load_config(r),
-            base,
-            head,
-            max_ai_lines=max_ai_lines,
-            strict_unknown=strict_unknown,
-            require=require or "default",
-        )
+        with _sandbox_errors():
+            res = run_gate(
+                r,
+                load_config(r),
+                base,
+                head,
+                max_ai_lines=max_ai_lines,
+                strict_unknown=strict_unknown,
+                require=require or "default",
+                use_notes=not no_notes,
+                recheck=recheck,
+            )
     except ValueError as e:
         typer.echo(f"error: {e}", err=True)
         raise typer.Exit(2) from None
@@ -435,7 +517,7 @@ def gate_cmd(
         raise typer.Exit(2) from None
     res.enforced = enforce
     if markdown:
-        markdown.write_text(to_markdown(res))
+        markdown.write_text(to_markdown(res, pr))
     if json_out:
         typer.echo(json.dumps(json.loads(res.model_dump_json()), indent=2))
     else:
@@ -614,6 +696,86 @@ def mcp_cmd(
         )
         raise typer.Exit(2) from e
     serve(session)
+
+
+hook_app = typer.Typer(no_args_is_help=True, help="Git hook entry points (called by git).")
+app.add_typer(hook_app, name="hook")
+
+
+@hook_app.command("pre-push")
+def hook_pre_push(
+    remote: Annotated[str, typer.Argument()] = "origin",
+    url: Annotated[str, typer.Argument()] = "",
+) -> None:
+    """Pre-push check: quiz AI-written, not-understood code on your terminal, write notes, push
+    them first. Never blocks the push (use CI to block a merge)."""
+    from cdebt import hook
+
+    stdin_text = "" if sys.stdin.isatty() else sys.stdin.read()
+    repo = gitutil.repo_root(Path("."))
+    hook.run_pre_push(repo, remote, stdin_text, lambda m: typer.echo(m, err=True))
+    raise typer.Exit(0)
+
+
+@command("init")
+def init_cmd(
+    repo: RepoOpt = Path("."),
+    yes: Annotated[
+        bool, typer.Option("--yes", help="consent to every step without prompting")
+    ] = False,
+    github: Annotated[
+        bool,
+        typer.Option(
+            "--github", help="also require the `cdebt / gate` check on the default branch"
+        ),
+    ] = False,
+    no_hook: Annotated[bool, typer.Option("--no-hook")] = False,
+    no_workflow: Annotated[bool, typer.Option("--no-workflow")] = False,
+) -> None:
+    """Set up the pre-push flow. Every step asks first; nothing is changed without consent."""
+    from cdebt import hook
+    from cdebt import init as init_mod
+
+    r = _repo(repo)
+
+    def consent(q: str) -> bool:
+        return yes or typer.confirm(q, default=False)
+
+    if not no_hook:
+        plan = hook.plan_install(r)
+        console.print(f"[bold]pre-push hook[/]: {plan.message}")
+        if plan.action in ("create", "append") and consent("Apply this change?"):
+            hook.apply_install(plan)
+            console.print(
+                "  done. Skip it any time with `git push --no-verify`; it never blocks a push."
+            )
+        elif plan.action == "already":
+            console.print("  already installed")
+    gi = init_mod.check_git_ai()
+    console.print(f"[bold]Git AI[/]: {gi}")
+    from cdebt.agents import adapters, userconfig
+
+    if userconfig.load() is None and adapters.detect():
+        console.print(
+            "[bold]coding agent[/]: not connected. Run `cdebt agent connect` to let your own agent "
+            "write the quiz questions (optional)."
+        )
+    pol = init_mod.policy_plan(r)
+    console.print(f"[bold]policy[/]: {pol.message}")
+    if pol.action == "create" and consent("Write .cdebt/policy.toml?"):
+        pol.apply()
+    if not no_workflow:
+        wf = init_mod.workflow_plan(r)
+        console.print(f"[bold]GitHub workflow[/]: {wf.message}")
+        if wf.action == "create" and consent("Write the workflow file?"):
+            wf.apply()
+    if github:
+        rs = init_mod.ruleset_plan(r)
+        console.print("[bold]branch rule[/] (changes the GitHub repository settings):")
+        console.print(rs.message)
+        if consent("Create this ruleset on GitHub now?"):
+            ok, msg = init_mod.apply_ruleset(rs)
+            console.print(f"  {'created' if ok else 'FAILED'}: {msg}")
 
 
 agent_app = typer.Typer(
