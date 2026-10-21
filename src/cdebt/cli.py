@@ -246,6 +246,14 @@ def quiz_cmd(
     no_agent: Annotated[
         bool, typer.Option("--no-agent", help="do not use the connected coding agent")
     ] = False,
+    simple: Annotated[
+        bool,
+        typer.Option("--simple", help="fixed question list (no adaptive rounds or follow-ups)"),
+    ] = False,
+    no_timer: Annotated[
+        bool,
+        typer.Option("--no-timer", help="no countdown on follow-ups (this weakens the check)"),
+    ] = False,
     agent_max: Annotated[int, typer.Option(help="max proposals per function")] = 8,
     agent_timeout: Annotated[float, typer.Option(help="max seconds for the agent")] = 90.0,
 ) -> None:
@@ -260,10 +268,12 @@ def quiz_cmd(
     rel = _rel(file, r)
     ks = tuple(k.strip() for k in kinds.split(",") if k.strip())
     _apply_isolation(trusted)
+    adaptive_mode = not simple and answers is None and emit is None and not json_out
     with _sandbox_errors():
         choice = None if no_agent else userconfig.load()
         probes, units, skips = build_quiz(
-            r, rel, cfg, n=n, seed=seed, kinds=ks, agent=choice,
+            r, rel, cfg, n=max(n, 12) if adaptive_mode else n, seed=seed, kinds=ks, agent=choice,
+            per_unit=6 if adaptive_mode else 2,
             agent_per_target=agent_max, agent_timeout=agent_timeout,
         )  # fmt: skip
     if skips and verbose:
@@ -304,6 +314,9 @@ def quiz_cmd(
             "[yellow]working copy differs from HEAD: the record binds to the "
             "current text and applies once that text is committed.[/]"
         )
+    if adaptive_mode:
+        _adaptive_quiz(r, rel, cfg, units, probes, label, expires_days, no_timer)
+        return
     for i, p in enumerate(probes, 1):
         if p.id in given:
             continue
@@ -325,6 +338,50 @@ def quiz_cmd(
             f"{'UNDERSTOOD' if x.passed else 'not yet'} (bound to hash "
             f"{x.content_hash[:10]})"
         )
+    console.print("Quizzes show visibility, not proof: they cannot stop answers being looked up.")
+
+
+def _adaptive_quiz(
+    r: Path,
+    rel: str,
+    cfg: Any,
+    units: list[Any],
+    probes: list[Any],
+    label: str | None,
+    expires_days: int | None,
+    no_timer: bool,
+) -> None:
+    from cdebt import adaptive
+    from cdebt.probes.base import LETTERS
+    from cdebt.store import Store
+
+    policy = adaptive.load_policy(r)
+    if no_timer:
+        policy = policy.model_copy(update={"timer": False})
+    if not policy.timer:
+        console.print("[yellow]timer off: follow-ups are untimed, which weakens the check.[/]")
+    source = (r / rel).read_text()
+    count = {"n": 0}
+
+    def ask(p: Any, timeout: float | None) -> tuple[str | None, float]:
+        count["n"] += 1
+        tag = f" [yellow](follow-up, {timeout:.0f} s)[/]" if timeout is not None else ""
+        console.print(f"\n[bold]Q{count['n']}[/] [{p.difficulty}] {p.question}{tag}")
+        for j, o in enumerate(p.options):
+            console.print(f"  {LETTERS[j]}) {o}")
+        return adaptive.tty_ask(p, timeout)
+
+    outcomes = adaptive.run_adaptive(r, rel, cfg, units, source, probes, ask, policy)
+    store = Store(r)
+    adaptive.record_outcomes(rel, units, outcomes, store=store, expires_days=expires_days)
+    for o in outcomes:
+        for p in o.asked:
+            mark = "[green]correct[/]" if p.correct else "[red]wrong[/]"
+            console.print(
+                f"{o.symbol}: {mark} - answer was {p.answer} (verified by {p.verified_by})"
+            )
+        verdict = "UNDERSTOOD" if o.cleared else "NOT UNDERSTOOD"
+        console.print(f"[bold]{o.symbol}[/]: {verdict} ({o.reason}, {o.rounds} round(s))")
     console.print("Quizzes show visibility, not proof: they cannot stop answers being looked up.")
 
 

@@ -74,6 +74,14 @@ def build_quiz(
             seed=seed, store=store,
         )  # fmt: skip
         pool["agent"], skips = aps, skips + notes
+    from cdebt.agents.probes import branch_count, difficulty_of
+
+    for ps in pool.values():  # label every question easy/hard from its kind and code complexity
+        for p in ps:
+            if p.difficulty is None:
+                u = next((x for x in units if x.symbol == p.symbol), None)
+                p.difficulty = difficulty_of(p.kind, branch_count(source, u) if u else 0)
+                p.proposer = p.proposer or "builtin"
     # prefer units that are not yet understood, then spread round-robin across units
     status = {u.symbol: store.status(u) for u in units}
     order = sorted(

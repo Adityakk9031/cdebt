@@ -134,6 +134,9 @@ class Record(BaseModel):
     note: str | None = None  # attestation note (what was read / why it is fine)
     # attested records only, decided at attest time: why quiz could not clear this unit.
     scope: Literal["module", "function-unquizzable", "function-quizzable"] | None = None
+    # v1.1: why the CODE record has this verdict, e.g. verified, follow_up_failed,
+    # max_rounds_reached. Describes the record, never a person. None on older records.
+    status_reason: str | None = None
 
     @property
     def probes_asked(self) -> int:

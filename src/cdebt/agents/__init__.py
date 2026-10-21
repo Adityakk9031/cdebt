@@ -50,7 +50,7 @@ def _run_agent(
         except (ProcessLookupError, PermissionError):
             p.kill()
         out, _ = p.communicate()
-        return None, "timed out after %.0f s" % timeout
+        return None, f"timed out after {timeout:.0f} s"
 
 
 def propose_with_agent(
