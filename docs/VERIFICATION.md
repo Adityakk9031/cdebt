@@ -261,3 +261,11 @@ Ubuntu checks on each push or PR (one Python, the Docker sandbox job, the Ubuntu
 The full matrix (macOS x3 Pythons, Windows, the 20x repeat-suite, macOS/Windows package smoke
 tests) runs on a manual "Run workflow" (`workflow_dispatch`) and should be run once before any
 release. **None of it has run for this version** (see above).
+
+### Local flake gate: 20 consecutive full-suite runs (macOS, this version)
+
+`scripts/repeat_suite_paced.sh 1 20 2 50 120` (pairs, 50 s cooldown, 120 s before the last), all on
+commit eed1550's code (the final source; later commits changed only docs): **20 of 20 passed, 0
+failed**, 161-183 s each (`ALL 20 RUNS (1..20) PASSED`). The laptop was awake and the real-run
+checks above ran concurrently for part of it, which is why some runs were slower. This is a local
+macOS result only; the Linux 20x job (`repeat-suite`) has **not** run for this version.
