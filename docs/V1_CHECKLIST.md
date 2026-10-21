@@ -1,4 +1,28 @@
-# v1.0 release checklist (release candidate 2)
+# Release checklist (v1.1.0 release candidate 1)
+
+Status key: **done** (with evidence), **needs-human**, **blocked** (could not be done here; reason
+given). Nothing has been published: the repository is private, nothing is on PyPI, no public release.
+
+## v1.1 additions (this round)
+
+| bar | status | evidence |
+|---|---|---|
+| Agent-proposed questions, verified by execution (MCP server, adapters) | done with fake agent; **real agent UNVERIFIED** | `tests/test_agents.py`, `tests/_fake_agent.py`; the real Claude CLI accepted the flags but was not logged in (`docs/VERIFICATION.md`). codex / cursor adapters UNVERIFIED |
+| Agent never sees an answer; cannot pick itself from a repo | done | `test_end_to_end_with_a_fake_mcp_agent` (scans the session dir), `test_user_config_roundtrip_and_never_from_the_repo` |
+| Adaptive quiz, timed follow-ups, 3-round cap, no timing persisted | done | `tests/test_adaptive.py`; a real pty run showed the countdown and follow-ups (`docs/VERIFICATION.md`) |
+| Pre-push hook: quiz on the terminal, notes pushed before the branch, never blocks, no-TTY notice, `--no-verify` caught by CI logic | done locally | `tests/test_prflow.py` (real git + bare remote), real run on PR 3 / PR 4 |
+| `cdebt init` (consent, never overwrites, chains hooks, rulesets) | done with a fake `gh`; **real GitHub ruleset UNVERIFIED** | `tests/test_prflow.py`; private repos need a paid plan for rulesets |
+| CI re-execution rejects hand-edited records | done | `test_recheck_accepts_real_records_and_rejects_hand_edited_ones`; run locally on PR 3 / PR 4 |
+| Sticky comment names no person; check run `cdebt / gate` | comment done locally; **check run UNVERIFIED** | PR 3 / PR 4 comments; a personal token cannot create check runs |
+| **CI green on Linux, macOS, Windows for this version** | **blocked** | GitHub refused to start any job: billing / spending limit (`docs/VERIFICATION.md`). Needs-human: fix billing, re-run CI |
+| **GitHub-hosted Action run (comment edit, check run, `/cdebt recheck`)** | **blocked** | same reason; the script was run locally instead |
+| Local full suite 20 times in paced pairs | see `docs/VERIFICATION.md` (in progress when written) | `scripts/repeat_suite_paced.sh` |
+| Real fork test, independent security review, validity study, name/publish decisions, `docs/CLEANUP.md` | **needs-human** | unchanged from the previous round |
+| Known fix still open | to do | `scripts/action_run.sh` must not treat an API error body as a comment id |
+
+Everything below is the previous release candidate's checklist (1.0.0rc2) and is unchanged except
+where it says "CI": its CI evidence is for that version only.
+
 
 Status key: **done** (with evidence), **needs-human** (a person must act or decide), **blocked**
 (could not be done in this environment; reason given). Nothing has been published: the repository

@@ -181,3 +181,74 @@ PRs; it is unrelated to cdebt.)
     (`scripts/repeat_suite_paced.sh 14 20 2 50 120` reported `ALL 7 RUNS (14..20) PASSED`).
   - Total: **20 of 20 passed, 0 failed**, but not on a single commit and not in one continuous
     sitting. The only code change between the two parts was the `test_runtime_is_seeded` test.
+
+## v1.1.0rc1: agent questions, adaptive quiz, pre-push flow (2026-10-21)
+
+**GitHub Actions could not run: BLOCKED by the account, not by the code.** Every job of every run
+on this round's commits was refused with the annotation "The job was not started because recent
+account payments have failed or your spending limit needs to be increased. Please check the
+'Billing & plans' section in your settings": CI on d1a25e8
+(<https://github.com/Adityakk9031/cdebt/actions/runs/39641670611>, 12 of 12 jobs), the push runs on
+943a771 (runs 39641876571 and 39641903035) and the Action on PR 3
+(<https://github.com/Adityakk9031/cdebt/actions/runs/39641902970>). So for this round there is **no
+CI result on Linux, macOS or Windows and no GitHub-hosted Action run**. The previous round's green
+CI (1.0.0rc2, run 39302371977) does not cover the new code. **Needs-human:** fix billing, then
+re-run CI and `cdebt-gate` on the PRs below. Local checks that stand in for CI are not equivalent.
+
+### Real pre-push run (local machine, real git, real Git AI 1.7.5, real pseudo-terminal)
+
+Clone of the private repo; AI-written `demo/billing.py` recorded by Git AI (22 AI lines in the
+note, `git-ai stats`); `cdebt init --yes --no-workflow` installed the hook; strict macOS Seatbelt
+sandbox (untrusted default, no Docker). `git push -u origin v11-run-hooked` ran the hook on a real
+pty (script `ptypush.py`, scratch only): 16 questions, **the first answer deliberately wrong** (a
+harder branch question followed at once), **three timed follow-ups** (policy ratio set to 1000 to
+force the trigger; the countdown line `[  15 s left] answer:` was shown), all three functions
+UNDERSTOOD (verified), `cdebt: notes pushed before the branch`, then the branch push. Remote
+refs afterwards: `refs/notes/ai`, `refs/notes/cdebt`. PR: <https://github.com/Adityakk9031/cdebt/pull/3>.
+
+### Action script, run LOCALLY (not by GitHub Actions)
+
+`scripts/action_run.sh` was run on this Mac with `GITHUB_REPOSITORY`, `PR_NUMBER` and a token set,
+so the comments below were posted by the user's account (`Adityakk9031`), **not by the Actions
+bot**. It fetched both notes refs and ran `gate --recheck` (every recorded probe re-executed in the
+sandbox).
+
+- PR 3, comment 6322025508: `cdebt: all AI-written changed lines are understood (advisory)`; each
+  unit listed `understood (verified by execution), re-checked`; attribution `git-ai`: 18 lines (the
+  four blank lines of the 22 were not gated).
+- PR 4 <https://github.com/Adityakk9031/cdebt/pull/4>, branch pushed with `git push --no-verify`
+  (hook skipped): first run, comment 6322042105: `cdebt: 7 AI-written lines not understood
+  (advisory)`, `demo/shipping.py::shipping_cost  1-7  NOT UNDERSTOOD (not_quizzed)`, hint
+  ``Run `cdebt quiz --pr 4` locally to clear, then comment `/cdebt recheck`.``; `cdebt gate --enforce
+  --recheck` exited 1.
+- `cdebt quiz --pr 4` on a real pty: 5 questions incl. one timed follow-up, UNDERSTOOD, notes
+  pushed, comment `/cdebt recheck` posted through `gh`. Re-running the script **edited the same
+  comment in place** (id 6322042105, created 17:16:06Z, updated 17:16:37Z UTC) to `all AI-written
+  changed lines are understood ... re-checked`. No person is named in either comment.
+- The `cdebt / gate` **check run could not be created** by a personal token (`could not create the
+  check run`), as expected: only the Actions token can. **UNVERIFIED** until Actions runs again.
+  `issue_comment` triggering and the author-association filter are also UNVERIFIED on GitHub.
+
+### Agent connection
+
+- The Claude Code CLI (2.1.299) accepted the adapter's flags and started, but answered "Not logged
+  in · Please run /login", so cdebt fell back to the builtin generator (the intended failure path).
+  **A full run with a real agent proposing questions is UNVERIFIED.** `codex` and `cursor` adapters:
+  UNVERIFIED (CLIs not installed). The MCP server and the proposal pipeline are tested with a fake
+  agent that speaks real MCP over stdio (`tests/_fake_agent.py`).
+
+### Problems found while doing this (disclosed)
+
+- The MCP server process did not apply the untrusted-by-default isolation, so agent harnesses would
+  have run in host mode. Found by reading the code before the real-agent run; fixed (the server
+  applies the same isolation; `--trusted` is passed on only if the person chose it); test added.
+- Blank lines between functions counted as AI-written module-level code and kept the gate failing
+  after a normal AI commit (also seen in the earlier demo); the gate now ignores blank and
+  comment-only lines.
+- An agent command that could not start crashed the quiz instead of falling back; fixed.
+- Wrong-answer handling asked the harder question only in the next round and burned the question
+  budget; now one immediate harder question per round.
+- `scripts/action_run.sh` treated a 404 error body as a comment id when the PR did not exist
+  (seen when I opened PR 4 incorrectly first); to be fixed (listed in the checklist).
+- I made two mistakes in this run: a first attempt created an empty branch (the `demo/` folder only
+  existed on the other branch) before PR 4 was opened properly; no harm beyond the stray branch.
