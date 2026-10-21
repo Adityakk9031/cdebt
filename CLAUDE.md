@@ -6,8 +6,10 @@ exists and code a human has verifiably understood. Full plan: `docs/PLAN.md`.
 ## The four differentiators (never water down)
 
 1. **Execution-verified answers.** Quiz answers come from sandboxed execution, SCIP
-   call-graph queries, or mutation runs. An LLM may only reword a question; it never
-   decides correctness and never grades free text.
+   call-graph queries, or mutation runs. The developer's own coding agent may PROPOSE
+   questions, call inputs and test harnesses; cdebt executes every proposal in the sandbox to get
+   the true answer and discards anything it cannot execute or verify. An LLM never decides
+   correctness and never grades free text. The agent is never shown the correct answer.
 2. **Real line-level AI attribution.** Git AI is an *installed* dependency
    (`refs/notes/ai`, `git-ai stats --json`). Never vendor or fork it. Agent Trace is
    also supported. `Co-Authored-By` trailers are a labelled fallback only.
@@ -24,8 +26,12 @@ exists and code a human has verifiably understood. Full plan: `docs/PLAN.md`.
   output. `none` = unknown, never "human-written".
 - **Fail safe on unknown.** Unknown attribution is reported, not silently gated;
   `--strict-unknown` opts in to failing on it.
-- **Read-only on the user's repo.** Only write inside `.cdebt/`. Never touch git
-  history, notes, or working files. Git calls are read-only plumbing.
+- **Read-only on the user's repo** except `.cdebt/`, the git ref `refs/notes/cdebt`, and the
+  pre-push hook that `cdebt init` installs with the developer's explicit consent. Never rewrite
+  git history, never touch `refs/notes/ai` or working files. Git calls are otherwise read-only.
+- **No timing data stored, no per-person flags.** Answer timing is used in memory during a quiz
+  session and discarded. Nothing stores or reports suspicion about a person; status reasons
+  describe the CODE record, never a person.
 - **Sandbox all execution** (isolated subprocess, temp cwd, timeout, no network,
   resource limits; Docker if available). Skip code with file/network/time/randomness
   side effects. Never run dangerous payloads outside the sandbox.

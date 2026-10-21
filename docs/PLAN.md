@@ -135,7 +135,7 @@ bottleneck; cached in `.cdebt/cache/` keyed by HEAD sha).
 Every probe's correct answer is **computed**, never judged. Questions are
 multiple-choice or exact-value; the user's answer is compared by a deterministic
 rule (normalised `repr` equality, set equality for "what calls X"). No LLM grades
-anything. An optional model may *reword* question text only, behind a flag, and
+anything. (Superseded in v1.1, see docs/METHOD.md "Agent-proposed questions".) An optional model may *reword* question text only, behind a flag, and
 the stored probe keeps the canonical wording.
 
 - **Runtime** (`runtime.py`, Python first): pick a function with type hints, generate

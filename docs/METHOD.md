@@ -40,6 +40,29 @@ right-hand side does not touch `os`, `sys`, `time`, `random`, `pathlib`, etc.; t
 imported (and reloaded) in the sandbox and the repr of the value is the answer. They verify
 constant values only.
 
+## Agent-proposed questions (v1.1)
+
+The developer's own coding agent (Claude Code, Codex CLI, Cursor agent, any command) may
+**propose** questions, call inputs and test harnesses through the `cdebt mcp` server, with the
+developer's explicit opt-in (`cdebt agent connect`). Rules that keep correctness deterministic:
+
+- cdebt **executes every proposal in the sandbox** and takes the true answer from that execution
+  (or from a trace, SCIP call graph or mutation run). The agent is **never shown the answer**.
+- A proposal is **discarded** if it cannot be executed, is non-deterministic (two runs differ), or
+  if an execution trace shows the real target's own lines did not run (a harness that tests a mock).
+- An LLM never decides correctness and never grades free text.
+- Each stored probe records its proposer (`agent:<name>` or `builtin`), the harness hash and how
+  the answer was verified.
+
+## Adaptive quiz (v1.1)
+
+Questions are labelled easy or hard from their kind and code complexity. A unit clears when enough
+answers are correct, including a hard one. A wrong answer earns a harder question, and unusually
+even response timing on a hard question earns one or two timed follow-ups answered by tracing the
+real execution, up to 3 rounds per unit. Timing lives only in memory for the session and is never
+stored; status reasons describe the code record, not a person. This raises the effort of copying
+answers from an AI but does not prevent it (`docs/LIMITS.md`).
+
 ## Debt score (`cdebt map`)
 
 ```

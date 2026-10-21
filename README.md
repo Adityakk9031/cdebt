@@ -161,8 +161,9 @@ at**. Read the [threat model](docs/THREAT_MODEL.md) first.
   run a project's own tests) need `--trusted`.
 - The sandbox targets accidental and AI-written side effects, not a determined attacker with
   native-code exploits. On Windows, anything that executes code is unsupported and says so.
-- Read-only on your repo: git calls are allow-listed read commands; writes go only to `.cdebt/`
-  (understanding records, and a git-ignored result cache). No API key is needed. Network is needed
+- Read-only on your repo except `.cdebt/` (understanding records, policy, and a git-ignored result
+  cache), the git ref `refs/notes/cdebt`, and the pre-push hook that `cdebt init` installs only
+  with your explicit consent; other git calls are allow-listed read commands. No API key is needed. Network is needed
   only to build SCIP indexes (`cdebt index`, via `npx`) and to download the backtest dataset.
 
 ## Development
