@@ -351,6 +351,33 @@ def _run():
         resource.setrlimit(resource.RLIMIT_CORE, (0, 0))
     except Exception:
         pass
+    # Execution tracing for agent-proposed probes (mode "trace"). It is installed BEFORE the audit
+    # guard because the guard forbids sys.settrace: sandboxed code cannot replace or remove it.
+    _TR = {"phase": -1, "lines": [set(), set()], "calls": [0, 0], "watch": [[], []]}
+    if spec["mode"] == "trace":
+        _tf = {str(spec["tfile"]), realpath(spec["tfile"])}
+        _tfn, _lo, _hi = spec["func"], spec["first"], spec["last"]
+        _wl, _wv = spec.get("watch_line"), spec.get("watch_var")
+
+        def _local(frame, event, arg):
+            ph = _TR["phase"]
+            if ph >= 0 and event == "line":
+                ln = frame.f_lineno
+                _TR["lines"][ph].add(ln)
+                if _wl is not None and ln == _wl and len(_TR["watch"][ph]) < 3:
+                    loc = frame.f_locals
+                    _TR["watch"][ph].append(repr(loc[_wv]) if _wv in loc else "<unbound>")
+            return _local
+
+        def _tracer(frame, event, arg):
+            co = frame.f_code
+            if co.co_filename not in _tf:
+                return None
+            if _TR["phase"] >= 0 and co.co_name == _tfn and _lo <= co.co_firstlineno <= _hi:
+                _TR["calls"][_TR["phase"]] += 1
+            return _local
+
+        _sys.settrace(_tracer)
     _install()
     os.chdir(ROOT)
     for p in reversed(spec.get("sys_path", [])):
@@ -382,6 +409,44 @@ def _run():
             for n in spec["names"]:
                 vals[n].append(repr(getattr(mod, n, "<missing>")))
             out["values"] = vals
+        elif spec["mode"] == "trace":
+            import ast
+            import importlib
+
+            def _resolve(m, qual):
+                o = m
+                for part in qual.split("."):
+                    o = getattr(o, part)
+                return o
+
+            mod = importlib.import_module(spec["module"])
+            orig = _resolve(mod, spec["qual"])
+            ns = {"target_module": mod, "__name__": "__harness__"}
+            if spec.get("harness"):
+                exec(compile(spec["harness"], "<harness>", "exec"), ns)
+                call = ns["probe"]
+            else:
+                a = ast.literal_eval(spec["args_repr"])
+                k = ast.literal_eval(spec["kwargs_repr"])
+
+                def call():
+                    return _resolve(mod, spec["qual"])(*a, **k)
+
+            runs = []
+            for ph in range(2):  # determinism check; line/variable data come from both runs
+                _TR["phase"] = ph
+                try:
+                    runs.append(("ok", repr(call())))
+                except PermissionError:
+                    raise
+                except BaseException as e:
+                    runs.append(("raises", type(e).__name__))
+            _TR["phase"] = -1
+            out["results"] = runs
+            out["same_target"] = _resolve(mod, spec["qual"]) is orig
+            out["lines"] = [sorted(x) for x in _TR["lines"]]
+            out["real_calls"] = _TR["calls"]
+            out["watch"] = _TR["watch"]
         elif spec["mode"] == "exec":
             exec(compile(spec["code"], "<sandbox>", "exec"), {"__name__": "__sandbox__"})
         out["stdout"] = _sys.stdout.getvalue()[:10000]

@@ -243,8 +243,14 @@ def quiz_cmd(
     json_out: Annotated[bool, typer.Option("--json")] = False,
     verbose: Annotated[bool, typer.Option("--verbose", help="list every skipped unit")] = False,
     trusted: TrustedOpt = False,
+    no_agent: Annotated[
+        bool, typer.Option("--no-agent", help="do not use the connected coding agent")
+    ] = False,
+    agent_max: Annotated[int, typer.Option(help="max proposals per function")] = 8,
+    agent_timeout: Annotated[float, typer.Option(help="max seconds for the agent")] = 90.0,
 ) -> None:
     """Ask questions whose answers come from EXECUTING the code, then record understanding."""
+    from cdebt.agents import userconfig
     from cdebt.models import Probe
     from cdebt.probes.base import LETTERS
     from cdebt.quiz import build_quiz, dirty, record_results
@@ -255,7 +261,11 @@ def quiz_cmd(
     ks = tuple(k.strip() for k in kinds.split(",") if k.strip())
     _apply_isolation(trusted)
     with _sandbox_errors():
-        probes, units, skips = build_quiz(r, rel, cfg, n=n, seed=seed, kinds=ks)
+        choice = None if no_agent else userconfig.load()
+        probes, units, skips = build_quiz(
+            r, rel, cfg, n=n, seed=seed, kinds=ks, agent=choice,
+            agent_per_target=agent_max, agent_timeout=agent_timeout,
+        )  # fmt: skip
     if skips and verbose:
         for s in skips:
             console.print(f"[dim]skipped: {s}[/]")
@@ -532,6 +542,93 @@ def migrate_cmd(
         f"migrated understanding.json: schema {old} -> {CURRENT_SCHEMA} "
         f"({len(st.records)} records; backup understanding.v{old}.bak.json)"
     )
+
+
+@command("mcp")
+def mcp_cmd(
+    session: Annotated[Path, typer.Option(help="session directory made by `cdebt quiz`")],
+) -> None:
+    """Run the cdebt MCP server (stdio) for a coding agent. Started BY the agent, not by hand."""
+    try:
+        from cdebt.agents.mcp_server import serve
+    except ModuleNotFoundError as e:
+        typer.echo(
+            f"error: the MCP SDK is not installed ({e.name}); pip install 'cdebt[agent]'", err=True
+        )
+        raise typer.Exit(2) from e
+    serve(session)
+
+
+agent_app = typer.Typer(
+    no_args_is_help=True,
+    help="Connect your own coding agent so it proposes the quiz questions (opt-in).",
+)
+app.add_typer(agent_app, name="agent")
+
+
+@agent_app.command("connect")
+def agent_connect(
+    name: Annotated[
+        str | None, typer.Option(help="claude_code|codex|cursor|command|builtin")
+    ] = None,
+    command_line: Annotated[
+        str | None,
+        typer.Option("--command", help="for `command`: your program (gets $CDEBT_MCP_CMD)"),
+    ] = None,
+    yes: Annotated[bool, typer.Option("--yes", help="skip the confirmation prompt")] = False,
+) -> None:
+    """Choose the agent. Saved in YOUR user config, never in the repository."""
+    from cdebt.agents import adapters, userconfig
+
+    found = adapters.detect()
+    console.print(
+        "Agent CLIs found: " + (", ".join(f"{k} ({v})" for k, v in found.items()) or "none")
+    )
+    if name is None:
+        options = list(found) + ["command", "builtin"]
+        name = typer.prompt(
+            f"Which agent should write your quiz questions? {options}", default=options[0]
+        )
+    if name not in adapters.AGENT_NAMES:
+        typer.echo(f"error: unknown agent {name!r}; one of {adapters.AGENT_NAMES}", err=True)
+        raise typer.Exit(2)
+    if name in ("claude_code", "codex", "cursor") and name not in found:
+        typer.echo(f"error: the {name} CLI was not found on this machine", err=True)
+        raise typer.Exit(2)
+    if name == "command" and not command_line:
+        command_line = typer.prompt("Command to run (it receives $CDEBT_MCP_CMD and $CDEBT_PROMPT)")
+    console.print(
+        "\nWhat the agent will see: only the source and nearby tests of functions that are not yet "
+        "verified, through two tools (get_targets, propose_probe). It is told only accepted or "
+        "rejected, never an answer. Its other tools are limited to read-only. cdebt runs every "
+        "question itself to get the true answer. Your choice is saved in "
+        f"{userconfig.path()}."
+    )
+    if name != "builtin" and not yes and not typer.confirm("Allow this?", default=False):
+        raise typer.Exit(1)
+    p = userconfig.save(userconfig.AgentChoice(name=name, command=command_line))
+    console.print(f"saved agent '{name}' to {p}")
+
+
+@agent_app.command("status")
+def agent_status() -> None:
+    """Show the connected agent and which agent CLIs are installed."""
+    from cdebt.agents import adapters, userconfig
+
+    c = userconfig.load()
+    console.print(f"connected agent: {c.name if c else 'none (builtin generator)'}")
+    console.print(f"user config: {userconfig.path()}")
+    console.print("detected: " + (", ".join(adapters.detect()) or "none"))
+    if c and c.name == "cursor":
+        console.print("cursor is UNVERIFIED: register `cdebt mcp` in Cursor's own MCP settings.")
+
+
+@agent_app.command("disconnect")
+def agent_disconnect() -> None:
+    """Forget the connected agent (the builtin generator is used again)."""
+    from cdebt.agents import userconfig
+
+    console.print("disconnected" if userconfig.clear() else "no agent was connected")
 
 
 study_app = typer.Typer(

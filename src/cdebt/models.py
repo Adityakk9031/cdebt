@@ -88,18 +88,31 @@ class CodeUnit(BaseModel):
 
 class Probe(BaseModel):
     id: str
-    kind: Literal["runtime", "callgraph", "mutation", "constant"]
+    kind: Literal[
+        "runtime",
+        "callgraph",
+        "mutation",
+        "constant",
+        "return_value",
+        "branch_taken",
+        "variable_at_line",
+    ]
     path: str
     symbol: str
     question: str
     options: list[str] = Field(default_factory=list)
     answer: str  # canonical, computed - never LLM-judged (JSON list when multi)
     multi: bool = False  # multi-select: answer is a JSON list of option strings
-    verified_by: Literal["sandbox-exec", "scip-index", "mutation-run"]
+    verified_by: Literal["sandbox-exec", "scip-index", "mutation-run", "execution-trace"]
     evidence: dict[str, object] = Field(default_factory=dict)
     seed: int = 0
     user_answer: str | None = None
     correct: bool | None = None
+    # v1.1: who proposed the question (`builtin` or `agent:<name>`), the sha256 of an agent
+    # harness, and the difficulty label for the adaptive quiz. None = not recorded (older files).
+    proposer: str | None = None
+    harness_hash: str | None = None
+    difficulty: Literal["easy", "hard"] | None = None
 
 
 class Record(BaseModel):

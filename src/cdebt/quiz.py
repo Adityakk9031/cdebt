@@ -9,6 +9,7 @@ from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 from cdebt import gitutil, sandbox
+from cdebt.agents.userconfig import AgentChoice
 from cdebt.cache import Cache, make_key
 from cdebt.config import Config
 from cdebt.models import CodeUnit, Probe, Record
@@ -32,6 +33,9 @@ def build_quiz(
     kinds: tuple[str, ...] = DEFAULT_KINDS,
     store: Store | None = None,
     per_unit: int = 2,
+    agent: AgentChoice | None = None,
+    agent_per_target: int = 8,
+    agent_timeout: float = 90.0,
 ) -> tuple[list[Probe], list[CodeUnit], list[str]]:
     f = repo / rel
     if not f.is_file():
@@ -62,6 +66,14 @@ def build_quiz(
     if "mutation" in kinds:
         ps, sk = mutation.generate(repo, rel, source, units, seed)
         pool["mutation"], skips = ps, skips + sk
+    if agent is not None and agent.name != "builtin" and rel.endswith(".py"):
+        from cdebt.agents import propose_with_agent
+
+        aps, notes = propose_with_agent(
+            repo, rel, cfg, agent, per_target=agent_per_target, timeout=agent_timeout,
+            seed=seed, store=store,
+        )  # fmt: skip
+        pool["agent"], skips = aps, skips + notes
     # prefer units that are not yet understood, then spread round-robin across units
     status = {u.symbol: store.status(u) for u in units}
     order = sorted(
@@ -70,7 +82,8 @@ def build_quiz(
     )
     rng = random.Random(seed)
     chosen: list[Probe] = []
-    queues = {s: [p for k in kinds for p in pool.get(k, []) if p.symbol == s] for s in order}
+    order_kinds = ("agent", *kinds)  # the developer's agent's questions first, builtin as filler
+    queues = {s: [p for k in order_kinds for p in pool.get(k, []) if p.symbol == s] for s in order}
     while len(chosen) < n and any(queues.values()):
         for s in order:
             if queues[s] and len(chosen) < n:
