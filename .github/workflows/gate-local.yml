@@ -25,4 +25,5 @@ jobs:
           /Users/adityakumarsingh/.local/share/uv/python/cpython-3.11.15-macos-aarch64-none/bin/python3.11 -m venv "$RUNNER_TEMP/venv"
           echo "$RUNNER_TEMP/venv/bin" >> "$GITHUB_PATH"
       - uses: ./
+        env: {PIP_DEFAULT_TIMEOUT: "300", PIP_RETRIES: "10"}  # slow home network to PyPI
         with: {version: ".", comment: "true", recheck: "true", setup-python: "false"}
