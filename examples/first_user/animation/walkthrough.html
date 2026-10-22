@@ -1,0 +1,178 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>cdebt walkthrough</title>
+<style>
+  :root{
+    --bg:#0b1020; --panel:#111830; --edge:#243055; --fg:#e8ecf8; --mut:#8b97bd;
+    --acc:#5eead4; --ok:#4ade80; --bad:#fb7185; --warn:#fbbf24; --blue:#7aa2ff;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%;background:#05070f;overflow:hidden;font-family:-apple-system,"Segoe UI",Helvetica,Arial,sans-serif;color:var(--fg)}
+  #stage{position:absolute;left:50%;top:50%;width:1920px;height:1080px;transform-origin:center;background:radial-gradient(1200px 700px at 70% -10%,#16204a 0%,var(--bg) 60%);overflow:hidden}
+  .scene{position:absolute;inset:0;padding:90px 120px 190px;opacity:0;transition:opacity .45s;pointer-events:none}
+  .scene.on{opacity:1}
+  h1{font-size:150px;margin:0;letter-spacing:-4px}
+  h1 span{color:var(--acc)}
+  .sub{font-size:48px;color:var(--mut);margin-top:26px;max-width:1500px;line-height:1.3}
+  .big{font-size:64px;line-height:1.35;max-width:1500px}
+  .big div{opacity:0;transform:translateY(18px);transition:all .6s;margin-bottom:26px}
+  .big div.show{opacity:1;transform:none}
+  .term{background:var(--panel);border:1px solid var(--edge);border-radius:18px;box-shadow:0 30px 80px #0008;overflow:hidden;width:100%}
+  .bar{height:54px;background:#0d1430;border-bottom:1px solid var(--edge);display:flex;align-items:center;gap:12px;padding:0 22px;color:var(--mut);font-size:22px}
+  .dot{width:16px;height:16px;border-radius:50%}
+  .term pre{margin:0;padding:30px 38px;font:30px/1.5 "SF Mono",Menlo,Consolas,monospace;white-space:pre-wrap;min-height:640px}
+  .p{color:var(--acc)} .m{color:var(--mut)} .g{color:var(--ok)} .r{color:var(--bad)} .y{color:var(--warn)} .b{color:var(--blue)}
+  .caret{display:inline-block;width:16px;height:32px;background:var(--fg);vertical-align:-6px;animation:bl 1s steps(1) infinite}
+  @keyframes bl{50%{opacity:0}}
+  #cap{position:absolute;left:0;right:0;bottom:60px;text-align:center;font-size:44px;color:var(--fg);padding:0 140px;min-height:120px;transition:opacity .4s}
+  #cap b{color:var(--acc)}
+  #prog{position:absolute;left:0;bottom:0;height:8px;background:var(--acc);width:0;transition:width .3s}
+  #hint{position:absolute;right:24px;top:18px;font-size:20px;color:var(--mut);background:#0008;padding:8px 14px;border-radius:10px;transition:opacity .4s}
+  .card{background:#fff;color:#1f2328;border:1px solid #d0d7de;border-radius:14px;overflow:hidden;width:1500px;box-shadow:0 30px 80px #0008;transition:all .6s}
+  .card .hd{background:#f6f8fa;border-bottom:1px solid #d0d7de;padding:16px 26px;font-size:28px;color:#59636e;display:flex;align-items:center;gap:14px}
+  .card .hd i{width:40px;height:40px;border-radius:50%;background:#d0d7de;display:inline-block}
+  .card .hd em{font-style:normal;border:1px solid #d0d7de;border-radius:20px;padding:0 12px;font-size:22px}
+  .card .bd{padding:26px 34px;font-size:30px}
+  .card h2{margin:0 0 18px;padding-bottom:12px;border-bottom:1px solid #d8dee4;font-size:42px}
+  .card code.blk{display:block;background:#f6f8fa;border-radius:10px;padding:20px 24px;font:26px/1.55 "SF Mono",Menlo,monospace;white-space:pre}
+  .card .small{font-size:24px;color:#59636e;margin-top:20px}
+  .tag{display:inline-block;border-radius:30px;padding:6px 22px;font-size:30px;margin-bottom:26px}
+  .row{display:flex;gap:40px;align-items:flex-start}
+</style>
+</head>
+<body>
+<div id="stage">
+  <div id="hint">Space pause · R restart · ← → scene · H hide this</div>
+
+  <div class="scene" id="s0">
+    <div style="margin-top:210px"><h1>c<span>debt</span></h1>
+    <div class="sub">Did a human actually understand the code your AI wrote?</div></div>
+  </div>
+
+  <div class="scene" id="s1"><div class="big" id="s1b" style="margin-top:130px">
+    <div>AI agents now write a lot of our code.</div>
+    <div>Reviews get skipped, or rubber-stamped.</div>
+    <div>Nobody knows how much of it a human has <span style="color:var(--acc)">verifiably understood</span>.</div>
+  </div></div>
+
+  <div class="scene" id="s2"><div class="term"><div class="bar"><span class="dot" style="background:#ff5f56"></span><span class="dot" style="background:#ffbd2e"></span><span class="dot" style="background:#27c93f"></span>&nbsp;Terminal</div><pre id="t2"></pre></div></div>
+  <div class="scene" id="s3"><div class="term"><div class="bar"><span class="dot" style="background:#ff5f56"></span><span class="dot" style="background:#ffbd2e"></span><span class="dot" style="background:#27c93f"></span>&nbsp;~/cdebt-demo</div><pre id="t3"></pre></div></div>
+  <div class="scene" id="s4"><div class="term"><div class="bar"><span class="dot" style="background:#ff5f56"></span><span class="dot" style="background:#ffbd2e"></span><span class="dot" style="background:#27c93f"></span>&nbsp;~/cdebt-demo</div><pre id="t4"></pre></div></div>
+  <div class="scene" id="s5"><div class="term"><div class="bar"><span class="dot" style="background:#ff5f56"></span><span class="dot" style="background:#ffbd2e"></span><span class="dot" style="background:#27c93f"></span>&nbsp;~/cdebt-demo · git push</div><pre id="t5" style="min-height:700px"></pre></div></div>
+
+  <div class="scene" id="s6" style="padding-top:60px">
+    <div id="tag6" class="tag" style="background:#fb718533;color:var(--bad);border:2px solid var(--bad)">before the quiz</div>
+    <div class="card" id="card6"><div class="hd"><i></i><b>github-actions</b><em>bot</em><span id="when6">commented</span></div>
+      <div class="bd"><h2 id="h6">cdebt: 18 AI-written lines not understood (advisory)</h2>
+        <code class="blk" id="c6"></code>
+        <div class="small" id="n6"></div></div></div>
+  </div>
+
+  <div class="scene" id="s7"><div class="term"><div class="bar"><span class="dot" style="background:#ff5f56"></span><span class="dot" style="background:#ffbd2e"></span><span class="dot" style="background:#27c93f"></span>&nbsp;~/cdebt-demo</div><pre id="t7"></pre></div></div>
+
+  <div class="scene" id="s8"><div class="big" id="s8b" style="margin-top:90px">
+    <div style="color:var(--acc);font-size:78px">An experimental release.</div>
+    <div>The score is <b>not validated</b>.</div>
+    <div>A quiz <b>cannot stop</b> someone pasting the questions into an AI.</div>
+    <div>It gives <b>visibility</b>, not proof. It marks <b>code</b>, never people.</div>
+  </div></div>
+
+  <div id="cap"></div>
+  <div id="prog"></div>
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+const stage = $("stage");
+function fit(){ const k = Math.min(innerWidth/1920, innerHeight/1080); stage.style.transform = `translate(-50%,-50%) scale(${k})`; }
+addEventListener("resize", fit); fit();
+
+let paused = false, run = 0;
+const tick = ms => new Promise(r => setTimeout(r, ms));
+async function sleep(ms, my){ const end = Date.now()+ms; while(Date.now()<end){ if(my!==run) throw "stop"; await tick(paused?100:Math.min(60,end-Date.now())); if(paused) { /* extend time while paused */ return sleep(Math.max(0,end-Date.now()), my); } } if(my!==run) throw "stop"; }
+async function waitUnpaused(my){ while(paused){ if(my!==run) throw "stop"; await tick(80);} }
+function cap(t){ $("cap").innerHTML = t||""; }
+function show(n){ document.querySelectorAll(".scene").forEach((s,i)=> s.classList.toggle("on", i===n)); $("prog").style.width = ((n+1)/9*100)+"%"; }
+
+async function typeInto(el, html, my, speed=34){ // APPENDS html to what is already shown, typing visible chars
+  const base = el.innerHTML.replace(/<span class="caret"><\/span>/g,"");
+  const parts = html.match(/(<[^>]+>|[^<])/g)||[]; let out=base;
+  for(const p of parts){ out+=p; el.innerHTML = out + '<span class="caret"></span>'; if(!p.startsWith("<")){ await waitUnpaused(my); await sleep(speed,my);} }
+  el.innerHTML = out;
+}
+async function add(el, html, my, wait=250){ el.insertAdjacentHTML("beforeend", html); await sleep(wait,my); }
+
+const scenes = [
+  async my => { show(0); cap(""); await sleep(3200,my); },
+  async my => { show(1); cap(""); const k=[...$("s1b").children]; k.forEach(c=>c.classList.remove("show")); for(const c of k){ await sleep(900,my); c.classList.add("show"); } await sleep(2600,my); },
+  async my => { show(2); cap("A new user installs it. <b>The agent extra is optional.</b>"); const t=$("t2"); t.innerHTML="";
+    await add(t,'<span class="p">$ </span>',my,100); await typeInto(t, '<span class="p">$ </span>pip install "cdebt[agent] @ git+https://github.com/Adityakk9031/cdebt"', my, 18);
+    await add(t,'\n<span class="m">Successfully installed cdebt-1.1.0rc1</span>\n\n',my,700);
+    await add(t,'<span class="p">$ </span>',my,100); await typeInto(t,'<span class="p">$ </span>cdebt --version',my,40);
+    await add(t,'\ncdebt 1.1.0rc1\n',my,2200); },
+  async my => { show(3); cap("<b>init asks before every change</b> and never overwrites an existing hook."); const t=$("t3"); t.innerHTML="";
+    await typeInto(t,'<span class="p">$ </span>cdebt init',my,45);
+    await add(t,'\n<b>pre-push hook</b>: create .git/hooks/pre-push\n<span class="y">Apply this change? [y/N]:</span> y\n  <span class="g">done.</span> Skip it any time with <span class="b">git push --no-verify</span>; it never blocks a push.\n<b>Git AI</b>: found ~/.git-ai/bin/git-ai (1.7.5)\n<b>policy</b>: create .cdebt/policy.toml\n<span class="y">Write .cdebt/policy.toml? [y/N]:</span> y\n<b>GitHub workflow</b>: create .github/workflows/cdebt.yml\n<span class="y">Write the workflow file? [y/N]:</span> y\n\n',my,2600);
+    cap("Optional: <b>your own coding agent writes the questions.</b> It is never told an answer.");
+    await typeInto(t,'<span class="p">$ </span>cdebt agent connect --name claude_code',my,30);
+    await add(t,'\nWhat the agent will see: only the source and nearby tests of functions not yet verified,\nthrough two tools. It is told only <b>accepted</b> or <b>rejected</b>, never an answer.\n<span class="y">Allow this? [y/N]:</span> y\n<span class="g">saved agent \'claude_code\'</span> to your user config (never the repository)\n',my,3200); },
+  async my => { show(4); cap("Where is AI-written code <b>nobody has understood</b>? Attribution is line-level: <b>git-ai</b>."); const t=$("t4"); t.innerHTML="";
+    await typeInto(t,'<span class="p">$ </span>cdebt map',my,60);
+    await add(t,'\n<span class="m">file             AI%   verified%   attested%   score   attribution</span>\npkg/pricing.py   <span class="r">92%</span>   <span class="r">0%</span>          -           1.846   git-ai\npkg/config.py     0%   -           -           0.000   git-ai\n\nAI lines verified: <span class="r">0%</span>  ·  AI units verified: 0/4  ·  sources: git-ai=28\n',my,4200); },
+  async my => { show(5); const t=$("t5"); t.innerHTML=""; cap("Now I push. The hook sees AI-written code nobody has understood and <b>quizzes me before the push</b>.");
+    await typeInto(t,'<span class="p">$ </span>git push -u origin feature',my,50); await sleep(700,my);
+    await add(t,'\n\nQ1 <span class="y">[easy]</span> What does <b>apply_discount(14, 10)</b> evaluate to?\n  A) -12   B) 13   C) 12   D) 11\n',my,900); await typeInto(t,'answer: <span class="r">A</span>',my,260);
+    cap("Every answer is checked by <b>running the code in a sandbox</b>. No AI decides if I am right."); await sleep(1500,my);
+    cap("A wrong answer earns a <b>harder question</b>, not an instant fail.");
+    await add(t,'\n\nQ4 <span class="r">[hard]</span> When apply_discount(14, 10) runs, does line 7 (<b>rate = 20</b>) execute?\n  A) yes   B) no\nanswer: A\n',my,2300);
+    cap("Answered too evenly fast? A <b>timed follow-up</b>, checked by tracing the real execution. <span style='color:var(--mut)'>Timing is never stored.</span>");
+    await add(t,'\nQ6 <span class="y">[easy]</span> What does apply_discount(15, 10) evaluate to? <span class="y">(follow-up, 15 s)</span>\n  A) 13   B) 12   C) 11   D) -12\n',my,500);
+    for(const s of [15,13,11]){ t.querySelectorAll(".cd").forEach(e=>e.remove()); await add(t,`<span class="cd y">[ ${s} s left] answer: </span>`,my,600); }
+    t.querySelectorAll(".cd").forEach(e=>e.remove()); await add(t,'[  11 s left] answer: <span class="g">B</span>\n\n',my,900);
+    await add(t,'pkg/pricing.py::apply_discount: <span class="g">UNDERSTOOD (verified)</span>\npkg/pricing.py::late_fee: <span class="g">UNDERSTOOD (verified)</span>\npkg/pricing.py::invoice_total: <span class="g">UNDERSTOOD (verified)</span>\n',my,700);
+    cap("The proof travels with the push as a git note, <b>bound to a hash of this exact code</b>.");
+    await add(t,'<span class="b">cdebt: notes pushed before the branch</span>\n * [new branch]      feature -> feature\n',my,3400); },
+  async my => { show(6); cap("On the pull request, the Action posts <b>one comment</b>. It marks <b>code</b>, never a person.");
+    $("tag6").textContent="before the quiz"; $("tag6").style.cssText="background:#fb718533;color:#fb7185;border:2px solid #fb7185";
+    $("h6").textContent="cdebt: 18 AI-written lines not understood (advisory)"; $("when6").textContent="commented 2026-10-22";
+    $("c6").innerHTML="pkg/pricing.py::apply_discount  5-12  <b style='color:#cf222e'>NOT UNDERSTOOD (not_quizzed)</b>\npkg/pricing.py::late_fee  15-21  <b style='color:#cf222e'>NOT UNDERSTOOD (not_quizzed)</b>\npkg/pricing.py::invoice_total  24-26  <b style='color:#cf222e'>NOT UNDERSTOOD (not_quizzed)</b>";
+    $("n6").innerHTML="Run <code>cdebt quiz --pr 1</code> locally to clear, then comment <code>/cdebt recheck</code>.";
+    await sleep(4200,my);
+    cap("After the quiz, <b>the same comment is edited in place</b>.");
+    $("tag6").textContent="after the quiz"; $("tag6").style.cssText="background:#4ade8033;color:#4ade80;border:2px solid #4ade80";
+    $("h6").textContent="cdebt: all AI-written changed lines are understood (advisory)"; $("when6").textContent="commented 2026-10-22 (edited)";
+    $("c6").innerHTML="pkg/pricing.py::apply_discount  5-12  <b style='color:#1a7f37'>understood (verified by execution), re-checked</b>\npkg/pricing.py::late_fee  15-21  <b style='color:#1a7f37'>understood (verified by execution), re-checked</b>\npkg/pricing.py::invoice_total  24-26  <b style='color:#1a7f37'>understood (verified by execution), re-checked</b>";
+    $("n6").innerHTML="Attribution sources on changed AI lines: <code>git-ai</code>: 18. Advisory: this does not block the merge.";
+    await sleep(5200,my); },
+  async my => { show(7); const t=$("t7"); t.innerHTML=""; cap("<b>Understanding expires</b> the moment the code changes.");
+    await typeInto(t,'<span class="p">$ </span>sed -i "s/balance * 2/balance * 3/" pkg/pricing.py   <span class="m"># the AI tweaks late_fee</span>',my,22);
+    await add(t,'\n<span class="p">$ </span>git commit -am "AI tweaks the late fee rate"\n',my,1300);
+    await typeInto(t,'<span class="p">$ </span>cdebt gate --base origin/main',my,40);
+    await add(t,'\n<span class="r">cdebt gate: FAIL (advisory, exit 0; use --enforce to fail)</span> AI lines in un-understood units: 7\n  pkg/pricing.py::late_fee  7 AI lines <span class="y">[stale, git-ai]</span>\n',my,2000);
+    cap("<b>Advisory by default.</b> With <b>--enforce</b> it exits 1 and can block the merge.");
+    await add(t,'\n<span class="p">$ </span>cdebt gate --base origin/main --enforce; echo $?\n<span class="r">1</span>\n',my,3600); },
+  async my => { show(8); cap(""); const k=[...$("s8b").children]; k.forEach(c=>c.classList.remove("show")); for(const c of k){ await sleep(1000,my); c.classList.add("show"); } await sleep(4200,my); }
+];
+
+async function play(from=0){
+  const my = ++run;
+  try{ for(let i=from;i<scenes.length;i++){ await scenes[i](my); } cap(""); }
+  catch(e){ if(e!=="stop") throw e; }
+}
+addEventListener("keydown", e=>{
+  if(e.code==="Space"){ paused=!paused; e.preventDefault(); }
+  else if(e.key==="r"||e.key==="R"){ paused=false; play(0); }
+  else if(e.key==="ArrowRight"){ paused=false; cur=Math.min(8,(window.__cur||0)+1); play(cur); }
+  else if(e.key==="ArrowLeft"){ paused=false; cur=Math.max(0,(window.__cur||0)-1); play(cur); }
+  else if(e.key==="h"||e.key==="H"){ $("hint").style.opacity = $("hint").style.opacity==="0"?1:0; }
+});
+// track current scene for arrow keys
+const _show = show; show = n => { window.__cur = n; _show(n); };
+setTimeout(()=>{ $("hint").style.opacity=0; }, 6000);
+play(0);
+</script>
+</body>
+</html>

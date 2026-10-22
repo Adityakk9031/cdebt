@@ -74,3 +74,17 @@ not proof. Links and limits are in the README."
 
 Do not say it is validated, secure against a determined attacker, or a way to catch cheating. It
 is a visibility tool with the limits listed in `docs/LIMITS.md`.
+
+## The animated walkthrough (a ready-made cut)
+
+`examples/first_user/animation/walkthrough.html` is a self-contained animated version of this
+story (about 80 seconds, no internet needed). Every line of terminal text and the pull-request
+comment come from the real rehearsal (`assets/`). To turn it into a video file:
+
+1. Open it in Chrome and go full screen (Ctrl+Cmd+F). It scales to any screen.
+2. Press **R** to restart, then record with **Cmd+Shift+5 -> Record Entire Screen** (QuickTime also works).
+3. Keys: **Space** pause, **R** restart, **left/right arrows** previous/next scene, **H** hide the hint.
+
+Use it as the intro or the closing montage, with your live terminal recording in the middle. The
+pull-request comment scene is a re-rendered view of the real bot comment (see `assets/README.md`);
+say "this is what the bot posts" rather than presenting it as a live capture.
