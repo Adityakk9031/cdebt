@@ -14,7 +14,7 @@ given). Nothing has been published: the repository is private, nothing is on PyP
 | `cdebt init` (consent, never overwrites, chains hooks, rulesets) | done with a fake `gh`; **real GitHub ruleset UNVERIFIED** | `tests/test_prflow.py`; private repos need a paid plan for rulesets |
 | CI re-execution rejects hand-edited records | done | `test_recheck_accepts_real_records_and_rejects_hand_edited_ones`; run locally on PR 3 / PR 4 |
 | Sticky comment names no person; check run `cdebt / gate` | comment done locally; **check run UNVERIFIED** | PR 3 / PR 4 comments; a personal token cannot create check runs |
-| **CI green on Linux, macOS, Windows for this version** | **blocked** | GitHub refused to start any job: billing / spending limit (`docs/VERIFICATION.md`). Needs-human: fix billing, re-run CI |
+| CI green on Linux, macOS, Windows for this version | done on a **private test mirror** (all 12 jobs incl. the 20x Linux flake check); the main account's own hosted runs are blocked by billing | `docs/VERIFICATION.md` (mirror run 39783686951). Re-run CI once on the main account after release |
 | GitHub Actions run: PR trigger, bot comment create + in-place edit, check run (neutral then success), `/cdebt recheck` trigger | done on a **self-hosted runner** (not hosted) | `docs/VERIFICATION.md` (PR 3, PR 5); hosted runners remain blocked by billing |
 | Local full suite 20 times in paced pairs (macOS) | done | 20 of 20 passed (`docs/VERIFICATION.md`); the Linux `repeat-suite` job has not run for this version |
 | Docker mode for agent trace probes and CI re-check | done | `test_agent_trace_probes_and_ci_recheck_run_in_docker` passed under Colima |

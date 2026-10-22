@@ -321,3 +321,26 @@ the real function under the mock to get the answer. The agent was told only acce
 Run 1 asked the same constant question twice (agent and builtin); fixed (a question from two
 sources is asked once, with a test). Not covered: more than one small repository, the quality of
 questions on real code, a long agent run, and the codex and cursor adapters.
+
+### GitHub-hosted CI on a private test mirror (2026-10-22)
+
+The main account's hosted minutes were used up, so the full CI ran on a **private mirror of this
+code under a second account** (used only for testing; never published). Run 39783686951 on the code
+with the sandbox fix: **all 12 jobs succeeded** on GitHub-hosted runners: tests on Ubuntu and macOS
+for Python 3.11, 3.12 and 3.13, the Windows job (non-executing tests, ruff, mypy), the Docker
+sandbox job, package builds (sdist, wheel, `twine check`, clean-venv smoke test) on Ubuntu, macOS and
+Windows, and `repeat-suite` (the whole suite 20 times in a row on Ubuntu). The mirror's history has
+the author's name and email replaced; the code is the same.
+
+Failures met on the way, all mine: (1) the first mirror run (39782055600) failed `docker-sandbox` and
+`repeat-suite`: my `sys._getframe` fix used `__file__`, which does not exist when Docker launches the
+runner with `python -c`, so the runner crashed in Docker only. I had removed the local Docker VM and
+had not re-run the Docker tests; CI caught it. Fixed (runner frames are identified by module
+globals) with a regression test that launches the runner the Docker way; the next run passed.
+(2) Earlier in the day the same runner problem (billing) had blocked every hosted job on the main
+account (see above).
+
+Not covered: a fork pull request, the ruleset that requires `cdebt / gate`, and the main account's own
+hosted run (blocked by its minutes). On the mirror, a real pull request also showed the bot creating
+a comment, editing it in place after the quiz, and the `cdebt / gate` check going neutral then
+success (`examples/first_user/assets/README.md`).
