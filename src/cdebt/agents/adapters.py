@@ -29,7 +29,8 @@ variable_at_line (need `line`; variable_at_line also `variable`), constant_value
 what_calls, which_test_fails. Choose inputs that exercise different branches and edge cases;
 prefer questions whose answer a reader must reason about, not guess. For code that touches time,
 randomness, files or the network, you may supply harness_code defining `def probe():` that mocks
-that I/O and calls the REAL target (target_module.<name>); never replace the target itself.
+that I/O and calls the REAL target (target_module.<name>); never replace the target itself. A
+harness_code proposal MUST also include `question`: one sentence describing the scenario.
 cdebt runs every proposal and works out the answers itself; you will only be told accepted or
 rejected with a reason. Do not try to find or compute answers, and do not edit anything.
 When done, reply with one short line."""

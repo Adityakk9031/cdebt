@@ -45,7 +45,8 @@ def build_server(session_dir: Path) -> MCPServer:
     ) -> str:
         """Submit one question about `target` (an id from get_targets). kind is one of
         return_value, branch_taken, variable_at_line, which_test_fails, what_calls,
-        constant_value. Returns 'accepted' or 'rejected: <reason>' (never the answer)."""
+        constant_value. A proposal with harness_code must also give `question` (the scenario).
+        Returns 'accepted' or 'rejected: <reason>' (never the answer)."""
         t = sess.target(target)
         if t is None:
             return "rejected: unknown target id (use an id from get_targets)"

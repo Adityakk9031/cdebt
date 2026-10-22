@@ -163,3 +163,14 @@ side channels. Passing these tests is evidence, not proof.
 | Branch rule | A wrong API call could replace protection | `init --github` uses the rulesets API (adds a ruleset, replaces nothing), prints the call, and asks first | Needs admin rights; unavailable on free private repos |
 
 Reviewed only by its author and AI, not independently.
+
+### 6b. `sys._getframe` (changed in v1.1)
+
+The second red-team pass blocked `sys._getframe` outright. Measuring real repositories showed that
+broke ordinary standard-library use (`@dataclass`, `typing.TypeVar`, `NamedTuple`, `logging`,
+`warnings`, `argparse`, `pathlib`), so most real modules could not be imported
+(`docs/AGENT_BENCHMARK.md`). The guard now refuses only frames of the runner itself; the guard's
+state is closure-scoped, so no frame holds a handle on it. Evidence: `frame_deep_scan` (walks every
+object reachable from every frame and rewrites every function and closure cell it finds) and
+`getframe_depth_into_runner` in `tests/test_sandbox_redteam.py` leave the world untouched in every
+mode. Residual: frames are now reachable via `f_back`; this reasoning is by the author and AI only.

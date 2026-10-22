@@ -24,6 +24,11 @@
   (neutral when advisory); `/cdebt recheck` comment trigger for owners, members and collaborators.
 - The gate ignores blank and comment-only lines. The MCP server applies the same untrusted-by-default
   isolation as `cdebt quiz`.
+- **Fixed a sandbox regression from 1.0.0rc2** found by measuring real repositories: blocking
+  `sys._getframe` outright made `@dataclass`, `TypeVar`, `NamedTuple`, `namedtuple`, `logging`,
+  `warnings.warn`, `argparse` and `import pathlib` fail, so most real modules could not be imported
+  and the quiz could verify almost nothing. Now only the runner's own frames are refused; new
+  red-team tests (deep frame walk, stdlib patterns). See `docs/AGENT_BENCHMARK.md`.
 - Rules changed (CLAUDE.md, METHOD): the agent may propose, never decide; `refs/notes/cdebt` and the
   consented hook are the only writes besides `.cdebt/`; no timing data, no per-person flags.
 

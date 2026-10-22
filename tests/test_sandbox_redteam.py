@@ -59,6 +59,41 @@ TAMPER = {
     "gc_referrers": "import gc, sys\nfor r in gc.get_referrers(sys.modules):\n    pass",
     "traceback_frame_walk": "try:\n    1 / 0\nexcept Exception as e:\n    f = e.__traceback__.tb_frame\n    while f.f_back:\n        f = f.f_back\n    for k, v in list(f.f_locals.items()):\n        if callable(v) and hasattr(v, '__code__'):\n            try:\n                v.__code__ = (lambda *a, **k: True).__code__\n            except Exception:\n                pass",
     "sys_getframe_walk": "import sys\nf = sys._getframe()\nwhile f:\n    for v in list(f.f_locals.values()):\n        if callable(v) and hasattr(v, '__code__'):\n            v.__code__ = (lambda *a, **k: True).__code__\n    f = f.f_back",
+    "frame_deep_scan": (
+        "import sys, types\n"
+        "seen = set()\nq = []\n"
+        "def add(o):\n    if id(o) not in seen:\n        seen.add(id(o))\n        q.append(o)\n"
+        "f = sys._getframe()\n"
+        "while f:\n    add(f)\n    f = f.f_back\n"
+        "n = 0\n"
+        "while q and n < 30000:\n"
+        "    o = q.pop()\n    n += 1\n"
+        "    try:\n"
+        "        if isinstance(o, types.FrameType):\n"
+        "            add(o.f_globals)\n            add(o.f_locals)\n"
+        "        elif isinstance(o, dict):\n"
+        "            for v in list(o.values()):\n                add(v)\n"
+        "        elif isinstance(o, types.FunctionType):\n"
+        "            add(o.__globals__)\n"
+        "            for c in (o.__closure__ or ()):\n                add(c)\n"
+        "            o.__code__ = (lambda *a, **k: True).__code__\n"
+        "        elif isinstance(o, types.CellType):\n"
+        "            add(o.cell_contents)\n"
+        "            try:\n                o.cell_contents = (lambda *a, **k: True)\n"
+        "            except Exception:\n                pass\n"
+        "        elif isinstance(o, (list, tuple, set)):\n"
+        "            for v in list(o):\n                add(v)\n"
+        "        elif hasattr(o, '__dict__'):\n            add(vars(o))\n"
+        "    except BaseException:\n        pass"
+    ),
+    "getframe_depth_into_runner": (
+        "import sys\nd = 0\n"
+        "while d < 200:\n    try:\n        fr = sys._getframe(d)\n"
+        "        for v in list(fr.f_locals.values()):\n"
+        "            if callable(v) and hasattr(v, '__code__'):\n"
+        "                v.__code__ = (lambda *a, **k: True).__code__\n"
+        "    except BaseException:\n        pass\n    d += 1"
+    ),
     "patch_realpath": "import os\nos.path.realpath = lambda p, **k: '/usr/lib/python3'\nimport posixpath\nposixpath.realpath = os.path.realpath",
     "patch_lstat_readlink": "import os\nos.lstat = lambda *a, **k: (_ for _ in ()).throw(OSError('x'))\nos.readlink = lambda *a, **k: '/usr'",
     "patch_builtins": "import builtins\nbuiltins.any = lambda *a: True\nbuiltins.all = lambda *a: True\nbuiltins.isinstance = lambda *a: False\nbuiltins.str = lambda *a: ':memory:'\nbuiltins.PermissionError = Exception\nbuiltins.len = lambda *a: 0",
@@ -389,3 +424,27 @@ def test_sanitize_root_removes_escaping_links_only(tmp_path: Path, world: World)
     assert sorted(removed) == ["hard", "outside_link", "sub/dir_link"]
     assert (root / "inside_link").is_symlink() and (root / "sub" / "rel_link").is_symlink()
     assert (root / "real.txt").read_text() == "ok" and world.canary.read_text() == FILE_SECRET
+
+
+COMMON_STDLIB = {
+    "dataclass": "from dataclasses import dataclass\n@dataclass\nclass A:\n    x: int = 1\nprint(A())",
+    "TypeVar": "from typing import TypeVar\nT = TypeVar('T')\nprint(T)",
+    "NamedTuple": "from typing import NamedTuple\nclass P(NamedTuple):\n    x: int\nprint(P(1))",
+    "namedtuple": "from collections import namedtuple\nP = namedtuple('P', 'x y')\nprint(P(1, 2))",
+    "enum functional": "import enum\nC = enum.Enum('C', 'A B')\nprint(C.A)",
+    "logging": "import logging\nlogging.getLogger('x').warning('hi')\nprint('ok')",
+    "warnings": "import warnings\nwarnings.warn('x')\nprint('ok')",
+    "argparse": "import argparse\nprint(argparse.ArgumentParser().parse_args([]))",
+    "pathlib": "import pathlib\nprint(pathlib.PurePath('a/b'))",
+}
+
+
+@pytest.mark.parametrize("name", sorted(COMMON_STDLIB))
+def test_common_stdlib_patterns_work_inside_the_sandbox(name: str) -> None:
+    """v1.1 measured that blocking sys._getframe outright made `@dataclass`, TypeVar, NamedTuple,
+    namedtuple, logging, warnings, argparse and even `import pathlib` fail, so most real modules
+    could not be imported and the quiz could verify almost nothing. These must keep working."""
+    for mode in _modes():
+        res = run(COMMON_STDLIB[name], mode)
+        assert res.died is None and not res.violations, f"[{name}/{mode}] {res.violations}"
+        assert "error" not in str(res.payload).lower(), f"[{name}/{mode}] {res.payload}"

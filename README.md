@@ -99,6 +99,8 @@ lines a quiz could verify was 19% for one Python repo, 77% for another (with a c
 33% for the TypeScript repo; the rest could only be attested (23%, 81% and 61%) or, for JSX files,
 not covered at all (6%)
 [src: docs/case_studies/space_chassis.coverage.json, docs/case_studies/agent-meta.coverage.json, docs/case_studies/hive.coverage-ts.json].
+Re-measured on 2026-10-22, `space_chassis` gives 9% for the same settings [src: docs/case_studies/space_chassis.coverage.2026-10-22.json] (the top-25 selection moves with the date, so treat these as examples, not constants).
+In the 12 highest-debt Python files of two of these repos, the built-in generator could quiz 1 of 565 AI-written functions and the real Claude Code agent added 40 (7.1%) [src: docs/case_studies/agent_benchmark.summary.json]; 55 of its 130 proposals were verified by execution, and all 22 answers that could be compared agreed with a second sandbox path ([docs/AGENT_BENCHMARK.md](docs/AGENT_BENCHMARK.md)).
 Runtime probes need typed, side-effect-free functions and, for TypeScript, modules plain Node can
 resolve; call-graph probes need a SCIP index. Run `cdebt coverage` before trusting any gate.
 

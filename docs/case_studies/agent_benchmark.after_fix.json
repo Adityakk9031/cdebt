@@ -1,0 +1,311 @@
+[
+ {
+  "repo": "space_chassis",
+  "file": "vehicle/tools/console.py",
+  "ai_lines": 7128,
+  "ai_units": 218,
+  "builtin_units": 0,
+  "builtin_lines": 0,
+  "targets_offered": 221,
+  "proposals": 9,
+  "accepted": 8,
+  "verified": 8,
+  "agent_units": 4,
+  "union_units": 4,
+  "union_lines": 27,
+  "rejection_reasons": {
+   "'FILENAME_LIMIT_BYTES' is not a verifiable module-level constant here": 1
+  },
+  "cross_check": {
+   "agree": 7,
+   "not-comparable": 1
+  },
+  "seconds": 43,
+  "note": ""
+ },
+ {
+  "repo": "space_chassis",
+  "file": "vehicle/tools/episode_eval.py",
+  "ai_lines": 1027,
+  "ai_units": 31,
+  "builtin_units": 0,
+  "builtin_lines": 0,
+  "targets_offered": 30,
+  "proposals": 19,
+  "accepted": 7,
+  "verified": 7,
+  "agent_units": 5,
+  "union_units": 5,
+  "union_lines": 125,
+  "rejection_reasons": {
+   "a harness probe needs `question` text describing the scenario": 6,
+   "not safely executable without a harness: uses pathlib (side effects)": 1,
+   "return value is not a simple literal; cannot build answer options": 1,
+   "the real target's own lines did not execute (the harness tested a mock": 1,
+   "non-deterministic: two runs differed (mock time, randomness and I/O)": 1,
+   "`line` must be inside the body of _judge (777-836)": 1
+  },
+  "cross_check": {
+   "agree": 2,
+   "not-comparable": 5
+  },
+  "seconds": 48,
+  "note": ""
+ },
+ {
+  "repo": "space_chassis",
+  "file": "vehicle/tests/test_rules_seam.py",
+  "ai_lines": 270,
+  "ai_units": 18,
+  "builtin_units": 0,
+  "builtin_lines": 0,
+  "targets_offered": 17,
+  "proposals": 10,
+  "accepted": 3,
+  "verified": 3,
+  "agent_units": 3,
+  "union_units": 3,
+  "union_lines": 101,
+  "rejection_reasons": {
+   "no fresh SCIP index (run `cdebt index`); call-graph questions need it": 5,
+   "not safely executable without a harness: uses pathlib (side effects); ": 1,
+   "which_test_fails runs the project's tests and needs --trusted": 1
+  },
+  "cross_check": {
+   "not-comparable": 2
+  },
+  "seconds": 26,
+  "note": ""
+ },
+ {
+  "repo": "space_chassis",
+  "file": "vehicle/tests/test_interlocks.py",
+  "ai_lines": 378,
+  "ai_units": 20,
+  "builtin_units": 0,
+  "builtin_lines": 0,
+  "targets_offered": 19,
+  "proposals": 11,
+  "accepted": 2,
+  "verified": 2,
+  "agent_units": 2,
+  "union_units": 2,
+  "union_lines": 4,
+  "rejection_reasons": {
+   "a harness probe needs `question` text describing the scenario": 2,
+   "blocked by the sandbox: ['open: file write', 'open: file write']": 2,
+   "no fresh SCIP index (run `cdebt index`); call-graph questions need it": 1,
+   "which_test_fails runs the project's tests and needs --trusted": 1,
+   "`line` must be inside the body of test_a_guard_over_two_arguments_appl": 1,
+   "the real target's own lines did not execute (the harness tested a mock": 1
+  },
+  "cross_check": {
+   "not-comparable": 2
+  },
+  "seconds": 38,
+  "note": ""
+ },
+ {
+  "repo": "space_chassis",
+  "file": "vehicle/tests/test_quiet_coast.py",
+  "ai_lines": 489,
+  "ai_units": 34,
+  "builtin_units": 0,
+  "builtin_lines": 0,
+  "targets_offered": 33,
+  "proposals": 9,
+  "accepted": 7,
+  "verified": 7,
+  "agent_units": 4,
+  "union_units": 4,
+  "union_lines": 136,
+  "rejection_reasons": {
+   "return value is not a simple literal; cannot build answer options": 1,
+   "`line` must be inside the body of _profile (74-77)": 1
+  },
+  "cross_check": {
+   "agree": 4
+  },
+  "seconds": 23,
+  "note": ""
+ },
+ {
+  "repo": "space_chassis",
+  "file": "aurora/live/stack.py",
+  "ai_lines": 596,
+  "ai_units": 42,
+  "builtin_units": 0,
+  "builtin_lines": 0,
+  "targets_offered": 41,
+  "proposals": 7,
+  "accepted": 3,
+  "verified": 3,
+  "agent_units": 1,
+  "union_units": 1,
+  "union_lines": 3,
+  "rejection_reasons": {
+   "not safely executable without a harness: function services not found": 1,
+   "not safely executable without a harness: function slugs not found": 1,
+   "not safely executable without a harness: uses time (side effects)": 1,
+   "not safely executable without a harness: uses os (side effects)": 1
+  },
+  "cross_check": {
+   "agree": 3
+  },
+  "seconds": 22,
+  "note": ""
+ },
+ {
+  "repo": "agent-meta",
+  "file": "tests/test_release_gate_checksums.py",
+  "ai_lines": 369,
+  "ai_units": 24,
+  "builtin_units": 0,
+  "builtin_lines": 0,
+  "targets_offered": 23,
+  "proposals": 9,
+  "accepted": 3,
+  "verified": 3,
+  "agent_units": 3,
+  "union_units": 3,
+  "union_lines": 117,
+  "rejection_reasons": {
+   "blocked by the sandbox: ['open: file write', 'open: file write']": 4,
+   "return value is not a simple literal; cannot build answer options": 1,
+   "`line` must be inside the body of _manifest_entries (54-65)": 1
+  },
+  "cross_check": {
+   "not-comparable": 2
+  },
+  "seconds": 31,
+  "note": ""
+ },
+ {
+  "repo": "agent-meta",
+  "file": "tests/test_antigravity_hooks_registration.py",
+  "ai_lines": 390,
+  "ai_units": 26,
+  "builtin_units": 0,
+  "builtin_lines": 0,
+  "targets_offered": 25,
+  "proposals": 7,
+  "accepted": 1,
+  "verified": 1,
+  "agent_units": 1,
+  "union_units": 1,
+  "union_lines": 2,
+  "rejection_reasons": {
+   "no fresh SCIP index (run `cdebt index`); call-graph questions need it": 2,
+   "blocked by the sandbox: ['open: file write', 'open: file write']": 2,
+   "which_test_fails runs the project's tests and needs --trusted": 1,
+   "'_ADAPTER_SOURCE' is not a verifiable module-level constant here": 1
+  },
+  "cross_check": {
+   "agree": 1
+  },
+  "seconds": 61,
+  "note": ""
+ },
+ {
+  "repo": "agent-meta",
+  "file": "scripts/lib/consistency/se_cascade.py",
+  "ai_lines": 611,
+  "ai_units": 31,
+  "builtin_units": 0,
+  "builtin_lines": 0,
+  "targets_offered": 30,
+  "proposals": 25,
+  "accepted": 14,
+  "verified": 14,
+  "agent_units": 12,
+  "union_units": 12,
+  "union_lines": 167,
+  "rejection_reasons": {
+   "a harness probe needs `question` text describing the scenario": 8,
+   "not safely executable without a harness: uses datetime (side effects)": 3
+  },
+  "cross_check": {
+   "agree": 3,
+   "not-comparable": 11
+  },
+  "seconds": 66,
+  "note": ""
+ },
+ {
+  "repo": "agent-meta",
+  "file": "tests/test_doctor_cli.py",
+  "ai_lines": 465,
+  "ai_units": 37,
+  "builtin_units": 0,
+  "builtin_lines": 0,
+  "targets_offered": 36,
+  "proposals": 10,
+  "accepted": 4,
+  "verified": 4,
+  "agent_units": 3,
+  "union_units": 3,
+  "union_lines": 151,
+  "rejection_reasons": {
+   "a harness probe needs `question` text describing the scenario": 2,
+   "blocked by the sandbox: ['open: file write', 'open: file write']": 2,
+   "no fresh SCIP index (run `cdebt index`); call-graph questions need it": 1,
+   "not safely executable without a harness: uses pathlib (side effects)": 1
+  },
+  "cross_check": {
+   "agree": 2,
+   "not-comparable": 1
+  },
+  "seconds": 65,
+  "note": ""
+ },
+ {
+  "repo": "agent-meta",
+  "file": "tests/test_doctor_runner.py",
+  "ai_lines": 901,
+  "ai_units": 79,
+  "builtin_units": 1,
+  "builtin_lines": 240,
+  "targets_offered": 78,
+  "proposals": 7,
+  "accepted": 3,
+  "verified": 3,
+  "agent_units": 2,
+  "union_units": 3,
+  "union_lines": 256,
+  "rejection_reasons": {
+   "a harness probe needs `question` text describing the scenario": 2,
+   "return value is not a simple literal; cannot build answer options": 1,
+   "blocked by the sandbox: ['open: file write', 'open: file write']": 1
+  },
+  "cross_check": {
+   "not-comparable": 3
+  },
+  "seconds": 66,
+  "note": ""
+ },
+ {
+  "repo": "agent-meta",
+  "file": "tests/test_context_user_notes_preserved.py",
+  "ai_lines": 64,
+  "ai_units": 5,
+  "builtin_units": 0,
+  "builtin_lines": 0,
+  "targets_offered": 4,
+  "proposals": 7,
+  "accepted": 0,
+  "verified": 0,
+  "agent_units": 0,
+  "union_units": 0,
+  "union_lines": 0,
+  "rejection_reasons": {
+   "which_test_fails runs the project's tests and needs --trusted": 2,
+   "the real target's own lines did not execute (the harness tested a mock": 2,
+   "no fresh SCIP index (run `cdebt index`); call-graph questions need it": 1,
+   "'USER_NOTES' is not a verifiable module-level constant here": 1,
+   "'REPO_ROOT' is not a verifiable module-level constant here": 1
+  },
+  "cross_check": {},
+  "seconds": 24,
+  "note": ""
+ }
+]

@@ -1,0 +1,40 @@
+{
+ "measured": "2026-10-22",
+ "what": "AI-written functions with >=1 execution-verified question in the highest-debt Python files (6 per repo) of space_chassis and agent-meta, builtin generator vs the real Claude Code agent",
+ "after_sandbox_fix": {
+  "files": 12,
+  "ai_units": 565,
+  "ai_lines": 12688,
+  "builtin_units": 1,
+  "agent_units": 40,
+  "union_units": 41,
+  "proposals": 130,
+  "accepted": 55,
+  "verified": 55,
+  "builtin_lines": 240,
+  "union_lines": 1089,
+  "cross_check": {
+   "agree": 22,
+   "not-comparable": 27
+  },
+  "agent_units_pct": 7.1,
+  "union_lines_pct": 8.6,
+  "builtin_lines_pct": 1.9,
+  "accepted_pct": 42.3
+ },
+ "before_sandbox_fix_first_9_files": {
+  "files": 9,
+  "ai_units": 444,
+  "ai_lines": 11258,
+  "builtin_units": 0,
+  "agent_units": 0,
+  "union_units": 0,
+  "proposals": 85,
+  "accepted": 0,
+  "verified": 0,
+  "builtin_lines": 0,
+  "union_lines": 0,
+  "cross_check": {}
+ },
+ "space_chassis_builtin_coverage_top25_now": 0.09306683322923173
+}

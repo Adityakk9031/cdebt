@@ -259,6 +259,7 @@ def _run():
     ROOT = realpath(spec["root"])
 
     def _install():
+        _RUN_FILE = __file__
         _BLOCK = ("socket.", "ctypes.", "winreg.", "sys.monitoring")
         _PROC = ("subprocess.Popen", "os.system", "os.fork", "os.forkpty", "os.exec",
                  "os.posix_spawn", "os.spawn", "os.startfile", "pty.spawn")
@@ -266,7 +267,7 @@ def _run():
                "os.link", "os.chmod", "os.chown", "os.utime", "os.mkfifo", "os.mknod", "shutil.",
                "os.removexattr", "os.setxattr", "os.chroot")
         # tampering with the guard itself, and shared memory (creates host-visible segments)
-        _TAMPER = ("gc.get_objects", "gc.get_referrers", "gc.get_referents", "sys._getframe",
+        _TAMPER = ("gc.get_objects", "gc.get_referrers", "gc.get_referents",
                    "sys._current_frames", "sys.settrace", "sys.setprofile",
                    "sys.setswitchinterval")
         _NO_IMPORT = ("_posixshmem", "multiprocessing.shared_memory", "_xxsubinterpreters",
@@ -319,6 +320,17 @@ def _run():
                 deny(event, "process creation")
             if event in ("os.kill", "os.killpg", "signal.pthread_kill"):
                 deny(event, "signalling other processes")
+            if event == "sys._getframe":
+                # dataclasses, typing (TypeVar, NamedTuple), collections.namedtuple, logging,
+                # warnings, argparse and pathlib all call sys._getframe for ordinary reasons, so a
+                # blanket block made most real modules un-importable here (measured in v1.1).
+                # Ordinary frames are allowed; the runner's OWN frames are never handed out. The
+                # guard's state is closure-scoped, so no frame holds a handle on it (tested by
+                # tests/test_sandbox_redteam.py::frame_deep_scan).
+                fr = args[0] if args else None
+                if fr is None or fr.f_code.co_filename == _RUN_FILE:
+                    deny(event, "introspection that could tamper with the sandbox")
+                return
             if event in _TAMPER:
                 deny(event, "introspection that could tamper with the sandbox")
             if event == "import" and args and _str(args[0]) in _NO_IMPORT:
