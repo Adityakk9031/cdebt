@@ -269,3 +269,42 @@ commit eed1550's code (the final source; later commits changed only docs): **20 
 failed**, 161-183 s each (`ALL 20 RUNS (1..20) PASSED`). The laptop was awake and the real-run
 checks above ran concurrently for part of it, which is why some runs were slower. This is a local
 macOS result only; the Linux 20x job (`repeat-suite`) has **not** run for this version.
+
+### Real GitHub Actions run on a SELF-HOSTED runner (2026-10-22)
+
+GitHub-hosted minutes were used up (see above), so the real Actions plumbing was tested on a
+**self-hosted runner on the author's Mac** (official runner v2.338.0, checksum verified against the
+release notes; registered to the private repo only, removed afterwards: GitHub showed 0 runners).
+A temporary workflow `gate-local.yml` ran the same composite action (`uses: ./`, with the new
+`setup-python: "false"` input and a local Python 3.11 venv). Self-hosted jobs started while hosted
+ones were still blocked. Two runner problems of my own making (a duplicate runner process left from
+an earlier launch, and a re-run of the same job) and a slow-network `pip` timeout caused failed
+attempts before the passing ones; none was a cdebt defect. This is **not** a GitHub-hosted Linux run:
+Docker was not used here (macOS strict sandbox), and the hosted `test`/`docker-sandbox`/`package`
+jobs still have not run for this version.
+
+- PR 3 <https://github.com/Adityakk9031/cdebt/pull/3>, run 39738307837 (`pull_request`, success):
+  the Actions token created the check run `cdebt / gate` (app `github-actions`, conclusion
+  `success`).
+- PR 5 <https://github.com/Adityakk9031/cdebt/pull/5>: AI code pushed with `--no-verify`.
+  First run 39738496740 (`pull_request`): the bot `github-actions[bot]` **created** comment
+  6334950051, `cdebt: 10 AI-written lines not understood (advisory)`,
+  `demo/tax.py::tax_due  1-10  NOT UNDERSTOOD (not_quizzed)`, and the check run `cdebt / gate`
+  concluded **`neutral`** (advisory failure). Then `cdebt quiz --pr 5` on a real pty (UNDERSTOOD,
+  notes pushed, `/cdebt recheck` posted by the owner). The comment triggered run 39738609539
+  (`issue_comment`, success; owner-association filter satisfied): the bot **edited its own comment
+  in place** (same id 6334950051, created 07:09:16Z, updated 07:10:17Z UTC) to `cdebt: all
+  AI-written changed lines are understood (advisory)` with `understood (verified by execution),
+  re-checked`, and a new `cdebt / gate` check run concluded **`success`**. No person is named in
+  any comment. This verifies: the PR trigger, bot comment create then in-place edit, the
+  `/cdebt recheck` trigger, and the check run (neutral then success) on real GitHub Actions.
+- Not covered: a fork PR (read-only token), the ruleset that makes `cdebt / gate` a required check
+  (needs a paid plan for private repos), and the author-association filter rejecting a stranger
+  (only the owner commented).
+
+### Docker mode (Colima, 2026-10-22)
+
+`tests/test_sandbox_docker.py` (8 tests) passed against Docker 29.5.2 via Colima, including the new
+`test_agent_trace_probes_and_ci_recheck_run_in_docker`: agent-proposed trace probes, the mock
+rejection and the CI re-execution (genuine record accepted, doctored answer rejected) all ran
+inside the container, with no leftover containers. The VM was stopped afterwards.
