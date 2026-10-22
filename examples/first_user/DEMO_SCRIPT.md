@@ -1,4 +1,4 @@
-# First-user demo: record script (about 5 minutes)
+# First-user demo: record script (about 7 minutes)
 
 You play a developer who has never used cdebt. Everything below was rehearsed end to end on
 2026-10-22 (fresh install from the built wheel, real Git AI notes, a real `git push` through the
@@ -36,10 +36,22 @@ To start over: `rm -rf ~/cdebt-demo ~/cdebt-demo-remote.git` and run the setup a
 | 3:30 | *(get one wrong on purpose, early)* | "I got that one wrong. Instead of failing me, it asks a harder question about the same function." |
 | 3:50 | *(the timed follow-up appears)* | "A short timed follow-up with a visible countdown, answered by tracing the real execution. I am staging this so it shows; normally it only triggers when answers look uniformly fast. Nothing about my timing is stored." |
 | 4:20 | *(push finishes: "notes pushed before the branch")* | "The proof of understanding travels with the push, as a git note, bound to a hash of this exact code." |
-| 4:30 | `cdebt gate --base origin/main` | "The CI check. All AI lines are understood." |
-| 4:45 | edit `late_fee` (change `* 2` to `* 3`), commit, `cdebt gate --base origin/main` | "Understanding expires the moment the code changes. The gate flags this function again." |
-| 5:00 | `cdebt gate --base origin/main --enforce; echo $?` | "Advisory by default. With --enforce it exits 1 and blocks the merge." |
-| 5:10 | *(close, see "Honest close")* | |
+| 4:35 | `git notes --ref=cdebt show HEAD \| python3 -m json.tool \| head -45` | "This is the record cdebt just made: the question, the true answer, **how it was verified**, and the code hash it is bound to. Notice it even keeps my wrong first answer. There is no timing in it." |
+| 5:05 | `python ~/cdebt-public/examples/first_user/sandbox_peek.py` *(adjust the path to your clone)* | "Behind the scenes. **Part 1:** my real function runs in a throw-away sandbox, twice, and cdebt records which lines ran. **Part 2:** the same sandbox is asked to read a secret, overwrite a file, connect to the network, kill a process, run a shell command. Every one is blocked, and I check from outside that nothing happened." |
+| 6:10 | `cdebt gate --base origin/main` | "The CI check. All AI lines are understood." |
+| 6:25 | edit `late_fee` (change `* 2` to `* 3`), commit, `cdebt gate --base origin/main` | "Understanding expires the moment the code changes. The gate flags this function again." |
+| 6:45 | `cdebt gate --base origin/main --enforce; echo $?` | "Advisory by default. With --enforce it exits 1 and blocks the merge." |
+| 6:55 | *(close, see "Honest close")* | |
+
+### The sandbox scene (what you are showing, in plain words)
+After you answer, cdebt does not trust anyone's opinion of the answer. It runs the real function in a
+child process inside a sandbox (the strict macOS sandbox on a Mac, Docker elsewhere): no network, no
+writes outside a temp folder, no other processes, resource limits, a timeout. It runs the function
+twice and rejects it if the results differ, and for "did this line run?" questions it traces the real
+execution. The result is the answer key. Say plainly: **this is containment against accidental and
+AI-written side effects, not protection against a determined attacker, and it has not had an
+independent review.** `sandbox_peek.py` uses only fake secrets and harmless targets, and checks the
+outcome from outside the sandbox.
 
 ### Answering the questions
 They are tiny arithmetic questions about `apply_discount`, `late_fee` and `invoice_total` (see the
