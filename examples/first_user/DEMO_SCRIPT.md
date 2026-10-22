@@ -25,7 +25,7 @@ To start over: `rm -rf ~/cdebt-demo ~/cdebt-demo-remote.git` and run the setup a
 | time | what you type | what you say |
 |---|---|---|
 | 0:00 | *(title card or just the terminal)* | "AI writes more and more of our code. Nobody knows how much of it a human has actually understood. cdebt makes that visible. It measures code and teams, never individuals." |
-| 0:20 | `pip install "cdebt[agent] @ git+https://github.com/Adityakk9031/cdebt"` then `cdebt --version` | "This is how a new user installs it. The agent extra is only needed if you want your own coding agent to write the questions." *(Until the repo is public, install the wheel from a checkout: `pip install "./dist/cdebt-1.1.0rc1-py3-none-any.whl[agent]"`.)* |
+| 0:20 | `pip install --pre "cdebt[agent]"` then `cdebt --version` | "This is how a new user installs it. The agent extra is only needed if you want your own coding agent to write the questions." *(If PyPI is not ready: `pip install "cdebt[agent] @ git+https://github.com/Adityakk9031/cdebt"`.)* |
 | 0:40 | `cd ~/cdebt-demo && git log --oneline` | "A tiny billing project. The last commit was written by an AI agent, and Git AI recorded exactly which lines." |
 | 0:55 | `cdebt init` *(answer `y` to each step)* | "init asks before every change: a pre-push hook that never overwrites an existing one, a policy file, a GitHub workflow." |
 | 1:20 | `cdebt agent connect` *(choose claude_code, answer `y`)* | "Optional: my own coding agent writes the questions. It only sees the code being quizzed, is never told an answer, and cdebt runs every question itself to get the true answer." |

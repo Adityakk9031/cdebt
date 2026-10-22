@@ -9,7 +9,7 @@ and nobody knows how big the gap is. `cdebt` tries to make it visible and testab
 > per-person scores in any report. An optional audit label is stored but never aggregated.
 >
 > **A quiz is not a lie detector.** It cannot stop anyone pasting the questions into an AI.
-> cdebt gives *visibility*, not proof of understanding. See [docs/LIMITS.md](docs/LIMITS.md).
+> cdebt gives *visibility*, not proof of understanding. See [docs/LIMITS.md](https://github.com/Adityakk9031/cdebt/blob/main/docs/LIMITS.md).
 
 ## Status (read this before using it)
 
@@ -18,20 +18,20 @@ Experimental pre-release (release candidate). Not validated: read this section b
 - **The debt score is unvalidated.** The two backtests were mostly null and test only a proxy (see
   below). Nothing here shows that a high score means real trouble.
 - **The quizzes are unvalidated.** A study to test whether they separate people who know the code
-  from people who don't is written and pre-registered ([docs/STUDY_PROTOCOL.md](docs/STUDY_PROTOCOL.md)) and
+  from people who don't is written and pre-registered ([docs/STUDY_PROTOCOL.md](https://github.com/Adityakk9031/cdebt/blob/main/docs/STUDY_PROTOCOL.md)) and
   **has not been run**.
 - **Most clearing will be NON-VERIFIED attestation, not quizzing**: on two of the three pilot repos
   most AI lines in the top files could only be attested, not verified (details below).
 - **The gate is advisory by default**; it only fails a build with `--enforce`.
 - **Windows is unsupported** for anything that executes code (`quiz`, `attest`, `coverage`,
   `study init`); those commands exit with a message pointing to WSL2. The Windows CI job covers the
-  rest; see [docs/V1_CHECKLIST.md](docs/V1_CHECKLIST.md) for its current status.
-- Reviewed only by its author and an AI, not independently; see [SECURITY.md](SECURITY.md).
+  rest; see [docs/V1_CHECKLIST.md](https://github.com/Adityakk9031/cdebt/blob/main/docs/V1_CHECKLIST.md) for its current status.
+- Reviewed only by its author and an AI, not independently; see [SECURITY.md](https://github.com/Adityakk9031/cdebt/blob/main/SECURITY.md).
 - **Newest features, lightly tested:** questions proposed by your own coding agent, the adaptive quiz
   and the pre-push flow were tested with a fake agent and real git, and the agent connection was
   run once end to end with the real Claude Code CLI (other agents are unverified). A record is made locally, so a determined
   person can forge one; CI re-execution catches wrong answers, not hand-written correct ones
-  ([docs/LIMITS.md](docs/LIMITS.md)).
+  ([docs/LIMITS.md](https://github.com/Adityakk9031/cdebt/blob/main/docs/LIMITS.md)).
 
 | command | what it does |
 |---|---|
@@ -43,7 +43,7 @@ Experimental pre-release (release candidate). Not validated: read this section b
 | `cdebt plan` | Ranked pay-down plan (quiz / review / rewrite-or-delete) with effort estimates |
 | `cdebt backtest` | Does the (proxy) score predict later fixes and reverts on AIDev? Reproducible, published as measured |
 | `cdebt index` | Build the SCIP index/indexes (Python and TypeScript) used for exact call-graph facts and blast radius |
-| `cdebt study` | Validity-study kit: fixed question set, anonymous responses, team-level analysis (see [docs/STUDY_PROTOCOL.md](docs/STUDY_PROTOCOL.md)); not yet run |
+| `cdebt study` | Validity-study kit: fixed question set, anonymous responses, team-level analysis (see [docs/STUDY_PROTOCOL.md](https://github.com/Adityakk9031/cdebt/blob/main/docs/STUDY_PROTOCOL.md)); not yet run |
 | `cdebt init` | Sets up the pre-push flow, asking before every change: a pre-push hook (never overwrites an existing one), `.cdebt/policy.toml`, a GitHub workflow, and optionally a GitHub ruleset that requires the `cdebt / gate` check |
 | `cdebt quiz --pr N` | Take the quiz for an existing PR, push the notes, and ask CI to re-check |
 | `cdebt agent connect` | Opt in to letting your own coding agent propose the quiz questions (cdebt still runs every question to get the answer) |
@@ -64,15 +64,15 @@ Experimental pre-release (release candidate). Not validated: read this section b
    accepted only for module-level code and for functions a quiz cannot verify.
 4. **Backtested.** `cdebt backtest` runs a pre-registered analysis on the AIDev dataset and
    reports effect sizes with confidence intervals, including null results
-   ([docs/RESULTS.md](docs/RESULTS.md)).
+   ([docs/RESULTS.md](https://github.com/Adityakk9031/cdebt/blob/main/docs/RESULTS.md)).
 
 ## What we know and don't know
 
-**Know (tested; evidence in [docs/VERIFICATION.md](docs/VERIFICATION.md) and [docs/V1_CHECKLIST.md](docs/V1_CHECKLIST.md)):**
+**Know (tested; evidence in [docs/VERIFICATION.md](https://github.com/Adityakk9031/cdebt/blob/main/docs/VERIFICATION.md) and [docs/V1_CHECKLIST.md](https://github.com/Adityakk9031/cdebt/blob/main/docs/V1_CHECKLIST.md)):**
 the tool runs end to end on real repos; the Git AI notes parser handles real notes from
 git-ai versions 1.0.0 through 1.7.5; the sandbox contains the escape payloads in its test and fuzz suites,
 including a second adversarial pass that found and fixed real holes
-([docs/THREAT_MODEL.md](docs/THREAT_MODEL.md)); the GitHub Action posts and then edits a single PR
+([docs/THREAT_MODEL.md](https://github.com/Adityakk9031/cdebt/blob/main/docs/THREAT_MODEL.md)); the GitHub Action posts and then edits a single PR
 comment (see VERIFICATION.md for the run URLs).
 
 **Don't know whether the score predicts trouble.** Two analyses on the AIDev dataset, both
@@ -90,17 +90,17 @@ published as measured:
 Both test only a proxy (human review evidence, plus churn in the first analysis); the dataset has no
 cdebt records, no blast radius and no quiz results, and fixes are visible only when they are
 themselves agent PRs. So the honest reading is: **mostly null, proxy only, nothing here shows
-the score works, and nothing shows it doesn't.** See [docs/RESULTS.md](docs/RESULTS.md) and
-[docs/RESULTS_MATCHED.md](docs/RESULTS_MATCHED.md).
+the score works, and nothing shows it doesn't.** See [docs/RESULTS.md](https://github.com/Adityakk9031/cdebt/blob/main/docs/RESULTS.md) and
+[docs/RESULTS_MATCHED.md](https://github.com/Adityakk9031/cdebt/blob/main/docs/RESULTS_MATCHED.md).
 
-**Also know (from the pilot on three real repos, [docs/CASE_STUDIES.md](docs/CASE_STUDIES.md)):**
+**Also know (from the pilot on three real repos, [docs/CASE_STUDIES.md](https://github.com/Adityakk9031/cdebt/blob/main/docs/CASE_STUDIES.md)):**
 quiz coverage is narrow and varies a lot by repo. On the 25 highest-debt files, the share of AI
 lines a quiz could verify was 19% for one Python repo, 77% for another (with a call-graph index) and
 33% for the TypeScript repo; the rest could only be attested (23%, 81% and 61%) or, for JSX files,
 not covered at all (6%)
 [src: docs/case_studies/space_chassis.coverage.json, docs/case_studies/agent-meta.coverage.json, docs/case_studies/hive.coverage-ts.json].
 Re-measured on 2026-10-22, `space_chassis` gives 9% for the same settings [src: docs/case_studies/space_chassis.coverage.2026-10-22.json] (the top-25 selection moves with the date, so treat these as examples, not constants).
-In the 12 highest-debt Python files of two of these repos, the built-in generator could quiz 1 of 565 AI-written functions and the real Claude Code agent added 40 (7.1%) [src: docs/case_studies/agent_benchmark.summary.json]; 55 of its 130 proposals were verified by execution, and all 22 answers that could be compared agreed with a second sandbox path ([docs/AGENT_BENCHMARK.md](docs/AGENT_BENCHMARK.md)).
+In the 12 highest-debt Python files of two of these repos, the built-in generator could quiz 1 of 565 AI-written functions and the real Claude Code agent added 40 (7.1%) [src: docs/case_studies/agent_benchmark.summary.json]; 55 of its 130 proposals were verified by execution, and all 22 answers that could be compared agreed with a second sandbox path ([docs/AGENT_BENCHMARK.md](https://github.com/Adityakk9031/cdebt/blob/main/docs/AGENT_BENCHMARK.md)).
 Runtime probes need typed, side-effect-free functions and, for TypeScript, modules plain Node can
 resolve; call-graph probes need a SCIP index. Run `cdebt coverage` before trusting any gate.
 
@@ -123,12 +123,14 @@ resolve; call-graph probes need a SCIP index. Run `cdebt coverage` before trusti
 
 `examples/first_user/` builds a small demo project with an AI-written change and walks through
 install, setup, the quiz on `git push`, and the gate:
-[DEMO_SCRIPT.md](examples/first_user/DEMO_SCRIPT.md) and `setup_demo.sh`.
+[DEMO_SCRIPT.md](https://github.com/Adityakk9031/cdebt/blob/main/examples/first_user/DEMO_SCRIPT.md) and `setup_demo.sh`.
 
 ## 60-second demo
 
 ```bash
-# Python 3.11+. From GitHub (the PyPI pre-release comes after the first release is published):
+# Python 3.11+. The first releases are pre-releases, so ask for them with --pre:
+pip install --pre "cdebt[agent]"          # from PyPI
+# or straight from GitHub:
 pip install "cdebt[agent] @ git+https://github.com/Adityakk9031/cdebt"
 bash examples/demo.sh        # builds a throwaway repo and walks map -> quiz -> map -> gate
 ```
@@ -176,12 +178,12 @@ cdebt only reads the notes; it never writes to your repo except `.cdebt/`.
 ```
 
 It runs `cdebt gate`, fetches `refs/notes/ai` best-effort, writes a job summary and a sticky PR
-comment. It is advisory unless you set `enforce: "true"`. See [docs/VERIFICATION.md](docs/VERIFICATION.md) for what was tested on a real PR.
+comment. It is advisory unless you set `enforce: "true"`. See [docs/VERIFICATION.md](https://github.com/Adityakk9031/cdebt/blob/main/docs/VERIFICATION.md) for what was tested on a real PR.
 
 ## Safety model
 
 `cdebt quiz`, `coverage`, `attest` and `study init` **run code from the repository you point them
-at**. Read the [threat model](docs/THREAT_MODEL.md) first.
+at**. Read the [threat model](https://github.com/Adityakk9031/cdebt/blob/main/docs/THREAT_MODEL.md) first.
 
 - Repositories are **untrusted by default**: probes run in Docker (image already pulled) or, on
   macOS, under a strict Seatbelt profile (no network, no writes outside a temp dir, cannot read
@@ -208,7 +210,7 @@ uv run pytest -q && uv run ruff check . && uv run mypy src
 bash scripts/make_gitai_fixtures.sh   # regenerate real Git AI fixtures (needs git-ai)
 ```
 
-Docs: [PLAN](docs/PLAN.md) · [METHOD](docs/METHOD.md) · [LIMITS](docs/LIMITS.md) ·
-[RESULTS](docs/RESULTS.md)
+Docs: [PLAN](https://github.com/Adityakk9031/cdebt/blob/main/docs/PLAN.md) · [METHOD](https://github.com/Adityakk9031/cdebt/blob/main/docs/METHOD.md) · [LIMITS](https://github.com/Adityakk9031/cdebt/blob/main/docs/LIMITS.md) ·
+[RESULTS](https://github.com/Adityakk9031/cdebt/blob/main/docs/RESULTS.md)
 
 License: Apache-2.0.

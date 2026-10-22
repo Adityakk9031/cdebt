@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.1.0rc2
+
+- README links are absolute so they work on the PyPI page; the install section shows
+  `pip install --pre "cdebt[agent]"`. The PyPI publish workflow is manual-only. No code changes
+  since 1.1.0rc1.
+
 ## 1.1.0rc1
 
 - **Questions from the developer's own coding agent.** `cdebt agent connect` (opt-in, saved in the
