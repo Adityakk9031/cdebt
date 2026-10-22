@@ -1,0 +1,24 @@
+name: cdebt-gate-local
+# TEST workflow: the same job as gate.yml but on a self-hosted runner (label cdebt-local), so the
+# real Actions plumbing (PR trigger, /cdebt recheck comment trigger, check run, bot comment) can be
+# tested while GitHub-hosted minutes are unavailable. Remove this file when hosted CI works again.
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+  issue_comment:
+    types: [created]
+permissions: {contents: read, pull-requests: write, issues: write, checks: write}
+jobs:
+  gate-local:
+    if: >-
+      github.event_name == 'pull_request' ||
+      (github.event.issue.pull_request && contains(github.event.comment.body, '/cdebt recheck') &&
+       contains(fromJSON('["OWNER","MEMBER","COLLABORATOR"]'), github.event.comment.author_association))
+    runs-on: [self-hosted, cdebt-local]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ github.event_name == 'issue_comment' && format('refs/pull/{0}/head', github.event.issue.number) || '' }}
+      - uses: ./
+        with: {version: ".", comment: "true", recheck: "true"}
