@@ -118,3 +118,64 @@ def test_node_probe_runs_in_docker(tmp_path: Path) -> None:
     assert res.isolation == "docker" and res.payload, res.stderr
     assert res.payload["values"]["S"][0] == "42" and res.payload["values"]["R"][0] == "2"
     assert not (root / "x.txt").exists()
+
+
+def test_agent_trace_probes_and_ci_recheck_run_in_docker(tmp_path: Path) -> None:
+    """The v1.1 traced mode (agent-proposed probes) and the CI re-execution, inside the container:
+    the isolation CI uses for an untrusted pull request."""
+    from cdebt.agents.probes import Rejected, execute, parse_proposal
+    from cdebt.config import Config
+    from cdebt.models import Record
+    from cdebt.recheck import verify_record
+
+    (tmp_path / "pkg").mkdir()
+    (tmp_path / "pkg" / "__init__.py").write_text("")
+    src = (
+        "def shipping(total: int, express: bool = False) -> int:\n"
+        "    base = 0 if total >= 50 else 5\n"
+        "    if express:\n        base = base + 10\n    return base\n"
+    )
+    (tmp_path / "pkg" / "shop.py").write_text(src)
+    subprocess.run(["git", "init", "-q", str(tmp_path)], check=True)
+    cfg = Config()
+
+    def run(**kw):  # type: ignore[no-untyped-def]
+        return execute(
+            tmp_path, "pkg/shop.py", parse_proposal(kw), cfg, proposer="agent:t", source=src
+        )
+
+    p = run(
+        target="shipping",
+        kind="return_value",
+        call_inputs={"args": [60], "kwargs": {"express": True}},
+    )
+    assert p.answer == "10" and p.evidence["isolation"] == "docker"
+    b = run(target="shipping", kind="branch_taken", call_inputs={"args": [10]}, line=4)
+    assert b.answer == "no"
+    v = run(
+        target="shipping",
+        kind="variable_at_line",
+        call_inputs={"args": [10, True]},
+        line=5,
+        variable="base",
+    )
+    assert v.answer == "15"
+    with pytest.raises(Rejected, match="replaced the target"):
+        run(target="shipping", kind="return_value", question="mock",
+            harness_code="def probe():\n    target_module.shipping = lambda *a, **k: 3\n    return target_module.shipping(1)\n")  # fmt: skip
+    # CI re-execution of a genuine record passes; a doctored answer fails
+    for q in (p, b, v):
+        q.user_answer, q.correct = q.answer, True
+    rec = Record(
+        unit_path="pkg/shop.py",
+        unit_symbol="shipping",
+        content_hash="h",
+        probes=[p, b, v],
+        passed=True,
+    )
+    assert verify_record(tmp_path, "pkg/shop.py", rec, cfg, src).ok
+    wrong = next(o for o in p.options if o != p.answer)
+    p.answer, p.user_answer = wrong, wrong
+    bad = verify_record(tmp_path, "pkg/shop.py", rec, cfg, src)
+    assert not bad.ok and "does not match re-execution" in (bad.reason or "")
+    assert _leftover() == []

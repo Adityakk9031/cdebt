@@ -70,6 +70,7 @@ select = ["E", "F", "I", "UP", "B", "SIM"]
 "tests/test_sandbox_node_fuzz.py" = ["E501", "F541"]
 "tests/test_claims.py" = ["E501"]
 "src/cdebt/init.py" = ["E501"]  # YAML/TOML templates
+"tests/test_sandbox_docker.py" = ["E501"]
 "tests/test_agents.py" = ["E501"]  # harness code strings
 "tests/_fake_agent.py" = ["E501"]
 "tests/test_adaptive.py" = ["E501"]
