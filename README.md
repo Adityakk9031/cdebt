@@ -119,6 +119,12 @@ resolve; call-graph probes need a SCIP index. Run `cdebt coverage` before trusti
    understood. To block merges, make `cdebt / gate` a required check and turn `enforce` on.
 4. Anyone can run `cdebt quiz --pr 123` and comment `/cdebt recheck` to clear it.
 
+## A first-user walkthrough you can follow or record
+
+`examples/first_user/` builds a small demo project with an AI-written change and walks through
+install, setup, the quiz on `git push`, and the gate:
+[DEMO_SCRIPT.md](examples/first_user/DEMO_SCRIPT.md) and `setup_demo.sh`.
+
 ## 60-second demo
 
 ```bash
