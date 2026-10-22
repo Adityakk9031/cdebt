@@ -8,10 +8,12 @@ inputs:
   recheck: {description: "Re-execute recorded probes in the sandbox (needs Docker)", default: "true"}
   version: {description: "cdebt version to install (pip spec)", default: "cdebt"}
   python-version: {description: "Python version", default: "3.12"}
+  setup-python: {description: "Run actions/setup-python (set false on a self-hosted runner that already has python 3.11+ on PATH)", default: "true"}
 runs:
   using: composite
   steps:
-    - uses: actions/setup-python@v5
+    - if: ${{ inputs.setup-python == 'true' }}
+      uses: actions/setup-python@v5
       with: {python-version: "${{ inputs.python-version }}"}
     - shell: bash
       run: python -m pip install --quiet "${{ inputs.version }}"
