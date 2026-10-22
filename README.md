@@ -28,8 +28,8 @@ Pre-release (1.0.0 release candidate), **not published**: not on PyPI, no stable
   rest; see [docs/V1_CHECKLIST.md](docs/V1_CHECKLIST.md) for its current status.
 - Reviewed only by its author and an AI, not independently; see [SECURITY.md](SECURITY.md).
 - **Newest features, lightly tested:** questions proposed by your own coding agent, the adaptive quiz
-  and the pre-push flow were tested with a fake agent and real git, not with a real agent end to
-  end (the only real CLI available was not logged in). A record is made locally, so a determined
+  and the pre-push flow were tested with a fake agent and real git, and the agent connection was
+  run once end to end with the real Claude Code CLI (other agents are unverified). A record is made locally, so a determined
   person can forge one; CI re-execution catches wrong answers, not hand-written correct ones
   ([docs/LIMITS.md](docs/LIMITS.md)).
 

@@ -224,3 +224,14 @@ def test_mcp_server_applies_untrusted_isolation_unless_the_user_chose_trusted(tm
         assert "--trusted" in adapters.mcp_argv(tmp_path)
     finally:
         sandbox.set_default_isolation(old)
+
+
+def test_a_question_from_both_the_agent_and_the_builtin_generator_is_asked_once(
+    make_repo, tmp_path, monkeypatch
+) -> None:  # type: ignore[no-untyped-def]
+    r = _repo(make_repo)
+    monkeypatch.setenv("FAKE_AGENT_REPORT", str(tmp_path / "report.json"))
+    choice = AgentChoice(name="command", command=f"{sys.executable} {FAKE}")
+    probes, _u, _s = build_quiz(r.path, "pkg/shop.py", Config(), agent=choice, n=20, per_unit=6)
+    qs = [p.question for p in probes]
+    assert len(qs) == len(set(qs))

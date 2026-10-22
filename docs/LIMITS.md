@@ -118,6 +118,7 @@ causation. Blast radius and the quiz itself are not evaluated.
   squash moves the commits and the notes stay on the old ones: re-run `cdebt quiz --pr`.
 - **Blank and comment-only lines are not gated.** They carry no behaviour. Changes to behaviour
   hidden in a comment-only line do not exist; a change to a string or docstring still counts.
-- **Adapters.** Only the Claude Code adapter was exercised against a real CLI (2.1.299). The
+- **Adapters.** Only the Claude Code adapter was exercised end to end against a real CLI (2.1.299), on one tiny
+  repository. The
   `codex` and `cursor` adapters are UNVERIFIED (those CLIs were not installed); `command` is the
   generic route.

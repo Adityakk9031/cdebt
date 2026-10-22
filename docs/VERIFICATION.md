@@ -308,3 +308,16 @@ jobs still have not run for this version.
 `test_agent_trace_probes_and_ci_recheck_run_in_docker`: agent-proposed trace probes, the mock
 rejection and the CI re-execution (genuine record accepted, doctored answer rejected) all ran
 inside the container, with no leftover containers. The VM was stopped afterwards.
+
+### Real coding agent end to end (Claude Code 2.1.299, 2026-10-22)
+
+After the author logged in, `cdebt quiz pkg/shop.py --emit` ran the real `claude -p` headlessly
+through the adapter (strict macOS sandbox, no `--trusted`) on a throwaway repo with a function that
+uses `time` and a test file. Run 1: 11 proposals, 5 accepted, 5 verified questions in 21 s,
+including boundary cases such as `shipping(49, express=True)` and `shipping(50, True)`. Run 2: 11
+proposals, 7 accepted and verified in 23 s; the agent proposed "With time.time mocked to return
+1234.9, what does stamp() return?", a clock-reading function the builtin generator skips; cdebt ran
+the real function under the mock to get the answer. The agent was told only accepted/rejected.
+Run 1 asked the same constant question twice (agent and builtin); fixed (a question from two
+sources is asked once, with a test). Not covered: more than one small repository, the quality of
+questions on real code, a long agent run, and the codex and cursor adapters.

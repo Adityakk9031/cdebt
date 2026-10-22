@@ -7,9 +7,10 @@
   questions, call inputs and test harnesses through `cdebt mcp` (tools `get_targets`,
   `propose_probe`; the reply is only accepted/rejected, never an answer). cdebt executes every
   proposal in the sandbox, twice, and discards anything it cannot verify, including harnesses
-  whose execution trace shows the real target did not run. Python only. Only the Claude Code
-  adapter's flags were checked against a real CLI; a full agent run was not possible (the CLI was
-  not logged in): UNVERIFIED end to end. `codex` and `cursor` adapters are UNVERIFIED.
+  whose execution trace shows the real target did not run. Python only. The Claude Code
+  adapter was run end to end against the real CLI (2.1.299): the agent proposed questions, cdebt
+  verified them by execution, including one for a clock-reading function that the builtin generator
+  skips. `codex` and `cursor` adapters are UNVERIFIED.
 - **Adaptive quiz.** Easy/hard labels, a harder question after a wrong answer, up to 3 rounds per
   unit, and 1-2 timed follow-ups (answered by tracing the real execution) when a hard question was
   answered no slower than the easy ones. Timing is kept in memory only and never stored.

@@ -82,6 +82,15 @@ def build_quiz(
                 u = next((x for x in units if x.symbol == p.symbol), None)
                 p.difficulty = difficulty_of(p.kind, branch_count(source, u) if u else 0)
                 p.proposer = p.proposer or "builtin"
+    seen_q: set[str] = set()  # the same question from two sources is asked once (agent first)
+    for k in dict.fromkeys(("agent", *pool)):
+        kept: list[Probe] = []
+        for p in pool.get(k, []):
+            if p.question not in seen_q:
+                seen_q.add(p.question)
+                kept.append(p)
+        if k in pool:
+            pool[k] = kept
     # prefer units that are not yet understood, then spread round-robin across units
     status = {u.symbol: store.status(u) for u in units}
     order = sorted(

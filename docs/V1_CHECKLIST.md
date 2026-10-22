@@ -7,7 +7,7 @@ given). Nothing has been published: the repository is private, nothing is on PyP
 
 | bar | status | evidence |
 |---|---|---|
-| Agent-proposed questions, verified by execution (MCP server, adapters) | done with fake agent; **real agent UNVERIFIED** | `tests/test_agents.py`, `tests/_fake_agent.py`; the real Claude CLI accepted the flags but was not logged in (`docs/VERIFICATION.md`). codex / cursor adapters UNVERIFIED |
+| Agent-proposed questions, verified by execution (MCP server, adapters) | done: fake agent in tests, **real Claude Code CLI end to end on one tiny repo**; codex / cursor UNVERIFIED | `tests/test_agents.py`, `tests/_fake_agent.py`; `docs/VERIFICATION.md` |
 | Agent never sees an answer; cannot pick itself from a repo | done | `test_end_to_end_with_a_fake_mcp_agent` (scans the session dir), `test_user_config_roundtrip_and_never_from_the_repo` |
 | Adaptive quiz, timed follow-ups, 3-round cap, no timing persisted | done | `tests/test_adaptive.py`; a real pty run showed the countdown and follow-ups (`docs/VERIFICATION.md`) |
 | Pre-push hook: quiz on the terminal, notes pushed before the branch, never blocks, no-TTY notice, `--no-verify` caught by CI logic | done locally | `tests/test_prflow.py` (real git + bare remote), real run on PR 3 / PR 4 |
