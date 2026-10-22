@@ -1,4 +1,4 @@
-# cdebt: measuring the code nobody has understood (draft, not published)
+# cdebt: measuring the code nobody has understood
 
 AI agents now write a large share of the code in some repositories, reviews get skipped or
 rubber-stamped, and nobody can say how big the gap is between the code that exists and the code a
@@ -10,7 +10,14 @@ what we could not show.
 
 - **`cdebt map`** ranks files by AI-written code that nobody has verifiably understood.
 - **`cdebt quiz`** asks questions whose answers come from *executing* the code (function results,
-  call graphs, module constants), never from a model grading free text.
+  call graphs, module constants), never from a model grading free text. Optionally your **own
+  coding agent writes the questions** (through an MCP server); cdebt runs every question itself to
+  get the true answer and never tells the agent. A wrong answer earns a harder question, and
+  unusually even answering earns a short timed follow-up checked by tracing the real execution;
+  timing is never stored.
+- **`cdebt init`** sets up a pre-push hook that quizzes you on your own terminal before the push
+  and pushes the proof as a git note, and a GitHub Action that posts one comment on the pull
+  request marking **code** (never a person) as understood or not.
 - **`cdebt attest`** records a human sign-off for code a quiz cannot cover. It is labelled
   NON-VERIFIED everywhere and counts for less.
 - **`cdebt gate`** reports on a pull request that changes AI-attributed lines in code nobody has
@@ -45,11 +52,26 @@ managed 19% verifiable and 81% attest-only [src: docs/case_studies/space_chassis
 The call-graph questions carry most of the verifiable share. Runtime questions need pure,
 typed functions, which top-debt files often are not.
 
+**Does letting your own agent write the questions help?** On the 12 highest-debt Python files of
+two of those repositories (565 AI-written functions), the built-in generator could quiz 1 function;
+the real Claude Code agent added 40 more (7.1%) [src: docs/case_studies/agent_benchmark.summary.json].
+It made 130 proposals and cdebt verified 55 of them by execution; all 22 agent answers that could be
+compared agreed with a second, independent sandbox path
+([docs/AGENT_BENCHMARK.md](AGENT_BENCHMARK.md)). So it helps where the built-in generator finds
+almost nothing, but it is under a tenth of the AI-written code on files this hard. Re-measuring
+`space_chassis` today gave 9% verifiable with no agent
+[src: docs/case_studies/space_chassis.coverage.2026-10-22.json]: the top-25 selection moves with the
+date, so read all the percentages above as examples from one day, not constants.
+
 **What did the pilot cost to fix?** Running on real repositories found problems the unit tests
 did not: a screen so strict that almost no file produced a question, a parser crash on real Git AI
 notes, a quadratic blast-radius step that made `map` take 53.7 s on a 509-file repo (now 9.8 s with
 a warm cache) [src: docs/case_studies/perf.json]. The full list, including what looked wrong or
-confusing, is in `docs/CASE_STUDIES.md`.
+confusing, is in `docs/CASE_STUDIES.md`. Measuring the agent on those same repositories also found a
+regression we had introduced: our own sandbox hardening blocked `sys._getframe`, which `@dataclass`,
+`logging`, `argparse` and even `import pathlib` rely on, so none of 444 AI-written functions could be
+quizzed [src: docs/case_studies/agent_benchmark.summary.json]. It is fixed and tested, and it is the
+kind of mistake only measuring real code catches.
 
 ## Security: this tool runs code
 
@@ -77,12 +99,15 @@ before running it on code you do not trust.
   planning estimate is about 46 participants [src: docs/study_power.json]. We have not run it.
   `cdebt study` gives any team the kit to run it on their own repository and share only
   team-level aggregates.
-- **Not finished, and not published.** This is a pre-release that has not been published anywhere;
-  it was reviewed only by its author and an AI. Windows is unsupported for anything that executes code. Mutation probes are
-  Python-only. Attestation is easy to over-use. See `docs/LIMITS.md`.
+- **Not finished.** This is an experimental pre-release, reviewed only by its author and an AI.
+  Only the Claude Code agent was run end to end (other adapters are unverified). Records are made
+  locally, so a determined person can forge one; CI re-execution catches wrong answers, not
+  hand-written correct ones. Windows is unsupported for anything that executes code. Mutation probes
+  are Python-only. Attestation is easy to over-use. See `docs/LIMITS.md`.
 
 ## What we need
 
-Teams willing to run `cdebt coverage` on a real repository and tell us what looks wrong, and teams
-willing to run the study. The most useful outcome of the next few months is not a bigger number,
+Try it on a real repository (`cdebt coverage` first, then `cdebt init`), and tell us what looks
+wrong. A walkthrough you can follow is in `examples/first_user/`. We also need teams willing to run
+the study. The most useful outcome of the next few months is not a bigger number,
 it is a clear answer to whether the quizzes measure what we say they measure.

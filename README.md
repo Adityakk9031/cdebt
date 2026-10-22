@@ -13,7 +13,7 @@ and nobody knows how big the gap is. `cdebt` tries to make it visible and testab
 
 ## Status (read this before using it)
 
-Pre-release (1.0.0 release candidate), **not published**: not on PyPI, no stable release.
+Experimental pre-release (release candidate). Not validated: read this section before relying on it.
 
 - **The debt score is unvalidated.** The two backtests were mostly null and test only a proxy (see
   below). Nothing here shows that a high score means real trouble.
@@ -128,8 +128,8 @@ install, setup, the quiz on `git push`, and the gate:
 ## 60-second demo
 
 ```bash
-# not on PyPI yet: install from a checkout
-pip install .                # Python 3.11+
+# Python 3.11+. From GitHub (the PyPI pre-release comes after the first release is published):
+pip install "cdebt[agent] @ git+https://github.com/Adityakk9031/cdebt"
 bash examples/demo.sh        # builds a throwaway repo and walks map -> quiz -> map -> gate
 ```
 

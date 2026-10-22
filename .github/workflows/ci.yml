@@ -1,8 +1,4 @@
 name: ci
-# Free-minutes friendly: on every push/PR only the cheap Ubuntu checks run (one Python, Docker
-# sandbox, package build). The full matrix (macOS x3 Pythons, Windows, the 20x repeat-suite and the
-# macOS/Windows package smoke tests, which cost many more minutes) runs on a manual
-# "Run workflow" (workflow_dispatch). Run it before a release.
 on:
   push:
   pull_request:
@@ -16,8 +12,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: ${{ fromJSON(github.event_name == 'workflow_dispatch' && '["ubuntu-latest","macos-latest"]' || '["ubuntu-latest"]') }}
-        python: ${{ fromJSON(github.event_name == 'workflow_dispatch' && '["3.11","3.12","3.13"]' || '["3.12"]') }}
+        os: [ubuntu-latest, macos-latest]
+        python: ["3.11", "3.12", "3.13"]
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
@@ -31,7 +27,6 @@ jobs:
       - run: uv run python scripts/check_claims.py README.md docs/LAUNCH_POST.md
       - run: uv run pytest -q
   windows:
-    if: github.event_name == 'workflow_dispatch'
     # Windows: everything that does not execute code (map, gate, plan, attribution, store,
     # backtest, caching, study analysis). Probe execution is unsupported there and fails with a
     # clear message (tests/test_windows_message.py); the POSIX-sandbox tests are skipped.
@@ -56,7 +51,7 @@ jobs:
       - run: docker pull python:3.11-slim && docker pull node:24-slim
       - run: uv run pytest tests/test_sandbox_docker.py tests/test_sandbox.py tests/test_sandbox_node.py -q -rs
   repeat-suite:
-    if: github.event_name == 'workflow_dispatch'
+    if: github.event_name != 'pull_request'
     # Flake gate: the whole suite 20 times in a row on a GitHub-hosted runner (Docker present,
     # so the Docker sandbox tests run too). Any single failure fails the job.
     runs-on: ubuntu-latest
@@ -73,7 +68,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: ${{ fromJSON(github.event_name == 'workflow_dispatch' && '["ubuntu-latest","macos-latest","windows-latest"]' || '["ubuntu-latest"]') }}
+        os: [ubuntu-latest, macos-latest, windows-latest]
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4

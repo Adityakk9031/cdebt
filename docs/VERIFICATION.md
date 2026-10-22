@@ -1,10 +1,12 @@
 # Verification log
 
+> Run and PR numbers below refer to the author's **private development repository** and a private test mirror (they are not clickable here). The code in this repository is the same; only history identities differ.
+
 What was actually run, where, and what it showed. Dates are 2026-10-17/18.
 
 ## GitHub Action on a real PR
 
-Scratch private repo `Adityakk9031/cdebt-action-scratch` (action.yml + script copied in,
+Scratch private repo `a private scratch repository` (action.yml + script copied in,
 `cdebt` installed from the in-repo source via the action's `version` input).
 PR #1 changed `sample/shop.py` in a commit with a `Co-Authored-By: Claude` trailer.
 
@@ -21,7 +23,7 @@ action under a stable `uses:` ref.
 
 ## CI on real runners
 
-Scratch repo `Adityakk9031/cdebt-ci-scratch`, workflow `.github/workflows/ci.yml`:
+Scratch repo `a second private scratch repository`, workflow `.github/workflows/ci.yml`:
 run 39062309469 passed all 7 jobs: ubuntu and macOS x Python 3.11/3.12/3.13 (ruff, mypy,
 pytest) plus the `docker-sandbox` job. Earlier runs on the same repo found, and we fixed:
 
@@ -110,17 +112,17 @@ its inherited CPU rlimit. Hostile native code is out of scope (see `docs/LIMITS.
 
 ## Release candidate 2 (1.0.0rc2): private repo, CI, Action, flake gate
 
-Dates are 2026-10-19/20. The repository is private: `Adityakk9031/cdebt` (visibility checked with
+Dates are 2026-10-19/20. The repository is private: `the private development repository` (visibility checked with
 `gh repo view --json visibility` before every push). Nothing is on PyPI and no release exists.
 
 ### CI on real runners (this repository)
 
 Final green run on commit 10bd203:
-<https://github.com/Adityakk9031/cdebt/actions/runs/39302371977> (all jobs success): Windows,
+run 39302371977 (all jobs success): Windows,
 Ubuntu x Python 3.11/3.12/3.13, macOS x Python 3.11/3.12/3.13, `docker-sandbox`, `package`
 (Windows, macOS, Ubuntu: sdist + wheel, `twine check`, clean-venv install and smoke test) and
 `repeat-suite` (`scripts/repeat_suite.sh 20`: the whole suite 20 times in a row on Ubuntu with
-Docker; job <https://github.com/Adityakk9031/cdebt/actions/runs/39302371977/job/118231067498>).
+Docker; job run 39302371977).
 
 Failures met on the way and what was done:
 
@@ -137,7 +139,7 @@ Anything that executes code is unsupported on Windows and exits with the WSL2 me
 ### Action on real PRs
 
 Workflow `cdebt-gate` (`.github/workflows/gate.yml`) runs the composite action from this repo.
-PR <https://github.com/Adityakk9031/cdebt/pull/1> (branch `ai-sample`, AI-attributed through a
+PR PR 1 (branch `ai-sample`, AI-attributed through a
 `Co-Authored-By` trailer, so source `trailer`, coarse):
 
 - Commit 6dbf608 "Add sample pricing helper": run 39301629670 created the sticky comment
@@ -164,7 +166,7 @@ Attribution sources on changed AI lines: `trailer`: 7.
 The text of the comment as first created is not reproduced here (GitHub keeps only the current body).
 
 **Fork case: simulated, not run from a real fork.** PR
-<https://github.com/Adityakk9031/cdebt/pull/2> (branch `ro-token-sim`, commit 792b6a7) ran with a
+PR 2 (branch `ro-token-sim`, commit 792b6a7) ran with a
 read-only token to imitate what a fork PR gets (run 39301992728, job success). No cdebt comment
 was posted, and the job still succeeded: the comment step degrades gracefully. A real fork needs a
 second GitHub account and was **not** tested. (A third-party review bot also comments on these
@@ -188,9 +190,9 @@ PRs; it is unrelated to cdebt.)
 on this round's commits was refused with the annotation "The job was not started because recent
 account payments have failed or your spending limit needs to be increased. Please check the
 'Billing & plans' section in your settings": CI on d1a25e8
-(<https://github.com/Adityakk9031/cdebt/actions/runs/39641670611>, 12 of 12 jobs), the push runs on
+(run 39641670611, 12 of 12 jobs), the push runs on
 943a771 (runs 39641876571 and 39641903035) and the Action on PR 3
-(<https://github.com/Adityakk9031/cdebt/actions/runs/39641902970>). So for this round there is **no
+(run 39641902970). So for this round there is **no
 CI result on Linux, macOS or Windows and no GitHub-hosted Action run**. The previous round's green
 CI (1.0.0rc2, run 39302371977) does not cover the new code. **Needs-human:** fix billing, then
 re-run CI and `cdebt-gate` on the PRs below. Local checks that stand in for CI are not equivalent.
@@ -204,19 +206,19 @@ pty (script `ptypush.py`, scratch only): 16 questions, **the first answer delibe
 harder branch question followed at once), **three timed follow-ups** (policy ratio set to 1000 to
 force the trigger; the countdown line `[  15 s left] answer:` was shown), all three functions
 UNDERSTOOD (verified), `cdebt: notes pushed before the branch`, then the branch push. Remote
-refs afterwards: `refs/notes/ai`, `refs/notes/cdebt`. PR: <https://github.com/Adityakk9031/cdebt/pull/3>.
+refs afterwards: `refs/notes/ai`, `refs/notes/cdebt`. PR: PR 3.
 
 ### Action script, run LOCALLY (not by GitHub Actions)
 
 `scripts/action_run.sh` was run on this Mac with `GITHUB_REPOSITORY`, `PR_NUMBER` and a token set,
-so the comments below were posted by the user's account (`Adityakk9031`), **not by the Actions
+so the comments below were posted by the user's account (`the author account`), **not by the Actions
 bot**. It fetched both notes refs and ran `gate --recheck` (every recorded probe re-executed in the
 sandbox).
 
 - PR 3, comment 6322025508: `cdebt: all AI-written changed lines are understood (advisory)`; each
   unit listed `understood (verified by execution), re-checked`; attribution `git-ai`: 18 lines (the
   four blank lines of the 22 were not gated).
-- PR 4 <https://github.com/Adityakk9031/cdebt/pull/4>, branch pushed with `git push --no-verify`
+- PR 4 PR 4, branch pushed with `git push --no-verify`
   (hook skipped): first run, comment 6322042105: `cdebt: 7 AI-written lines not understood
   (advisory)`, `demo/shipping.py::shipping_cost  1-7  NOT UNDERSTOOD (not_quizzed)`, hint
   ``Run `cdebt quiz --pr 4` locally to clear, then comment `/cdebt recheck`.``; `cdebt gate --enforce
@@ -283,10 +285,10 @@ attempts before the passing ones; none was a cdebt defect. This is **not** a Git
 Docker was not used here (macOS strict sandbox), and the hosted `test`/`docker-sandbox`/`package`
 jobs still have not run for this version.
 
-- PR 3 <https://github.com/Adityakk9031/cdebt/pull/3>, run 39738307837 (`pull_request`, success):
+- PR 3 PR 3, run 39738307837 (`pull_request`, success):
   the Actions token created the check run `cdebt / gate` (app `github-actions`, conclusion
   `success`).
-- PR 5 <https://github.com/Adityakk9031/cdebt/pull/5>: AI code pushed with `--no-verify`.
+- PR 5 PR 5: AI code pushed with `--no-verify`.
   First run 39738496740 (`pull_request`): the bot `github-actions[bot]` **created** comment
   6334950051, `cdebt: 10 AI-written lines not understood (advisory)`,
   `demo/tax.py::tax_due  1-10  NOT UNDERSTOOD (not_quizzed)`, and the check run `cdebt / gate`
