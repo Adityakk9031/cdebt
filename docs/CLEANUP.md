@@ -1,5 +1,14 @@
 # Cleanup: things created while building cdebt that live outside the repo
 
+**Done on 2026-10-22 at the author's request:** the Docker stack (Colima VM and disk, Docker and
+Lima via Homebrew, `~/.colima`; section 3), the temporary clones, logs, scripts and the
+self-hosted runner download in `/private/tmp`, and the test PRs 3, 4 and 5 (closed) with their
+three test branches in `Adityakk9031/cdebt` (deleted). **Kept on purpose:** Git AI (`~/.git-ai`),
+the Claude Code CLI and its login (needed for the demo; it belongs to the Claude app, not to this
+project), the other scratch branches of the earlier PRs 1 and 2, and both scratch GitHub repos
+(deleting a repo is irreversible; commands in section 1). Still manual: the `cubic-dev-ai` app
+(section 2). Docker-dependent tests now skip until Docker is installed again.
+
 Nothing below has been run for you. Each block is independent; run what you want.
 
 ## 1. The two scratch GitHub repos (private)
