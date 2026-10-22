@@ -1,0 +1,11 @@
+name: Feature request
+description: Suggest an improvement
+labels: [enhancement]
+body:
+  - type: textarea
+    attributes: {label: The problem you are trying to solve}
+    validations: {required: true}
+  - type: textarea
+    attributes: {label: What you would like}
+  - type: markdown
+    attributes: {value: "cdebt never ranks or scores individual people, so requests for per-person scores or leaderboards will be declined."}

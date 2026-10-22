@@ -81,7 +81,7 @@ repos (space_chassis, hive, agent-meta) plus `.cdebt/` caches (including a 16 MB
 
 ```bash
 uv python uninstall 3.11               # only if you do not use uv's Python 3.11 elsewhere
-rm -rf /Users/adityakumarsingh/cdebt/.venv /Users/adityakumarsingh/cdebt/dist /Users/adityakumarsingh/cdebt/data
+rm -rf $HOME/cdebt/.venv $HOME/cdebt/dist $HOME/cdebt/data
 ```
 
 `data/aidev` holds the downloaded AIDev column subset (about 80 MB); `cdebt backtest --fetch`

@@ -1,0 +1,17 @@
+name: Bug report
+description: Something does not work as documented
+labels: [bug]
+body:
+  - type: markdown
+    attributes: {value: "Security problems: do not file here, see SECURITY.md."}
+  - type: input
+    attributes: {label: cdebt version, description: "`cdebt --version` or pip show cdebt"}
+    validations: {required: true}
+  - type: input
+    attributes: {label: OS and Python, placeholder: "macOS 15, Python 3.12"}
+    validations: {required: true}
+  - type: textarea
+    attributes: {label: What happened, description: "Commands and output. Remove anything private."}
+    validations: {required: true}
+  - type: textarea
+    attributes: {label: What you expected}
