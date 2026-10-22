@@ -128,7 +128,8 @@ install, setup, the quiz on `git push`, and the gate:
 ## 60-second demo
 
 ```bash
-# Python 3.11+. The first releases are pre-releases, so ask for them with --pre:
+# Python 3.11+. Only pre-releases exist so far, so plain pip installs the newest one; once a
+# stable version exists, add --pre to get pre-releases:
 pip install --pre "cdebt[agent]"          # from PyPI
 # or straight from GitHub:
 pip install "cdebt[agent] @ git+https://github.com/Adityakk9031/cdebt"

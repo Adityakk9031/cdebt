@@ -359,3 +359,14 @@ worked in a fresh environment with no login.
 
 Still not covered: a pull request from a fork (read-only token), the ruleset that requires the
 `cdebt / gate` check, and the PyPI upload (not done yet).
+
+### PyPI pre-release (2026-10-22)
+
+`cdebt 1.1.0rc2` was uploaded to PyPI by the `publish` workflow (run 39829154000, started by hand on
+the `v1.1.0-rc2` tag, PyPI trusted publishing, deployment approved by the maintainer in the `pypi`
+environment). It has the wheel and the sdist. Checked from a clean virtual environment: `pip install
+--pre "cdebt[agent]"` installs `cdebt 1.1.0rc2`, `cdebt --version` works and the agent extra imports.
+The PyPI description has no relative links. Note: because no stable version exists yet, a plain
+`pip install cdebt` also installs this pre-release (pip falls back to pre-releases when they are the
+only versions); an earlier draft wrongly said it would not. `1.1.0rc1` is on GitHub only and was never
+uploaded to PyPI. Not covered: the PyPI page on other devices, and install on Windows or Linux from PyPI.
