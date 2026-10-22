@@ -346,3 +346,16 @@ Not covered: a fork pull request, the ruleset that requires `cdebt / gate`, and 
 hosted run (blocked by its minutes). On the mirror, a real pull request also showed the bot creating
 a comment, editing it in place after the quiz, and the `cdebt / gate` check going neutral then
 success (`examples/first_user/assets/README.md`).
+
+### Full CI on the public repository (2026-10-22)
+
+After the repository was made public, the full CI ran on GitHub-hosted runners on the main account
+(run 39807865818, started by hand with "Run workflow"): **all 12 jobs succeeded**: tests on Ubuntu
+and macOS for Python 3.11, 3.12 and 3.13, the Windows job, the Docker sandbox job, the package builds
+on Ubuntu, macOS and Windows, and `repeat-suite` (the whole suite 20 times in a row on Ubuntu). The
+billing limit that blocked hosted runs while the repository was private did not apply here. A clean
+install from the GitHub tag (`pip install "cdebt[agent] @ git+https://github.com/Adityakk9031/cdebt@v1.1.0-rc1"`)
+worked in a fresh environment with no login.
+
+Still not covered: a pull request from a fork (read-only token), the ruleset that requires the
+`cdebt / gate` check, and the PyPI upload (not done yet).
