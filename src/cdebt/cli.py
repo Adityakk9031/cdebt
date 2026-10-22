@@ -32,8 +32,24 @@ app = typer.Typer(
 console = Console()
 
 
+def _version(value: bool) -> None:
+    if value:
+        from importlib.metadata import PackageNotFoundError, version
+
+        try:
+            typer.echo(f"cdebt {version('cdebt')}")
+        except PackageNotFoundError:  # running from a source tree that is not installed
+            typer.echo("cdebt (not installed)")
+        raise typer.Exit(0)
+
+
 @app.callback()
-def _main() -> None:
+def _main(
+    version: Annotated[
+        bool,
+        typer.Option("--version", callback=_version, is_eager=True, help="Show the version."),
+    ] = False,
+) -> None:
     """cdebt: comprehension-debt toolkit."""
 
 

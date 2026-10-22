@@ -46,7 +46,7 @@ jobs:
           fetch-depth: 0
           ref: ${{ github.event_name == 'issue_comment' && format('refs/pull/{0}/head', github.event.issue.number) || '' }}
       - run: docker pull python:3.11-slim
-      - uses: <owner>/cdebt@<ref>   # not published yet: use a path or fork you control
+      - uses: Adityakk9031/cdebt@v1   # pin a release tag once one exists
         with: {enforce: "false"}
 """
 

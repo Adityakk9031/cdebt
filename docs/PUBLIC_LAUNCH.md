@@ -1,5 +1,9 @@
 # Public launch playbook (nothing here has been run)
 
+**Where things live.** The public home, the release and the demo video belong to the main account
+(`Adityakk9031/cdebt`). The second account (`A9031/cdebt`, private) is only a mirror used to run
+GitHub Actions while the main account's free minutes are used up; it is never published.
+
 Positioning for a first public release: **an experimental alpha** that gives visibility into
 AI-written code nobody has understood. It is not a validated measure (the score is unvalidated,
 the backtests were mostly null, the validity study has not been run) and not a lie detector. The
@@ -17,13 +21,11 @@ README Status section already says so; keep it on the front page.
 
 ## Decisions only the owner can make
 
-1. **Where it lives.** Which GitHub account or org, and the repo name (`cdebt`). Placeholders
-   `<owner>/cdebt@<ref>` in `README.md` and `src/cdebt/init.py` and `[project.urls]` in
-   `pyproject.toml` are filled in once this is chosen.
+1. **Where it lives.** Decided: `Adityakk9031/cdebt` (the main account). The placeholders in
+   `README.md`, `src/cdebt/init.py` and `[project.urls]` already point there.
 2. **Your commit email.** 19 commits carry a personal email (the other 47 use `dev@cdebt.invalid`).
-   Publishing this history makes that email public. Options: accept it; or publish a fresh history
-   with a GitHub noreply address (rewrites history; the previous rule was not to, so this needs an
-   explicit yes); or set a noreply address for all future commits only.
+   Publishing this history makes that email public. Because the main account is the real identity,
+   the history can be published as it is; confirm that, or switch to a noreply address first.
 3. **Package name.** `cdebt` was free on PyPI, npm and GitHub on 2026-10-19 (`docs/PACKAGING_CHECK.md`).
    A related project, `comprehension-debt`, exists. Registering the name needs a PyPI account.
 4. **Version label.** Recommended: publish `1.1.0rc1` as a pre-release (pip does not install it
@@ -41,7 +43,7 @@ README Status section already says so; keep it on the front page.
 5. Build and check the package: `uv build && uvx twine check dist/*` (a CI job does this).
 6. Upload to PyPI (or TestPyPI first) with the owner's token, as a pre-release.
 7. Create a GitHub release from the tag with the CHANGELOG entry; only then tag a stable Action
-   ref (`v1`) so `uses: <owner>/cdebt@v1` works.
+   ref (`v1`) so `uses: Adityakk9031/cdebt@v1` works.
 8. Publish `docs/LAUNCH_POST.md` after re-reading it line by line against the current README.
 9. Watch the issues for the first week; treat sandbox reports as security reports.
 

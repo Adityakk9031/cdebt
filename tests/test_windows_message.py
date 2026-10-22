@@ -45,3 +45,12 @@ def test_read_only_commands_do_not_need_the_sandbox(make_repo, monkeypatch) -> N
     for cmd in (["map", "--no-scip"], ["plan", "--no-scip"]):
         res = CliRunner().invoke(app, [*cmd, "--repo", str(r.path)])
         assert res.exit_code == 0, res.output
+
+
+def test_version_flag_prints_the_installed_version() -> None:
+    from typer.testing import CliRunner
+
+    from cdebt.cli import app
+
+    res = CliRunner().invoke(app, ["--version"])
+    assert res.exit_code == 0 and res.output.startswith("cdebt ")

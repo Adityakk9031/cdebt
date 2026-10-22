@@ -165,7 +165,7 @@ cdebt only reads the notes; it never writes to your repo except `.cdebt/`.
 ```yaml
 - uses: actions/checkout@v4
   with: {fetch-depth: 0}
-- uses: <owner>/cdebt@<ref>     # not published yet
+- uses: Adityakk9031/cdebt@v1     # the stable ref exists after the first release
   with: {max-ai-lines: "0", strict-unknown: "false", enforce: "false"}   # advisory by default
 ```
 

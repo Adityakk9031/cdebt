@@ -121,3 +121,32 @@ def test_audit_layer_alone_contains_everything(tmp_path: Path) -> None:
 def test_os_isolation_label_reported() -> None:
     r = run_code("pass")
     assert r.isolation.startswith(("audit+rlimit", "docker"))
+
+
+def test_runner_works_when_launched_with_dash_c_like_docker_does(tmp_path: Path) -> None:
+    """Docker runs `python -I -c <runner source>`: no __file__. The guard must not depend on it
+    (CI caught a regression where the runner crashed in exactly that launch mode)."""
+    import json
+    import subprocess
+    import sys
+
+    from cdebt.sandbox import _RUNNER
+
+    root = tmp_path / "root"
+    root.mkdir()
+    spec = {
+        "mode": "exec",
+        "code": "import dataclasses\nprint('dash-c ok')",
+        "root": str(root),
+        "policy": "pure",
+    }
+    p = subprocess.run(
+        [sys.executable, "-I", "-c", _RUNNER],
+        input=json.dumps(spec),
+        capture_output=True,
+        text=True,
+        cwd=root,
+    )
+    out = p.stdout.split("\x00CDEBT-RESULT\x00")[-1]
+    res = json.loads(out)
+    assert "error" not in res and "dash-c ok" in res["stdout"], (p.stderr[-300:], out[:300])

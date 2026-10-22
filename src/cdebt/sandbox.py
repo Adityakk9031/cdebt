@@ -259,7 +259,7 @@ def _run():
     ROOT = realpath(spec["root"])
 
     def _install():
-        _RUN_FILE = __file__
+        _RUN_GLOBALS = globals()  # the runner's own module namespace (Docker has no __file__)
         _BLOCK = ("socket.", "ctypes.", "winreg.", "sys.monitoring")
         _PROC = ("subprocess.Popen", "os.system", "os.fork", "os.forkpty", "os.exec",
                  "os.posix_spawn", "os.spawn", "os.startfile", "pty.spawn")
@@ -328,7 +328,7 @@ def _run():
                 # guard's state is closure-scoped, so no frame holds a handle on it (tested by
                 # tests/test_sandbox_redteam.py::frame_deep_scan).
                 fr = args[0] if args else None
-                if fr is None or fr.f_code.co_filename == _RUN_FILE:
+                if fr is None or fr.f_globals is _RUN_GLOBALS:
                     deny(event, "introspection that could tamper with the sandbox")
                 return
             if event in _TAMPER:
