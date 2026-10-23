@@ -370,3 +370,14 @@ The PyPI description has no relative links. Note: because no stable version exis
 `pip install cdebt` also installs this pre-release (pip falls back to pre-releases when they are the
 only versions); an earlier draft wrongly said it would not. `1.1.0rc1` is on GitHub only and was never
 uploaded to PyPI. Not covered: the PyPI page on other devices, and install on Windows or Linux from PyPI.
+
+### 1.1.0rc3 on PyPI: the secret-leak fix (2026-10-23)
+
+The fix (secret-looking files never copied into the sandbox; secret-looking answers dropped) passed
+the full local suite in cooled-down chunks and the full CI on the public repository (run
+39908034682, all jobs including the 20x flake check). `1.1.0rc3` was published by the `publish`
+workflow (run 39921259056, approved by the maintainer). From a clean environment,
+`pip install --pre "cdebt[agent]==1.1.0rc3"` installed it, and with an `.env` that was untracked and
+not in `.gitignore`, `copy_tree` left it out of the sandbox and `looks_secret` flagged the secret.
+Right after the upload, PyPI's cached index still served `1.1.0rc2` to an unpinned install for a few
+minutes; asking for the version explicitly worked at once.
