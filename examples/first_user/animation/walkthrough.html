@@ -128,10 +128,10 @@ const scenes = [
     cap("Every answer is checked by <b>running the code in a sandbox</b>. No AI decides if I am right."); await sleep(1500,my);
     cap("One wrong answer is tolerated: <b>3 of 4</b> right still counts.");
     await add(t,'\n\nQ4 <span class="r">[hard]</span> When apply_discount(14, 10) runs, does line 7 (<b>rate = 20</b>) execute?\n  A) yes   B) no\nanswer: A\n',my,2300);
-    cap("Answered too evenly fast? A <b>timed follow-up</b>, checked by tracing the real execution. <span style='color:var(--mut)'>Timing is never stored.</span>");
-    await add(t,'\nQ6 <span class="y">[easy]</span> What does apply_discount(15, 10) evaluate to? <span class="y">(follow-up, 15 s)</span>\n  A) 13   B) 12   C) 11   D) -12\n',my,500);
-    for(const s of [15,13,11]){ t.querySelectorAll(".cd").forEach(e=>e.remove()); await add(t,`<span class="cd y">[ ${s} s left] answer: </span>`,my,600); }
-    t.querySelectorAll(".cd").forEach(e=>e.remove()); await add(t,'[  11 s left] answer: <span class="g">B</span>\n\n',my,900);
+    cap("Hard no slower than easy? Random <b>short follow-ups</b> on a countdown from <b>your own pace</b>, checked by tracing the real execution. <span style='color:var(--mut)'>Timing is never stored.</span>");
+    await add(t,'\nQ6 <span class="y">[easy]</span> What does apply_discount(15, 10) evaluate to? <span class="y">(follow-up, 7 s)</span>\n  A) 13   B) 12   C) 11   D) -12\n',my,500);
+    for(const s of [7,5,4]){ t.querySelectorAll(".cd").forEach(e=>e.remove()); await add(t,`<span class="cd y">[ ${s} s left] answer: </span>`,my,600); }
+    t.querySelectorAll(".cd").forEach(e=>e.remove()); await add(t,'[   4 s left] answer: <span class="g">B</span>\n\n',my,900);
     await add(t,'pkg/pricing.py::apply_discount: <span class="g">UNDERSTOOD (verified)</span>\npkg/pricing.py::late_fee: <span class="g">UNDERSTOOD (verified)</span>\npkg/pricing.py::invoice_total: <span class="g">UNDERSTOOD (verified)</span>\n',my,700);
     cap("The proof travels with the push as a git note, <b>bound to a hash of this exact code</b>.");
     await add(t,'<span class="b">cdebt: notes pushed before the branch</span>\n * [new branch]      feature -> feature\n',my,3400); },

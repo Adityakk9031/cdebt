@@ -3,6 +3,7 @@ follow-up. Timings are simulated with a scripted `ask`; no real clock, no networ
 
 from __future__ import annotations
 
+import random
 from pathlib import Path
 
 import pytest
@@ -10,6 +11,7 @@ import pytest
 from cdebt.adaptive import (
     Policy,
     answers_look_suspiciously_uniform,
+    follow_up_timer,
     load_policy,
     record_outcomes,
     required_correct,
@@ -282,73 +284,167 @@ def test_followup_offers_a_fresh_input_when_every_traced_question_was_asked(make
     )
 
 
-def test_the_even_pace_rule_matches_the_examples() -> None:
+def test_the_even_pace_rule() -> None:
     pol = Policy()
-    even = [("easy", 8.0), ("easy", 8.0), ("medium", 8.0), ("hard", 9.5)]  # 8, 8, 8, then 9-10 s
-    assert answers_look_suspiciously_uniform(even, pol)
+    even = [("easy", 9.0), ("easy", 9.0), ("medium", 9.0), ("hard", 9.0)]
+    assert answers_look_suspiciously_uniform(even, pol)  # hard < 1.3 x median(easy+medium)
     natural = [("easy", 5.0), ("easy", 7.0), ("medium", 12.0), ("hard", 30.0)]
     assert not answers_look_suspiciously_uniform(natural, pol)
+    edge = [("easy", 9.0), ("easy", 9.0), ("medium", 9.0), ("hard", 11.8)]  # 1.31 x: slower enough
+    assert not answers_look_suspiciously_uniform(edge, pol)
     assert not answers_look_suspiciously_uniform(even[:2], pol)  # too few answers to judge
+    assert not answers_look_suspiciously_uniform([("easy", 9.0)] * 3, pol)  # no hard answer
+    assert not answers_look_suspiciously_uniform([("hard", 9.0)] * 3, pol)  # nothing to compare
     assert not answers_look_suspiciously_uniform(
-        [("easy", 0.2), ("medium", 0.2), ("hard", 0.2)], pol
-    )
+        [("easy", 0.2), ("hard", 0.2)] * 2, pol
+    )  # scripted
 
 
-def test_even_pace_and_passing_score_asks_one_hard_followup_and_passes(make_repo) -> None:  # type: ignore[no-untyped-def]
+def test_timer_is_75_percent_of_the_persons_own_median_within_5_and_15_seconds() -> None:
+    pol = Policy()
+    t = follow_up_timer
+    assert (
+        t([("easy", 9.0), ("easy", 10.0), ("medium", 9.0), ("hard", 9.5)], pol) == 6.9
+    )  # about 7 s
+    assert (
+        t([("easy", 3.0), ("medium", 3.0), ("hard", 3.0)], pol) == 5.0
+    )  # fast expert: the minimum
+    assert t([("easy", 40.0), ("medium", 40.0), ("hard", 40.0)], pol) == 15.0  # slow: the maximum
+    custom = Policy(follow_up_min_seconds=8, follow_up_max_seconds=9, follow_up_fraction=0.5)
+    assert t([("easy", 4.0), ("hard", 4.0)], custom) == 8.0  # both bounds come from the policy
+
+
+def test_uniform_9_second_pace_triggers_followups_with_a_7_second_timer(make_repo) -> None:  # type: ignore[no-untyped-def]
     r = _repo(make_repo)
-    ask = Scripted(easy=8.0, medium=8.0, hard=9.5)
-    cl = _run(r, ask)[0]["classify"]
-    assert len(ask.timed) == 1 and all(t == 15.0 for _, t in ask.calls if t is not None)
-    assert ask.timed[0].verified_by == "execution-trace"
-    # the follow-up is a NEW question, never one that was already asked in the main set
-    assert ask.timed[0].question not in {p.question for p, t in ask.calls if t is None}
+    ask = Scripted(easy=9.0, medium=9.0, hard=9.0)
+    cl = _run(r, ask, pool=_with_hard(r))[0]["classify"]
+    assert 1 <= len(ask.timed) <= 2
+    limits = {t for _, t in ask.calls if t is not None}
+    assert limits == {6.8}  # 75% of 9 s, shown to the person as a countdown (about 7 s)
+    assert all(p.verified_by == "execution-trace" for p in ask.timed)
     assert cl.cleared and cl.reason == "verified_after_follow_up"
 
 
-def test_failing_the_followup_is_not_understood_whatever_the_score(make_repo) -> None:  # type: ignore[no-untyped-def]
+def test_natural_pace_where_hard_is_slower_does_not_trigger(make_repo) -> None:  # type: ignore[no-untyped-def]
     r = _repo(make_repo)
-    base = Scripted(easy=8.0, medium=8.0, hard=9.5)
+    ask = Scripted(easy=5.0, medium=9.0, hard=30.0)
+    cl = _run(r, ask, pool=_with_hard(r))[0]["classify"]
+    assert not ask.timed and cl.cleared and cl.reason == "verified"
+
+
+def test_a_followup_answered_in_time_passes_and_a_late_one_fails(make_repo) -> None:  # type: ignore[no-untyped-def]
+    r = _repo(make_repo)
+    pool = _with_hard(r)
+
+    def person(takes: float):  # type: ignore[no-untyped-def]
+        base = Scripted(easy=9.0, medium=9.0, hard=9.0)
+
+        def ask(p, timeout):  # type: ignore[no-untyped-def]
+            ans, secs = base(p, timeout)
+            return ans, (takes if timeout is not None else secs)  # right answer, taking `takes` s
+
+        return ask
+
+    ok = _run(r, person(6.0), pool=pool)[0]["classify"]
+    assert ok.cleared and ok.reason == "verified_after_follow_up"  # 6 s < the 6.8 s timer
+    late = _run(r, person(7.5), pool=pool)[0]["classify"]
+    assert not late.cleared and late.reason == "follow_up_failed"  # right, but too slow
+
+
+def test_wrong_followup_is_not_understood_whatever_the_score(make_repo) -> None:  # type: ignore[no-untyped-def]
+    r = _repo(make_repo)
+    base = Scripted(easy=9.0, medium=9.0, hard=9.0)
 
     def ask(p, timeout):  # type: ignore[no-untyped-def]
         ans, secs = base(p, timeout)
-        if timeout is not None:  # the follow-up: answer wrongly
+        if timeout is not None:
             wrong = next(k for k, o in enumerate(p.options) if o != p.answer)
             return LETTERS[wrong], secs
         return ans, secs
 
-    cl = _run(r, ask)[0]["classify"]
+    cl = _run(r, ask, pool=_with_hard(r))[0]["classify"]
     assert cl.correct >= cl.needed  # the score itself passed
     assert not cl.cleared and cl.reason == "follow_up_failed"
 
 
 def test_a_timeout_on_the_followup_counts_as_failing_it(make_repo) -> None:  # type: ignore[no-untyped-def]
     r = _repo(make_repo)
-    base = Scripted(easy=8.0, medium=8.0, hard=9.5)
+    base = Scripted(easy=9.0, medium=9.0, hard=9.0)
 
     def ask(p, timeout):  # type: ignore[no-untyped-def]
         return (None, timeout) if timeout is not None else base(p, timeout)
 
-    assert not _run(r, ask)[0]["classify"].cleared
+    cl = _run(r, ask, pool=_with_hard(r))[0]["classify"]
+    assert not cl.cleared and cl.reason == "follow_up_failed"
+
+
+def test_one_or_two_random_followups_of_the_allowed_kinds_all_short(make_repo) -> None:  # type: ignore[no-untyped-def]
+    from cdebt.adaptive import followups, pick_followups
+
+    r = _repo(make_repo)
+    src = (r.path / REL).read_text()
+    unit = next(u for u in extract_units(REL, src) if u.symbol == "classify")
+    hard = next(p for p in _with_hard(r) if p.difficulty == "hard")
+    pol = Policy()
+    cands = followups(r.path, REL, Config(), unit, src, hard, pol, set())
+    assert {c.kind for c in cands} >= {"return_value", "branch_taken"}
+    assert {c.kind for c in cands} <= {"return_value", "branch_taken", "variable_at_line"}
+    assert all(len(c.answer) <= pol.short_answer_chars for c in cands)  # a number or yes/no
+    counts, firsts = set(), set()
+    for seed in range(40):
+        got = pick_followups(cands, pol, random.Random(seed))
+        counts.add(len(got))
+        firsts.add(got[0].question)
+        assert len({g.question for g in got}) == len(got)  # never the same twice
+    assert counts == {1, 2}  # both happen
+    assert len(firsts) > 1  # and which one is random
+    assert pick_followups([], pol) == []
+
+
+def test_only_short_answer_followups_are_offered(make_repo) -> None:  # type: ignore[no-untyped-def]
+    from cdebt.adaptive import followups
+
+    r = _repo(make_repo)
+    src = (r.path / REL).read_text()
+    unit = next(u for u in extract_units(REL, src) if u.symbol == "classify")
+    hard = next(p for p in _with_hard(r) if p.difficulty == "hard")
+    tiny = followups(r.path, REL, Config(), unit, src, hard, Policy(short_answer_chars=2), set())
+    assert all(len(c.answer) <= 2 for c in tiny)  # "yes"/"neg" (3+ chars) are dropped
+    assert len(tiny) < len(followups(r.path, REL, Config(), unit, src, hard, Policy(), set()))
+
+
+def test_the_followup_seed_env_var_makes_selection_repeatable(make_repo, monkeypatch) -> None:  # type: ignore[no-untyped-def]
+    from cdebt.adaptive import followups, pick_followups
+
+    r = _repo(make_repo)
+    src = (r.path / REL).read_text()
+    unit = next(u for u in extract_units(REL, src) if u.symbol == "classify")
+    hard = next(p for p in _with_hard(r) if p.difficulty == "hard")
+    cands = followups(r.path, REL, Config(), unit, src, hard, Policy(), set())
+    monkeypatch.setenv("CDEBT_FOLLOWUP_SEED", "42")
+    a = [p.question for p in pick_followups(cands, Policy())]
+    b = [p.question for p in pick_followups(cands, Policy())]
+    assert a == b
 
 
 def test_a_failing_score_gets_no_followup_even_at_an_even_pace(make_repo) -> None:  # type: ignore[no-untyped-def]
     r = _repo(make_repo)
-    ask = Scripted(easy=8.0, medium=8.0, hard=9.5, right=_wrong_first(2))
-    cl = _run(r, ask)[0]["classify"]
+    ask = Scripted(easy=9.0, medium=9.0, hard=9.0, right=_wrong_first(2))
+    cl = _run(r, ask, pool=_with_hard(r))[0]["classify"]
     assert not cl.cleared and cl.reason == "score_too_low" and not ask.timed
 
 
-def test_natural_pace_and_instant_scripted_answers_do_not_trigger(make_repo) -> None:  # type: ignore[no-untyped-def]
+def test_instant_scripted_answers_do_not_trigger(make_repo) -> None:  # type: ignore[no-untyped-def]
     r = _repo(make_repo)
-    for ask in (Scripted(**NATURAL), Scripted(easy=0.3, medium=0.3, hard=0.3)):
-        outs, _ = _run(r, ask)
-        assert not ask.timed and outs["classify"].cleared and outs["classify"].reason == "verified"
+    ask = Scripted(easy=0.3, medium=0.3, hard=0.3)
+    outs, _ = _run(r, ask, pool=_with_hard(r))
+    assert not ask.timed and outs["classify"].reason == "verified"
 
 
-def test_no_timer_policy_asks_the_followup_untimed(make_repo) -> None:  # type: ignore[no-untyped-def]
+def test_no_timer_policy_asks_the_followups_untimed(make_repo) -> None:  # type: ignore[no-untyped-def]
     r = _repo(make_repo)
-    ask = Scripted(easy=8.0, medium=8.0, hard=9.5)
-    _run(r, ask, Policy(timer=False))
+    ask = Scripted(easy=9.0, medium=9.0, hard=9.0)
+    _run(r, ask, Policy(timer=False), _with_hard(r))
     assert not ask.timed
     assert any(p.verified_by == "execution-trace" and t is None for p, t in ask.calls)
 
@@ -366,19 +462,26 @@ def test_policy_file_keys_and_old_keys_are_tolerated(make_repo) -> None:  # type
     assert load_policy(r.path) == Policy()
     r.write(
         ".cdebt/policy.toml",
-        "timer = false\nfollow_up_seconds = 9\nmax_rounds = 3\nenforce = true\n",
+        "timer = false\nfollow_up_min_seconds = 6\nfollow_up_seconds = 9\nmax_rounds = 3\nenforce = true\n",
     )
     pol = load_policy(r.path)  # `max_rounds` is from the old design and is ignored
-    assert pol.timer is False and pol.follow_up_seconds == 9 and pol.enforce is True
-    assert pol.questions_per_unit == 4 and pol.pass_ratio == 0.6
+    assert pol.timer is False and pol.follow_up_min_seconds == 6 and pol.enforce is True
+    assert not hasattr(pol, "follow_up_seconds") and not hasattr(pol, "uniform_spread")
+    assert pol.questions_per_unit == 4 and pol.pass_ratio == 0.6 and pol.require_hard
+    assert (pol.follow_up_fraction, pol.follow_up_max_seconds, pol.hard_vs_easy_ratio) == (
+        0.75,
+        15.0,
+        1.3,
+    )
     assert "trusted" not in Policy.model_fields and "agent" not in Policy.model_fields
 
 
 def test_no_timing_value_is_persisted_anywhere(make_repo, capsys) -> None:  # type: ignore[no-untyped-def]
     r = _repo(make_repo)
     marker = 7.31337
-    ask = Scripted(easy=marker, medium=marker, hard=marker, follow=marker + 1)
-    outs, units = _run(r, ask)
+    ask = Scripted(easy=marker, medium=marker, hard=marker, follow=2.71828)
+    outs, units = _run(r, ask, pool=_with_hard(r))
+    assert ask.timed  # the follow-up and its timer really ran
     store = Store(r.path)
     recs = record_outcomes(
         REL, units, list(outs.values()), store=store, label="audit-x", expires_days=None
@@ -390,7 +493,7 @@ def test_no_timing_value_is_persisted_anywhere(make_repo, capsys) -> None:  # ty
         for p in Path(r.path).rglob("*")
         if p.is_file() and ".git/" not in str(p)
     )
-    for needle in ("7.31337", "8.31337", "7.3133"):
+    for needle in ("7.31337", "2.71828", "7.3133"):
         assert needle not in joined
     out = capsys.readouterr()
     assert "7.31337" not in out.out + out.err
@@ -408,11 +511,11 @@ def test_no_timing_value_reaches_git_notes_the_gate_or_the_pr_comment(make_repo,
     from cdebt.gate import run_gate, to_markdown
 
     r = _repo(make_repo)
-    markers = ("6.41729", "7.41729", "9.8765432")
+    markers = ("9.37123", "2.71828", "9.8765432")
     ask = Scripted(
-        easy=6.41729, medium=6.41729, hard=6.41729, follow=7.41729
+        easy=9.37123, medium=9.37123, hard=9.37123, follow=2.71828
     )  # even pace: follow-up too
-    outs, units = _run(r, ask)
+    outs, units = _run(r, ask, pool=_with_hard(r))
     recs = record_outcomes(REL, units, list(outs.values()), store=Store(r.path), label="audit-x")
     assert any(o.reason == "verified_after_follow_up" for o in outs.values())  # the follow-up ran
     sha = (
@@ -432,7 +535,7 @@ def test_no_timing_value_reaches_git_notes_the_gate_or_the_pr_comment(make_repo,
     out = capsys.readouterr()
     for name, text in (("note", note), ("stored", stored), ("gate", repr(gate)), ("pr comment", md),
                        ("console", out.out + out.err)):  # fmt: skip
-        for m in markers + ("6.4172", "7.4172"):
+        for m in markers + ("9.3712", "2.7182"):
             assert m not in text, f"{name} holds a timing value"
 
     def keys(o):  # type: ignore[no-untyped-def]

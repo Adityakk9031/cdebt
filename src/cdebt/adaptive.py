@@ -7,10 +7,12 @@ with 5, three right is enough (`required_correct`, 60% of the set rounded up). A
 question must also be right (when the set has one), so a pass cannot come from easy questions
 alone. A wrong answer does not earn an extra question.
 
-Timing check: if the score passes but the person answered easy, medium and hard questions in about
-the same time (the hardest tier is not meaningfully slower than the easiest, or every answer took
-nearly the same time), ONE hard follow-up is asked, answered by TRACING the real execution, with a
-visible countdown. Failing it makes the unit NOT UNDERSTOOD, whatever the score.
+Timing check: if the score passes but the hard answers were NOT meaningfully slower than the easy
+and medium ones (hard median under 1.3 x the easy+medium median), 1 or 2 random short-answer
+follow-ups are asked about the same code (a changed input, a branch taken, a variable's value),
+answered by TRACING the real execution. The countdown is 75% of that person's own median
+answer time, kept between 5 s and 15 s, and visible. Right and in time on all of them: understood.
+Wrong or too slow: NOT UNDERSTOOD (`follow_up_failed`), whatever the score.
 
 Privacy: response times live only in local variables while one unit is asked. They are never
 attached to a probe or record and never written to disk, logs or notes.
@@ -21,6 +23,8 @@ from __future__ import annotations
 import ast
 import contextlib
 import math
+import os
+import random
 import statistics
 import sys
 import time
@@ -61,15 +65,15 @@ class Policy(BaseModel):
     questions_per_unit: int = 4  # asked per function; 3 to 5
     pass_ratio: float = 0.6  # share that must be right; see required_correct
     require_hard: bool = True  # also need one hard question right (when the set has a hard one)
-    timer: bool = True  # visible countdown on the follow-up; False asks it untimed (weaker)
-    follow_up_seconds: float = 15.0
-    hard_vs_easy_ratio: float = (
-        1.3  # hard answered in under this x the easy time = suspiciously even
-    )
-    uniform_spread: float = 0.3  # every answer within this fraction of the median time = even
+    timer: bool = True  # visible countdown on the follow-ups; False asks them untimed (weaker)
+    follow_up_fraction: float = 0.75  # timer = this x the person's OWN median answer time...
+    follow_up_min_seconds: float = 5.0  # ...but never under this
+    follow_up_max_seconds: float = 15.0  # ...and never over this
+    hard_vs_easy_ratio: float = 1.3  # hard answered in under this x median(easy+medium) = even
     min_median_seconds: float = 1.0  # faster than this (scripted input) is not judged on timing
     min_answers_for_timing: int = 3
-    max_follow_ups: int = 1
+    max_follow_ups: int = 2  # 1 to this many, picked at random
+    short_answer_chars: int = 12  # follow-ups must have an answer this short (a number, yes/no)
     enforce: bool = False
 
 
@@ -103,25 +107,29 @@ def _difficulty(p: Probe) -> str:
 
 
 def answers_look_suspiciously_uniform(times: list[tuple[str, float]], policy: Policy) -> bool:
-    """True when the hardest tier was not meaningfully slower than the easiest (under
-    `hard_vs_easy_ratio` x), or every answer took nearly the same time (spread under
-    `uniform_spread` of the median). Weak evidence: it only triggers ONE extra question, and a
-    person who passes it is understood. Too-fast answers (scripted input) are not judged."""
+    """True when the hard answers were NOT meaningfully slower than the easy and medium ones: the
+    hard median is under `hard_vs_easy_ratio` x the median of the easy and medium answers. Needs
+    at least one hard and one easier answer. Weak evidence: it only earns 1-2 follow-ups, and a
+    person who passes them is understood. Too-fast answers (scripted input) are not judged."""
     if len(times) < policy.min_answers_for_timing:
         return False
-    secs = [s for _, s in times]
-    med = statistics.median(secs)
-    if med < policy.min_median_seconds:
+    if statistics.median([s for _, s in times]) < policy.min_median_seconds:
         return False
-    tiers = {d for d, _ in times}
-    if len(tiers) > 1:
-        lo = min(tiers, key=lambda d: RANK[d])
-        hi = max(tiers, key=lambda d: RANK[d])
-        easy = statistics.median([s for d, s in times if d == lo])
-        hard = statistics.median([s for d, s in times if d == hi])
-        if hard < policy.hard_vs_easy_ratio * easy:
-            return True
-    return (max(secs) - min(secs)) <= policy.uniform_spread * med
+    hard = [s for d, s in times if d == "hard"]
+    easier = [s for d, s in times if d != "hard"]
+    if not hard or not easier:
+        return False
+    return statistics.median(hard) < policy.hard_vs_easy_ratio * statistics.median(easier)
+
+
+def follow_up_timer(times: list[tuple[str, float]], policy: Policy) -> float:
+    """Seconds allowed per follow-up: `follow_up_fraction` of this person's own median answer time,
+    kept between the policy minimum and maximum (usual pace 9-10 s gives about 7 s). Computed from
+    in-memory times for this one unit and never stored."""
+    med = statistics.median([s for _, s in times]) if times else 0.0
+    lo = policy.follow_up_min_seconds
+    hi = max(lo, policy.follow_up_max_seconds)
+    return round(min(hi, max(lo, policy.follow_up_fraction * med)), 1)
 
 
 # ---- follow-up and harder-question generation (all answers come from tracing the real code) ----
@@ -241,8 +249,10 @@ def followups(
     policy: Policy,
     exclude: set[str] | None = None,
 ) -> list[Probe]:
-    """1-2 follow-ups on the SAME code as the hard question just answered: a branch question and
-    a variable question on that very call, then the same function with a slightly changed input."""
+    """Candidate follow-ups on the SAME code as the hard question just answered: a branch question
+    and a variable question on that very call, and the same function with changed inputs. Only
+    short answers (a number, yes/no, a short value) so an honest person can type one in time.
+    `pick_followups` chooses among them at random."""
     inputs = _call_inputs(hard)
     if inputs is None:
         gen, _ = runtime.generate(repo, rel, source, [unit], 99, per_unit=1)
@@ -276,10 +286,31 @@ def followups(
             )
     asked = {hard.question, *(exclude or ())}  # never repeat a question already asked
     out = drop_secret_probes(out)[0]
-    out = [p for p in out if p.question not in asked]
-    return sorted(out, key=lambda p: -RANK[_difficulty(p)])[
-        : policy.max_follow_ups
-    ]  # hardest first
+    return [
+        p
+        for p in out
+        if p.question not in asked
+        and len(p.answer) <= policy.short_answer_chars
+        and "\n" not in p.answer
+    ]
+
+
+def _rng() -> random.Random:
+    """Unpredictable by default (so follow-ups cannot be prepared). `CDEBT_FOLLOWUP_SEED` (an
+    environment variable, never read from the repo) makes demos and tests repeatable."""
+    seed = os.environ.get("CDEBT_FOLLOWUP_SEED")
+    return random.Random(seed) if seed else random.SystemRandom()
+
+
+def pick_followups(
+    candidates: list[Probe], policy: Policy, rng: random.Random | None = None
+) -> list[Probe]:
+    """1 to `max_follow_ups` follow-ups, chosen at random from the candidates."""
+    if not candidates:
+        return []
+    r = rng or _rng()
+    k = r.randint(1, max(1, min(policy.max_follow_ups, len(candidates))))
+    return r.sample(candidates, k)
 
 
 # ---- the quiz loop ----
@@ -290,7 +321,8 @@ _NEAREST = {"easy": ("medium", "hard"), "medium": ("easy", "hard"), "hard": ("me
 def _ask(ask: AskFn, p: Probe, timeout: float | None) -> tuple[bool, float]:
     ans, secs = ask(p, timeout)
     p.user_answer = ans if ans is not None else ""
-    p.correct = bool(ans is not None and grade(p, ans))
+    in_time = timeout is None or secs <= timeout  # enforced here, not only by the countdown display
+    p.correct = bool(ans is not None and in_time and grade(p, ans))
     return p.correct, secs
 
 
@@ -365,15 +397,17 @@ def run_unit(
         out.cleared, out.reason = True, "verified"
         return out
     hardest = max(asked, key=lambda p: (RANK[_difficulty(p)], bool(p.correct)))
-    fus = followups(repo, rel, cfg, unit, source, hardest, policy, {p.question for p in asked})[
-        : max(1, policy.max_follow_ups)
-    ]
+    fus = pick_followups(
+        followups(repo, rel, cfg, unit, source, hardest, policy, {p.question for p in asked}),
+        policy,
+    )
     if not fus:
         out.cleared, out.reason = True, "verified_no_follow_up_possible"
         return out
     passed = True
+    limit = follow_up_timer(times, policy) if policy.timer else None  # in-memory, never stored
     for fu in fus:
-        ok, _ = _ask(ask, fu, policy.follow_up_seconds if policy.timer else None)
+        ok, _ = _ask(ask, fu, limit)
         out.asked.append(fu)
         passed = passed and ok
     out.cleared = passed

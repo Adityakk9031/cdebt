@@ -17,7 +17,9 @@ DEMO_FORCE_FOLLOWUP=1 bash examples/first_user/setup_demo.sh     # path: ~/cdebt
 ```
 
 `DEMO_FORCE_FOLLOWUP=1` stages the timed follow-up so it reliably appears on camera. Normally it
-only appears when a hard question is answered no slower than the easy ones. Say that on camera.
+only appears when the hard answers are no slower than the easy and medium ones. Say that on camera.
+The follow-ups are chosen at random, so a pre-computed answers file only matches when both runs set
+the same `CDEBT_FOLLOWUP_SEED` (for example `export CDEBT_FOLLOWUP_SEED=7`).
 To start over: `rm -rf ~/cdebt-demo ~/cdebt-demo-remote.git` and run the setup again.
 
 ## On camera
@@ -34,7 +36,7 @@ To start over: `rm -rf ~/cdebt-demo ~/cdebt-demo-remote.git` and run the setup a
 | 2:35 | `git push -u origin feature` | "Now I push. The hook sees AI-written code nobody has understood and quizzes me, on my own terminal, before the push." |
 | 2:45 | *answer the questions* (see below) | "Every answer is checked by running the code in a sandbox. No AI decides whether I am right." |
 | 3:30 | *(get one wrong on purpose, early)* | "I got that one wrong. One slip is tolerated: with 4 questions I need 3 right, and a wrong answer never adds a harder question." |
-| 3:50 | *(the timed follow-up appears)* | "A short timed follow-up with a visible countdown, answered by tracing the real execution. I am staging this so it shows; normally it only triggers when the answers all come at a suspiciously even pace. Nothing about my timing is stored." |
+| 3:50 | *(the timed follow-up appears)* | "A short follow-up, picked at random, with a visible countdown set from my own pace (about three quarters of my usual answer time, between 5 and 15 seconds), answered by tracing the real execution. I am staging this so it shows; normally it only triggers when the answers all come at a suspiciously even pace. Nothing about my timing is stored." |
 | 4:20 | *(push finishes: "notes pushed before the branch")* | "The proof of understanding travels with the push, as a git note, bound to a hash of this exact code." |
 | 4:35 | `git notes --ref=cdebt show HEAD \| python3 -m json.tool \| head -45` | "This is the record cdebt just made: the question, the true answer, **how it was verified**, and the code hash it is bound to. Notice it even keeps my wrong first answer. There is no timing in it." |
 | 5:05 | *(second terminal)* `bash ~/cdebt-public/examples/first_user/watch_sandbox.sh`, then in the first terminal `cdebt quiz pkg/pricing.py`, then `python ~/cdebt-public/examples/first_user/sandbox_peek.py` | "Behind the scenes. **Part 1:** my real function runs in a throw-away sandbox, twice, and cdebt records which lines ran. **Part 2:** the same sandbox is asked to read a secret, overwrite a file, connect to the network, kill a process, run a shell command. Every one is blocked, and I check from outside that nothing happened." |

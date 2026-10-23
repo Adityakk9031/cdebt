@@ -21,11 +21,12 @@ questions_per_unit = 4    # asked per function (3 to 5), easy to hard. 3 of 4 ri
 pass_ratio = 0.6
 require_hard = true       # ...and at least ONE hard question must be right (when the set has a hard
                           # one), so easy questions alone cannot clear a function
-timer = true              # visible countdown on the follow-up; false asks it untimed (weaker check)
-follow_up_seconds = 15    # ONE hard follow-up when easy and hard answers took about the same time
-hard_vs_easy_ratio = 1.3  # hard answered in under 1.3 x the easy time counts as "the same time"
-uniform_spread = 0.3      # or every answer within 30% of the median time
-max_follow_ups = 1
+timer = true              # visible countdown on the follow-ups; false asks them untimed (weaker check)
+hard_vs_easy_ratio = 1.3  # follow-ups when hard answers took under 1.3 x the easy+medium median time
+follow_up_fraction = 0.75 # countdown = 75% of the person's OWN median answer time...
+follow_up_min_seconds = 5  # ...never under 5 s
+follow_up_max_seconds = 15 # ...never over 15 s
+max_follow_ups = 2        # 1 to 2 random short-answer follow-ups (changed input, branch, variable)
 enforce = false           # advisory by default; the Action fails the build only when true
 """
 

@@ -274,6 +274,32 @@ def test_failed_quiz_is_reported_as_a_reason_about_the_code(make_repo, tmp_path)
     assert "(advisory)" in md and "Dev" not in md and "@" not in md.split("<sub>")[0]
 
 
+def test_a_failed_followup_shows_as_follow_up_failed_in_the_pr_comment(make_repo, tmp_path) -> None:  # type: ignore[no-untyped-def]
+    from cdebt.adaptive import UnitOutcome, record_outcomes
+    from cdebt.agents.probes import execute, parse_proposal
+    from cdebt.store import Store
+    from cdebt.units import extract_units
+
+    r, _remote = _setup(make_repo, tmp_path)
+    src = (r.path / "m.py").read_text()
+    units = [u for u in extract_units("m.py", src) if u.symbol == "classify"]
+    probe = execute(
+        r.path,
+        "m.py",
+        parse_proposal(
+            {"target": "classify", "kind": "return_value", "call_inputs": {"args": [3]}}
+        ),
+        Config(),
+        proposer="builtin",
+    )
+    out = UnitOutcome("classify", False, "follow_up_failed", asked=[probe], correct=1, needed=1)
+    recs = record_outcomes("m.py", units, [out], store=Store(r.path), label="audit-x")
+    notes.write_records(r.path, git(r.path, "rev-parse", "HEAD").strip(), recs)
+    md = to_markdown(run_gate(r.path, Config(), "origin/main"), pr=9)
+    assert "follow_up_failed" in md and "NOT UNDERSTOOD" in md
+    assert "Dev" not in md and "audit-x" not in md  # no person, no audit label
+
+
 # ---- quiz --pr and init with a fake gh ----
 
 

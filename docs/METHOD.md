@@ -61,10 +61,20 @@ gets a fixed set of 3 to 5 questions (default 4) mixing the tiers, asked easiest
 answer never adds a question. The function clears when at least ceil(0.6 x n) answers are right
 (2 of 3, 3 of 4, 3 of 5; with 2 or fewer questions all must be right; the 0.6 is a policy choice,
 UNVERIFIED as a predictor of understanding), and at least one hard question must be among the
-correct ones (`require_hard`; waived only when the set contains no hard question). If the score passes but the answers came at a
-suspiciously even pace (hardest tier not meaningfully slower than easiest, or all answers within
-30% of the median), ONE timed hard follow-up, answered by tracing the real execution, decides:
-failing or timing out means not understood. A failing score gets no follow-up. Timing lives only in memory for the session and is never
+correct ones (`require_hard`; waived only when the set contains no hard question).
+
+If the score passes but the hard answers were NOT meaningfully slower than the easy and medium ones
+(hard median under 1.3 x the median of the easy and medium answers), the person gets 1 or 2 random
+follow-ups about the same code, chosen from: the same function on a changed input, whether a branch
+ran (yes/no), what a variable held before a line. Each has a short answer (a number, yes/no, a short
+value; 12 characters at most) so an honest person can type it in time, and each is answered by
+tracing the real execution; none repeats a question already asked. The countdown is visible and set
+from that person's OWN pace: 75% of their median answer time, never under 5 s and never over 15 s
+(`follow_up_fraction`, `follow_up_min_seconds`, `follow_up_max_seconds`; a usual pace of 9-10 s
+gives about 7 s). Right and in time on all of them: understood. Wrong or too slow: NOT UNDERSTOOD
+(`follow_up_failed`, shown in the PR comment, naming no person). The choice among follow-ups is
+unpredictable unless `CDEBT_FOLLOWUP_SEED` is set in the environment (for demos and tests). A
+failing score gets no follow-up. Timing lives only in memory for the session and is never
 stored; status reasons describe the code record, not a person. This raises the effort of copying
 answers from an AI but does not prevent it (`docs/LIMITS.md`).
 

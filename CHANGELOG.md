@@ -1,5 +1,18 @@
 # Changelog
 
+## 1.1.0rc7
+
+- **Even-pace check and follow-ups reworked.** Trigger: hard answers not meaningfully slower than
+  easy and medium ones (hard median under 1.3 x their median); needs a hard answer in the set (the
+  old "every answer within 30% of the median" rule is gone). Then 1-2 RANDOM follow-ups about the
+  same code (changed input, branch taken yes/no, variable before a line), short answers only
+  (12 characters at most). The countdown is 75% of the person's OWN median answer time, between
+  5 s and 15 s (`follow_up_fraction`, `follow_up_min_seconds`, `follow_up_max_seconds`; the old
+  fixed `follow_up_seconds` and `uniform_spread` are removed and old policy files that still
+  contain them are accepted and ignored). Correct and in time passes; wrong or too slow is NOT
+  UNDERSTOOD (`follow_up_failed`). "Too slow" is enforced in the logic, not only by the countdown.
+  `CDEBT_FOLLOWUP_SEED` (environment only) makes selection repeatable for demos and tests.
+
 ## 1.1.0rc6
 
 - **The timed follow-up now falls back to a fresh input of the same function** when every traced
