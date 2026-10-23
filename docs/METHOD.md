@@ -56,10 +56,14 @@ developer's explicit opt-in (`cdebt agent connect`). Rules that keep correctness
 
 ## Adaptive quiz (v1.1)
 
-Questions are labelled easy or hard from their kind and code complexity. A unit clears when enough
-answers are correct, including a hard one. A wrong answer earns a harder question, and unusually
-even response timing on a hard question earns one or two timed follow-ups answered by tracing the
-real execution, up to 3 rounds per unit. Timing lives only in memory for the session and is never
+Questions are labelled easy, medium or hard from their kind and code complexity. Each function
+gets a fixed set of 3 to 5 questions (default 4) mixing the tiers, asked easiest first. A wrong
+answer never adds a question. The function clears when at least ceil(0.6 x n) answers are right
+(2 of 3, 3 of 4, 3 of 5; with 2 or fewer questions all must be right; the 0.6 is a policy choice,
+UNVERIFIED as a predictor of understanding). If the score passes but the answers came at a
+suspiciously even pace (hardest tier not meaningfully slower than easiest, or all answers within
+30% of the median), ONE timed hard follow-up, answered by tracing the real execution, decides:
+failing or timing out means not understood. A failing score gets no follow-up. Timing lives only in memory for the session and is never
 stored; status reasons describe the code record, not a person. This raises the effort of copying
 answers from an AI but does not prevent it (`docs/LIMITS.md`).
 

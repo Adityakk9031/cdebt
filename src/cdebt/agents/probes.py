@@ -86,11 +86,16 @@ def branch_count(source: str, unit: CodeUnit) -> int:
     return n
 
 
-def difficulty_of(kind: str, branches: int = 0) -> Literal["easy", "hard"]:
-    """easy: a value read off one call or a module constant. hard: needs the call graph, a test
-    run, a trace of the real execution, or a function with several branches."""
-    if kind in ("runtime", "constant", "return_value", "constant_value"):
-        return "hard" if kind in ("runtime", "return_value") and branches >= 3 else "easy"
+def difficulty_of(kind: str, branches: int = 0) -> Literal["easy", "medium", "hard"]:
+    """easy: a module constant, or a value read off one call of a simple function.
+    medium: a call of a function with several branches, or "did this line run?".
+    hard: what a variable held mid-run (a trace), who calls it (call graph), or which test fails."""
+    if kind in ("constant", "constant_value"):
+        return "easy"
+    if kind in ("runtime", "return_value"):
+        return "medium" if branches >= 3 else "easy"
+    if kind == "branch_taken":
+        return "medium"
     return "hard"
 
 

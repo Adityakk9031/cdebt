@@ -101,8 +101,8 @@ causation. Blast radius and the quiz itself are not evaluated.
   not re-executed (they depend on an index or the project's tests); a record holding only those is
   accepted but not re-checked.
 - **An AI in the editor can still answer quickly.** The adaptive quiz raises the effort of copying
-  answers (harder questions after a wrong answer, timed follow-ups answered by tracing the real
-  execution when a hard question was answered no slower than easy ones) but does not prevent it.
+  answers (a fixed 3-5 question set, one hard timed follow-up answered by tracing the real
+  execution when the answers came at a suspiciously even pace) but does not prevent it.
   Timing is weak evidence: it only triggers extra questions and is never stored or reported.
   With `--no-timer` or `timer = false` follow-ups are untimed and the check is weaker.
 - **The developer's agent proposes; it does not decide.** Questions it proposes are only kept if

@@ -12,8 +12,8 @@ what we could not show.
 - **`cdebt quiz`** asks questions whose answers come from *executing* the code (function results,
   call graphs, module constants), never from a model grading free text. Optionally your **own
   coding agent writes the questions** (through an MCP server); cdebt runs every question itself to
-  get the true answer and never tells the agent. A wrong answer earns a harder question, and
-  unusually even answering earns a short timed follow-up checked by tracing the real execution;
+  get the true answer and never tells the agent. Each function gets 3-5 questions [src: src/cdebt/adaptive.py] (one wrong is
+  tolerated), and suspiciously even answering earns one short timed hard follow-up checked by tracing the real execution;
   timing is never stored.
 - **`cdebt init`** sets up a pre-push hook that quizzes you on your own terminal before the push
   and pushes the proof as a git note, and a GitHub Action that posts one comment on the pull

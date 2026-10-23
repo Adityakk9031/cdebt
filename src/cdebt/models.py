@@ -112,7 +112,7 @@ class Probe(BaseModel):
     # harness, and the difficulty label for the adaptive quiz. None = not recorded (older files).
     proposer: str | None = None
     harness_hash: str | None = None
-    difficulty: Literal["easy", "hard"] | None = None
+    difficulty: Literal["easy", "medium", "hard"] | None = None
 
 
 class Record(BaseModel):
@@ -135,7 +135,7 @@ class Record(BaseModel):
     # attested records only, decided at attest time: why quiz could not clear this unit.
     scope: Literal["module", "function-unquizzable", "function-quizzable"] | None = None
     # v1.1: why the CODE record has this verdict, e.g. verified, follow_up_failed,
-    # max_rounds_reached. Describes the record, never a person. None on older records.
+    # score_too_low. Describes the record, never a person. None on older records.
     status_reason: str | None = None
 
     @property

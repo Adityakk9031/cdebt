@@ -35,7 +35,7 @@ AI_CODE = (
     "    else:\n        label = 'pos'\n    if strict and n > 100:\n        label = label + '!'\n"
     "    return label\n"
 )
-POLICY = "hard_vs_easy_ratio = 0.0\n"  # deterministic: never trigger timing follow-ups
+POLICY = "min_median_seconds = 1000000.0\n"  # deterministic: never trigger timing follow-ups
 
 
 def _wrapper(tmp: Path) -> Path:

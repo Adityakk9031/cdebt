@@ -28,9 +28,9 @@
   adapter was run end to end against the real CLI (2.1.299): the agent proposed questions, cdebt
   verified them by execution, including one for a clock-reading function that the builtin generator
   skips. `codex` and `cursor` adapters are UNVERIFIED.
-- **Adaptive quiz.** Easy/hard labels, a harder question after a wrong answer, up to 3 rounds per
-  unit, and 1-2 timed follow-ups (answered by tracing the real execution) when a hard question was
-  answered no slower than the easy ones. Timing is kept in memory only and never stored.
+- **Adaptive quiz.** Easy/medium/hard labels; a fixed set of 3-5 questions per function
+  (one wrong tolerated: 2/3, 3/4, 3/5), and one timed hard follow-up (answered by tracing the real
+  execution) when the answers came at a suspiciously even pace; failing it means not understood. Timing is kept in memory only and never stored.
   `--no-timer`, `.cdebt/policy.toml`, and a `status_reason` on every record (about the code).
 - **Pre-push flow.** `cdebt init` (consent per step; never overwrites; chains existing hooks;
   workflow file; optional GitHub ruleset), a pre-push hook that quizzes on the terminal, writes

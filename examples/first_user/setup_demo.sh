@@ -94,7 +94,7 @@ fi
 
 if [ "${DEMO_FORCE_FOLLOWUP:-0}" = 1 ]; then
   mkdir -p .cdebt
-  printf 'hard_vs_easy_ratio = 1000.0\n' > .cdebt/policy.toml
+  printf 'hard_vs_easy_ratio = 1000.0\nmin_median_seconds = 0.0\n' > .cdebt/policy.toml
   git add .cdebt/policy.toml && git commit -qm "Demo policy: always show the timed follow-up (staging, normally rare)"
   echo "note: DEMO_FORCE_FOLLOWUP=1 stages the timed follow-up; say so on camera"
 fi

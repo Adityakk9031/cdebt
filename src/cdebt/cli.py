@@ -322,7 +322,7 @@ def quiz_cmd(
     ] = False,
     simple: Annotated[
         bool,
-        typer.Option("--simple", help="fixed question list (no adaptive rounds or follow-ups)"),
+        typer.Option("--simple", help="fixed question list (no score rule or timing follow-up)"),
     ] = False,
     no_timer: Annotated[
         bool,
@@ -461,7 +461,10 @@ def _adaptive_quiz(
                 f"{o.symbol}: {mark} - answer was {p.answer} (verified by {p.verified_by})"
             )
         verdict = "UNDERSTOOD" if o.cleared else "NOT UNDERSTOOD"
-        console.print(f"[bold]{o.symbol}[/]: {verdict} ({o.reason}, {o.rounds} round(s))")
+        console.print(
+            f"[bold]{o.symbol}[/]: {verdict} ({o.correct} of {len(o.asked)} right, "
+            f"needed {o.needed}; {o.reason})"
+        )
     console.print("Quizzes show visibility, not proof: they cannot stop answers being looked up.")
 
 

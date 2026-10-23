@@ -55,7 +55,7 @@ def test_return_value_branch_and_variable_probes_get_answers_from_a_trace(make_r
              call_inputs={"args": [60], "kwargs": {"express": True}})  # fmt: skip
     assert p.answer == "10" and p.verified_by == "execution-trace" and p.proposer == "agent:test"
     b = _run(r, target="shipping", kind="branch_taken", call_inputs={"args": [10]}, line=8)
-    assert b.answer == "no" and b.difficulty == "hard" and b.options == ["yes", "no"]
+    assert b.answer == "no" and b.difficulty == "medium" and b.options == ["yes", "no"]
     b2 = _run(r, target="shipping", kind="branch_taken", call_inputs={"args": [10, True]}, line=8)
     assert b2.answer == "yes"
     v = _run(r, target="shipping", kind="variable_at_line", call_inputs={"args": [10, True]},

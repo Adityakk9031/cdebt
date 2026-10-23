@@ -126,7 +126,7 @@ const scenes = [
     await typeInto(t,'<span class="p">$ </span>git push -u origin feature',my,50); await sleep(700,my);
     await add(t,'\n\nQ1 <span class="y">[easy]</span> What does <b>apply_discount(14, 10)</b> evaluate to?\n  A) -12   B) 13   C) 12   D) 11\n',my,900); await typeInto(t,'answer: <span class="r">A</span>',my,260);
     cap("Every answer is checked by <b>running the code in a sandbox</b>. No AI decides if I am right."); await sleep(1500,my);
-    cap("A wrong answer earns a <b>harder question</b>, not an instant fail.");
+    cap("One wrong answer is tolerated: <b>3 of 4</b> right still counts.");
     await add(t,'\n\nQ4 <span class="r">[hard]</span> When apply_discount(14, 10) runs, does line 7 (<b>rate = 20</b>) execute?\n  A) yes   B) no\nanswer: A\n',my,2300);
     cap("Answered too evenly fast? A <b>timed follow-up</b>, checked by tracing the real execution. <span style='color:var(--mut)'>Timing is never stored.</span>");
     await add(t,'\nQ6 <span class="y">[easy]</span> What does apply_discount(15, 10) evaluate to? <span class="y">(follow-up, 15 s)</span>\n  A) 13   B) 12   C) 11   D) -12\n',my,500);

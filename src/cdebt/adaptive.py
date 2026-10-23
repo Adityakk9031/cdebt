@@ -1,18 +1,24 @@
-"""Adaptive quiz with timed follow-ups (v1.1). Verdicts describe the CODE record, never a person.
+"""The quiz: a fixed set of questions per function, a score verdict, and a timing check (v1.1).
+Verdicts describe the CODE record, never a person.
 
-Flow per unit: ask a mix of easy and hard questions; the unit clears when enough answers are right,
-including a hard one. A wrong answer earns a harder question on the same unit. If a hard question
-was answered no slower than easy ones (ratio below the policy limit), 1-2 follow-ups are asked on
-that same code, answered by TRACING the real execution, with a visible countdown. At most
-`max_rounds` rounds per unit, then it stays NOT UNDERSTOOD.
+Per function (unit): ask 3 to 5 questions (default 4), easy to hard. The unit is UNDERSTOOD when
+enough are right: with 3 or 4 questions one wrong answer is fine and two wrong is NOT UNDERSTOOD;
+with 5, three right is enough (`required_correct`, 60% of the set rounded up). A wrong answer does
+not earn an extra question.
 
-Privacy: response times live only in the in-memory `_Session.times` list of one quiz session. They
-are never attached to a probe or record and never written to disk, logs or notes.
+Timing check: if the score passes but the person answered easy, medium and hard questions in about
+the same time (the hardest tier is not meaningfully slower than the easiest, or every answer took
+nearly the same time), ONE hard follow-up is asked, answered by TRACING the real execution, with a
+visible countdown. Failing it makes the unit NOT UNDERSTOOD, whatever the score.
+
+Privacy: response times live only in local variables while one unit is asked. They are never
+attached to a probe or record and never written to disk, logs or notes.
 """
 
 from __future__ import annotations
 
 import ast
+import math
 import statistics
 import sys
 import time
@@ -36,20 +42,30 @@ from cdebt.store import Store
 # (answer or None when the countdown ran out, seconds taken)
 AskFn = Callable[[Probe, float | None], tuple[str | None, float]]
 
-REASONS = ("verified", "verified_no_hard_available", "follow_up_failed", "max_rounds_reached")
+REASONS = (
+    "verified",
+    "verified_after_follow_up",
+    "verified_no_follow_up_possible",
+    "score_too_low",
+    "follow_up_failed",
+)
+RANK = {"easy": 0, "medium": 1, "hard": 2}
 
 
 class Policy(BaseModel):
-    """`.cdebt/policy.toml`. Timer, thresholds and enforce mode; never trust or agent choice."""
+    """`.cdebt/policy.toml`. Thresholds, timer and enforce mode; never trust or agent choice."""
 
-    questions_per_unit: int = 3
-    required_correct: int = 2
-    max_rounds: int = 3
-    timer: bool = True
+    questions_per_unit: int = 4  # asked per function; 3 to 5
+    pass_ratio: float = 0.6  # share that must be right; see required_correct
+    timer: bool = True  # visible countdown on the follow-up; False asks it untimed (weaker)
     follow_up_seconds: float = 15.0
-    hard_vs_easy_ratio: float = 1.3
-    min_answers_for_timing: int = 4
-    max_follow_ups: int = 2
+    hard_vs_easy_ratio: float = (
+        1.3  # hard answered in under this x the easy time = suspiciously even
+    )
+    uniform_spread: float = 0.3  # every answer within this fraction of the median time = even
+    min_median_seconds: float = 1.0  # faster than this (scripted input) is not judged on timing
+    min_answers_for_timing: int = 3
+    max_follow_ups: int = 1
     enforce: bool = False
 
 
@@ -60,35 +76,48 @@ def load_policy(repo: Path) -> Policy:
     return Policy()
 
 
+def required_correct(n: int, pass_ratio: float = 0.6) -> int:
+    """How many of `n` questions must be right: 2 of 3, 3 of 4, 3 of 5, 4 of 6. With only 1 or 2
+    questions available every one must be right."""
+    if n <= 2:
+        return n
+    return max(1, math.ceil(pass_ratio * n - 1e-9))
+
+
 @dataclass
 class UnitOutcome:
     symbol: str
     cleared: bool
     reason: str
     asked: list[Probe] = field(default_factory=list)
-    rounds: int = 0
-
-
-@dataclass
-class _Session:
-    """Everything timing-related for ONE quiz session. Discarded when the session ends."""
-
-    times: list[tuple[str, float]] = field(default_factory=list)  # (difficulty, seconds)
+    correct: int = 0  # right answers among the main questions (follow-ups are separate)
+    needed: int = 0
 
 
 def _difficulty(p: Probe) -> str:
     return p.difficulty or "easy"
 
 
-def timing_looks_uniform(
-    times: list[tuple[str, float]], hard_seconds: float, policy: Policy
-) -> bool:
-    """True when a hard question took less than `ratio` x the median easy time (after enough
-    answers). Weak evidence: it only triggers extra questions, never a verdict on a person."""
-    easy = [s for d, s in times if d == "easy"]
-    if len(times) < policy.min_answers_for_timing or not easy:
+def answers_look_suspiciously_uniform(times: list[tuple[str, float]], policy: Policy) -> bool:
+    """True when the hardest tier was not meaningfully slower than the easiest (under
+    `hard_vs_easy_ratio` x), or every answer took nearly the same time (spread under
+    `uniform_spread` of the median). Weak evidence: it only triggers ONE extra question, and a
+    person who passes it is understood. Too-fast answers (scripted input) are not judged."""
+    if len(times) < policy.min_answers_for_timing:
         return False
-    return hard_seconds < policy.hard_vs_easy_ratio * statistics.median(easy)
+    secs = [s for _, s in times]
+    med = statistics.median(secs)
+    if med < policy.min_median_seconds:
+        return False
+    tiers = {d for d, _ in times}
+    if len(tiers) > 1:
+        lo = min(tiers, key=lambda d: RANK[d])
+        hi = max(tiers, key=lambda d: RANK[d])
+        easy = statistics.median([s for d, s in times if d == lo])
+        hard = statistics.median([s for d, s in times if d == hi])
+        if hard < policy.hard_vs_easy_ratio * easy:
+            return True
+    return (max(secs) - min(secs)) <= policy.uniform_spread * med
 
 
 # ---- follow-up and harder-question generation (all answers come from tracing the real code) ----
@@ -232,10 +261,15 @@ def followups(
             pass
     asked = {hard.question}
     out = drop_secret_probes(out)[0]
-    return [p for p in out if p.question not in asked][: policy.max_follow_ups]
+    out = [p for p in out if p.question not in asked]
+    return sorted(out, key=lambda p: -RANK[_difficulty(p)])[
+        : policy.max_follow_ups
+    ]  # hardest first
 
 
-# ---- the adaptive loop ----
+# ---- the quiz loop ----
+
+_NEAREST = {"easy": ("medium", "hard"), "medium": ("easy", "hard"), "hard": ("medium", "easy")}
 
 
 def _ask(ask: AskFn, p: Probe, timeout: float | None) -> tuple[bool, float]:
@@ -243,6 +277,39 @@ def _ask(ask: AskFn, p: Probe, timeout: float | None) -> tuple[bool, float]:
     p.user_answer = ans if ans is not None else ""
     p.correct = bool(ans is not None and grade(p, ans))
     return p.correct, secs
+
+
+def select_questions(pool: list[Probe], n: int) -> list[Probe]:
+    """`n` questions spread across easy, medium and hard where they exist (easy, medium, hard,
+    then easy, medium), returned easiest first. Missing tiers are filled from the nearest one."""
+    by: dict[str, list[Probe]] = {t: [] for t in RANK}
+    for p in pool:
+        by[_difficulty(p)].append(p)
+    chosen: list[Probe] = []
+    for tier in ("easy", "medium", "hard", "easy", "medium")[:n]:
+        for t in (tier, *_NEAREST[tier]):
+            if by[t]:
+                chosen.append(by[t].pop(0))
+                break
+    return sorted(chosen, key=lambda p: RANK[_difficulty(p)])
+
+
+def _topup(
+    repo: Path, rel: str, cfg: Config, unit: CodeUnit, source: str, pool: list[Probe]
+) -> list[Probe]:
+    """Medium/hard questions from tracing the real function, when the pool lacks them."""
+    inputs = next((i for i in (_call_inputs(p) for p in pool) if i), None)
+    if inputs is None:
+        gen, _ = runtime.generate(repo, rel, source, [unit], 7, per_unit=1)
+        inputs = _call_inputs(gen[0]) if gen else None
+    if inputs is None:
+        return []
+    seen = {p.question for p in pool}
+    return [
+        q
+        for q in trace_questions(repo, rel, cfg, unit, source, inputs[0], inputs[1], seed=11)
+        if q.question not in seen
+    ]
 
 
 def run_unit(
@@ -254,123 +321,39 @@ def run_unit(
     pool: list[Probe],
     ask: AskFn,
     policy: Policy,
-    sess: _Session,
 ) -> UnitOutcome:
-    out = UnitOutcome(symbol=unit.symbol, cleared=False, reason="max_rounds_reached")
-    unused = list(pool)
-    state: dict[str, Any] = {
-        "hard_available": any(_difficulty(p) == "hard" for p in pool),
-        "attempts": 0,
-        "no_more": False,
-    }
-    asked_q = {p.question for p in pool}
-
-    def take(level: str, n: int) -> list[Probe]:
-        got: list[Probe] = []
-        for p in list(unused):
-            if len(got) >= n:
-                break
-            if level == "any" or _difficulty(p) == level:
-                got.append(p)
-                unused.remove(p)
-        return got
-
-    def more_hard() -> list[Probe]:
-        """A fresh hard question from tracing the real function, on slightly changed inputs each
-        time, so a unit never runs out of questions before the round cap."""
-        if state["no_more"]:
-            return []
-        state["attempts"] += 1
-        if state["attempts"] > policy.max_rounds + 2:
-            state["no_more"] = True
-            return []
-        inputs = next((i for i in (_call_inputs(p) for p in pool) if i), None)
-        if inputs is None:
-            gen, _ = runtime.generate(repo, rel, source, [unit], 7, per_unit=1)
-            inputs = _call_inputs(gen[0]) if gen else None
-        if inputs is None:
-            state["no_more"] = True
-            return []
-        args, kwargs = inputs
-        for _ in range(state["attempts"] - 1):
-            args, kwargs = _perturb(args, kwargs) or (args, kwargs)
-        qs = [
-            q
-            for q in trace_questions(
-                repo, rel, cfg, unit, source, args, kwargs, seed=11 + state["attempts"]
-            )
-            if q.question not in asked_q
-        ]
-        asked_q.update(q.question for q in qs)
-        if qs:
-            state["hard_available"] = True
-        else:
-            state["no_more"] = True
-        return qs
-
-    main: list[Probe] = []  # graded questions (follow-ups are tracked separately)
-    pending_failure = False
-    for rnd in range(1, policy.max_rounds + 1):
-        out.rounds = rnd
-        if rnd == 1:
-            batch = take("hard", 1)
-            batch += take("easy", policy.questions_per_unit - len(batch))
-            batch += take("any", policy.questions_per_unit - len(batch))
-            if not any(_difficulty(p) == "hard" for p in batch):
-                extra = more_hard()
-                if extra:
-                    unused.extend(extra[1:])
-                    batch += extra[:1]
-        else:  # a wrong answer or failed follow-up earns a HARDER question on the same unit
-            batch = take("hard", 1)
-            if not batch:
-                extra = more_hard()
-                if extra:
-                    unused.extend(extra[1:])
-                    batch = extra[:1]
-            batch = batch or take("easy", 1)
-        if not batch:
-            out.reason = "follow_up_failed" if pending_failure else "max_rounds_reached"
-            break
-        pending_failure = False
-        hard_right: list[tuple[Probe, float]] = []
-        i = 0
-        bonus_given = False  # one immediate harder question per round, not one per wrong answer
-        while i < len(batch):
-            p = batch[i]
-            i += 1
-            ok, secs = _ask(ask, p, None)
-            sess.times.append((_difficulty(p), secs))
-            main.append(p)
-            out.asked.append(p)
-            if ok and _difficulty(p) == "hard":
-                hard_right.append((p, secs))
-            elif not ok and not bonus_given:  # a wrong answer earns a HARDER question at once
-                bonus_given = True
-                harder = take("hard", 1)
-                if not harder:
-                    extra = more_hard()
-                    unused.extend(extra[1:])
-                    harder = extra[:1]
-                batch.extend(harder)
-        for hp, secs in hard_right:
-            if timing_looks_uniform(sess.times, secs, policy):
-                for fu in followups(repo, rel, cfg, unit, source, hp, policy):
-                    ok, _ = _ask(ask, fu, policy.follow_up_seconds if policy.timer else None)
-                    out.asked.append(fu)
-                    pending_failure = pending_failure or not ok
-                break  # at most one follow-up set per round
-        correct = sum(1 for p in main if p.correct)
-        hard_ok = any(p.correct and _difficulty(p) == "hard" for p in main)
-        exhausted = not unused and state["no_more"]
-        enough = correct >= policy.required_correct or (
-            exhausted and bool(main) and all(p.correct for p in main)
-        )
-        if enough and (hard_ok or not state["hard_available"]) and not pending_failure:
-            out.cleared = True
-            out.reason = "verified" if hard_ok else "verified_no_hard_available"
-            return out
-        out.reason = "follow_up_failed" if pending_failure else "max_rounds_reached"
+    """Ask a fixed set, then decide from the score; a suspiciously even pace earns one follow-up."""
+    n = min(5, max(3, policy.questions_per_unit))
+    if not any(_difficulty(p) == "hard" for p in pool) and len(pool) < n + 2:
+        pool = [*pool, *_topup(repo, rel, cfg, unit, source, pool)]
+    asked: list[Probe] = []
+    times: list[tuple[str, float]] = []  # local to this call, never stored
+    for p in select_questions(pool, n):
+        _ok, secs = _ask(ask, p, None)
+        times.append((_difficulty(p), secs))
+        asked.append(p)
+    correct = sum(1 for p in asked if p.correct)
+    need = required_correct(len(asked), policy.pass_ratio)
+    out = UnitOutcome(
+        unit.symbol, False, "score_too_low", asked=list(asked), correct=correct, needed=need
+    )
+    if not asked or correct < need:
+        return out
+    if not answers_look_suspiciously_uniform(times, policy):
+        out.cleared, out.reason = True, "verified"
+        return out
+    hardest = max(asked, key=lambda p: (RANK[_difficulty(p)], bool(p.correct)))
+    fus = followups(repo, rel, cfg, unit, source, hardest, policy)[: max(1, policy.max_follow_ups)]
+    if not fus:
+        out.cleared, out.reason = True, "verified_no_follow_up_possible"
+        return out
+    passed = True
+    for fu in fus:
+        ok, _ = _ask(ask, fu, policy.follow_up_seconds if policy.timer else None)
+        out.asked.append(fu)
+        passed = passed and ok
+    out.cleared = passed
+    out.reason = "verified_after_follow_up" if passed else "follow_up_failed"
     return out
 
 
@@ -384,19 +367,15 @@ def run_adaptive(
     ask: AskFn,
     policy: Policy,
 ) -> list[UnitOutcome]:
-    """Run every unit that has probes. Times live in one session object, dropped on return."""
-    sess = _Session()
+    """Run every unit that has questions."""
     outcomes: list[UnitOutcome] = []
     by_unit: dict[str, list[Probe]] = {}
     for p in probes:
         by_unit.setdefault(p.symbol, []).append(p)
-    try:
-        for u in units:
-            pool = by_unit.get(u.symbol)
-            if pool:
-                outcomes.append(run_unit(repo, rel, cfg, u, source, pool, ask, policy, sess))
-    finally:
-        sess.times.clear()
+    for u in units:
+        pool = by_unit.get(u.symbol)
+        if pool:
+            outcomes.append(run_unit(repo, rel, cfg, u, source, pool, ask, policy))
     return outcomes
 
 
