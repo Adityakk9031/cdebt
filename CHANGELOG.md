@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.1.0rc5
+
+- **A pass needs at least one hard question right** (`require_hard`, default true), on top of the
+  60% rule: 3 of 5 with zero hard correct is NOT understood (reason `no_hard_correct`). Waived only
+  when the set has no hard question at all. New test that no timing value reaches disk, git notes
+  or console output.
+- **A follow-up never repeats a question already asked** (found in the rc4 demo rehearsal, where
+  the follow-up was identical to the question just before it).
+
 ## 1.1.0rc4
 
 - **Quiz rules changed.** Each function gets a fixed set of 3-5 questions (easy, medium, hard).

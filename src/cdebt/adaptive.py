@@ -3,8 +3,9 @@ Verdicts describe the CODE record, never a person.
 
 Per function (unit): ask 3 to 5 questions (default 4), easy to hard. The unit is UNDERSTOOD when
 enough are right: with 3 or 4 questions one wrong answer is fine and two wrong is NOT UNDERSTOOD;
-with 5, three right is enough (`required_correct`, 60% of the set rounded up). A wrong answer does
-not earn an extra question.
+with 5, three right is enough (`required_correct`, 60% of the set rounded up). At least one HARD
+question must also be right (when the set has one), so a pass cannot come from easy questions
+alone. A wrong answer does not earn an extra question.
 
 Timing check: if the score passes but the person answered easy, medium and hard questions in about
 the same time (the hardest tier is not meaningfully slower than the easiest, or every answer took
@@ -47,6 +48,7 @@ REASONS = (
     "verified_after_follow_up",
     "verified_no_follow_up_possible",
     "score_too_low",
+    "no_hard_correct",
     "follow_up_failed",
 )
 RANK = {"easy": 0, "medium": 1, "hard": 2}
@@ -57,6 +59,7 @@ class Policy(BaseModel):
 
     questions_per_unit: int = 4  # asked per function; 3 to 5
     pass_ratio: float = 0.6  # share that must be right; see required_correct
+    require_hard: bool = True  # also need one hard question right (when the set has a hard one)
     timer: bool = True  # visible countdown on the follow-up; False asks it untimed (weaker)
     follow_up_seconds: float = 15.0
     hard_vs_easy_ratio: float = (
@@ -228,7 +231,14 @@ def trace_questions(
 
 
 def followups(
-    repo: Path, rel: str, cfg: Config, unit: CodeUnit, source: str, hard: Probe, policy: Policy
+    repo: Path,
+    rel: str,
+    cfg: Config,
+    unit: CodeUnit,
+    source: str,
+    hard: Probe,
+    policy: Policy,
+    exclude: set[str] | None = None,
 ) -> list[Probe]:
     """1-2 follow-ups on the SAME code as the hard question just answered: a branch question and
     a variable question on that very call, then the same function with a slightly changed input."""
@@ -259,7 +269,7 @@ def followups(
             out.append(p)
         except Rejected:
             pass
-    asked = {hard.question}
+    asked = {hard.question, *(exclude or ())}  # never repeat a question already asked
     out = drop_secret_probes(out)[0]
     out = [p for p in out if p.question not in asked]
     return sorted(out, key=lambda p: -RANK[_difficulty(p)])[
@@ -339,11 +349,20 @@ def run_unit(
     )
     if not asked or correct < need:
         return out
+    if (
+        policy.require_hard
+        and any(_difficulty(p) == "hard" for p in asked)
+        and not any(_difficulty(p) == "hard" and p.correct for p in asked)
+    ):
+        out.reason = "no_hard_correct"
+        return out
     if not answers_look_suspiciously_uniform(times, policy):
         out.cleared, out.reason = True, "verified"
         return out
     hardest = max(asked, key=lambda p: (RANK[_difficulty(p)], bool(p.correct)))
-    fus = followups(repo, rel, cfg, unit, source, hardest, policy)[: max(1, policy.max_follow_ups)]
+    fus = followups(repo, rel, cfg, unit, source, hardest, policy, {p.question for p in asked})[
+        : max(1, policy.max_follow_ups)
+    ]
     if not fus:
         out.cleared, out.reason = True, "verified_no_follow_up_possible"
         return out

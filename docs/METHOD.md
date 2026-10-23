@@ -60,7 +60,8 @@ Questions are labelled easy, medium or hard from their kind and code complexity.
 gets a fixed set of 3 to 5 questions (default 4) mixing the tiers, asked easiest first. A wrong
 answer never adds a question. The function clears when at least ceil(0.6 x n) answers are right
 (2 of 3, 3 of 4, 3 of 5; with 2 or fewer questions all must be right; the 0.6 is a policy choice,
-UNVERIFIED as a predictor of understanding). If the score passes but the answers came at a
+UNVERIFIED as a predictor of understanding), and at least one hard question must be among the
+correct ones (`require_hard`; waived only when the set contains no hard question). If the score passes but the answers came at a
 suspiciously even pace (hardest tier not meaningfully slower than easiest, or all answers within
 30% of the median), ONE timed hard follow-up, answered by tracing the real execution, decides:
 failing or timing out means not understood. A failing score gets no follow-up. Timing lives only in memory for the session and is never

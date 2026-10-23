@@ -381,3 +381,30 @@ workflow (run 39921259056, approved by the maintainer). From a clean environment
 not in `.gitignore`, `copy_tree` left it out of the sandbox and `looks_secret` flagged the secret.
 Right after the upload, PyPI's cached index still served `1.1.0rc2` to an unpinned install for a few
 minutes; asking for the version explicitly worked at once.
+
+### 1.1.0rc4 from PyPI: full demo rehearsal in a clean venv (2026-10-23)
+
+Clean venv (Python 3.14, macOS), `pip install --no-cache-dir "cdebt==1.1.0rc4"` from PyPI (the wheel
+came from files.pythonhosted.org, not the local build), `cdebt --version` printed `1.1.0rc4`. Then
+the demo from `examples/first_user/` end to end, with real Git AI 1.7.5 notes, the real pre-push
+hook and the real sandbox (`DEMO_FORCE_FOLLOWUP=1`; no coding agent connected, so the built-in
+questions only; the "AI" is the `git-ai checkpoint mock_ai` stand-in):
+
+| step | result |
+|---|---|
+| `setup_demo.sh`, `cdebt init` | demo built, attribution `Git AI (line-level)`; hook installed, workflow written |
+| `cdebt map` / `cdebt coverage` | AI = 85.7% (24 lines), verified 0%; 75% of AI lines verifiable, 25% attest-only |
+| `git push -u origin feature` through the hook, first answer wrong on purpose | 13 questions: `apply_discount` UNDERSTOOD (3 of 4 right), `late_fee` UNDERSTOOD after one timed follow-up, `invoice_total` UNDERSTOOD; "notes pushed before the branch" |
+| `git notes --ref=cdebt show HEAD` | 3 records with `status_reason`; the wrong first answer is kept; **no time-like key** anywhere in the note |
+| watcher during `cdebt quiz pkg/pricing.py` (answers `A` to everything) | 39 distinct sandbox child processes; the quiz correctly ended NOT UNDERSTOOD (1 of 4, needed 3) |
+| `sandbox_peek.py` | 6 of 6 hostile actions BLOCKED; all 5 outside checks True |
+| `cdebt gate` / edit `late_fee`, commit / `--enforce` | PASS; then `late_fee` (6 AI lines) flagged **stale**; `--enforce` exit code 1 |
+
+Found while doing this (disclosed): the forced follow-up for `late_fee` (Q9) was the same question
+as Q7 that had just been asked, because the follow-up generator only excluded the hard question
+itself. A repeated question is a weak follow-up. Fixed in 1.1.0rc5 (a follow-up never repeats an
+asked question; test in `tests/test_adaptive.py`). Also seen: `apply_discount` and `invoice_total`
+ended `verified_no_follow_up_possible`, meaning the pace check fired but no new question could be
+generated; that outcome clears the function and is labelled as such, which is a limit of the built-in
+generator, not a verification. Not covered: Linux, Windows, a connected coding agent, a real PR.
+

@@ -110,7 +110,7 @@ resolve; call-graph probes need a SCIP index. Run `cdebt coverage` before trusti
 2. A developer's coding agent writes code. On `git push`, the pre-push hook finds AI-written lines
    that nobody has understood and asks questions on the terminal. Each answer is checked by running
    the code in a sandbox. Each function gets a fixed set of 3-5 questions (easy, medium and hard);
-   one wrong answer is tolerated (2 of 3, 3 of 4, 3 of 5 must be right [src: src/cdebt/adaptive.py]), and if the answers all came
+   one wrong answer is tolerated, but at least one hard question must be right (2 of 3, 3 of 4, 3 of 5 must be right [src: src/cdebt/adaptive.py]), and if the answers all came
    at a suspiciously even pace, one short timed hard follow-up decides. The records go to
    `refs/notes/cdebt` and are pushed before the branch. With no terminal (an agent pushing on its
    own) the hook prints a notice and lets the push through.

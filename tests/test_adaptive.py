@@ -109,10 +109,37 @@ class Scripted:
         return [p for p, t in self.calls if t is not None]
 
 
-def _run(r: Repo, ask, policy: Policy | None = None):  # type: ignore[no-untyped-def]
+def _with_hard(r: Repo) -> list[Probe]:
+    """The pool plus hard questions (what `label` held mid-run, from a real trace)."""
+    hard = []
+    for arg in (-3, 0, 7):
+        p = execute(
+            r.path,
+            REL,
+            parse_proposal(
+                {
+                    "target": "classify",
+                    "kind": "variable_at_line",
+                    "line": 12,
+                    "variable": "label",
+                    "call_inputs": {"args": [arg]},
+                }  # fmt: skip
+            ),
+            Config(),
+            proposer="builtin",
+        )
+        p.evidence["args_repr"] = repr([arg])
+        hard.append(p)
+    assert all(p.difficulty == "hard" for p in hard)
+    return [*_pool(r), *hard]
+
+
+def _run(r: Repo, ask, policy: Policy | None = None, pool: list[Probe] | None = None):  # type: ignore[no-untyped-def]
     src = (r.path / REL).read_text()
     units = extract_units(REL, src)
-    outs = run_adaptive(r.path, REL, Config(), units, src, _pool(r), ask, policy or Policy())
+    outs = run_adaptive(
+        r.path, REL, Config(), units, src, pool or _pool(r), ask, policy or Policy()
+    )
     return {o.symbol: o for o in outs}, units
 
 
@@ -186,6 +213,54 @@ def test_three_questions_allow_one_wrong_and_five_allow_two(make_repo) -> None: 
     assert not bad.cleared and bad.correct == 2
 
 
+def _planned(pool: list[Probe], n: int) -> list[Probe]:
+    chosen = select_questions([p for p in pool if p.symbol == "classify"], n)
+    assert sum(1 for p in chosen if p.difficulty == "hard") == 1  # a 5-set has one hard slot
+    return chosen
+
+
+def _wrong_ids(*probes: Probe):  # type: ignore[no-untyped-def]
+    qs = {p.question for p in probes}
+    return lambda p, i: p.question not in qs
+
+
+def test_three_of_five_with_no_hard_correct_is_not_understood(make_repo) -> None:  # type: ignore[no-untyped-def]
+    r = _repo(make_repo)
+    pool = _with_hard(r)
+    plan = _planned(pool, 5)
+    hard = next(p for p in plan if p.difficulty == "hard")
+    other = next(p for p in plan if p is not hard)
+    ask = Scripted(**NATURAL, right=_wrong_ids(hard, other))  # 3 of 5 right, the hard one wrong
+    cl = _run(r, ask, Policy(questions_per_unit=5), pool)[0]["classify"]
+    assert len(cl.asked) == 5 and cl.correct == 3 and cl.needed == 3  # the 60% score passes
+    assert not cl.cleared and cl.reason == "no_hard_correct" and not ask.timed
+
+
+def test_three_of_five_with_one_hard_correct_is_understood(make_repo) -> None:  # type: ignore[no-untyped-def]
+    r = _repo(make_repo)
+    pool = _with_hard(r)
+    plan = _planned(pool, 5)
+    hard = next(p for p in plan if p.difficulty == "hard")
+    others = [p for p in plan if p is not hard][:2]
+    ask = Scripted(**NATURAL, right=_wrong_ids(*others))  # 3 of 5 right, the hard one among them
+    cl = _run(r, ask, Policy(questions_per_unit=5), pool)[0]["classify"]
+    assert len(cl.asked) == 5 and cl.correct == 3
+    assert any(p.difficulty == "hard" and p.correct for p in cl.asked)
+    assert cl.cleared and cl.reason == "verified"
+
+
+def test_require_hard_can_be_switched_off_and_is_waived_with_no_hard_question(make_repo) -> None:  # type: ignore[no-untyped-def]
+    r = _repo(make_repo)
+    pool = _with_hard(r)
+    hard = next(p for p in _planned(pool, 5) if p.difficulty == "hard")
+    pol = Policy(questions_per_unit=5, require_hard=False)
+    assert _run(r, Scripted(**NATURAL, right=_wrong_ids(hard)), pol, pool)[0]["classify"].cleared
+    inc = _run(r, Scripted(**NATURAL))[0][
+        "inc"
+    ]  # `inc` only has easy questions: nothing to require
+    assert all(p.difficulty != "hard" for p in inc.asked) and inc.cleared
+
+
 def test_the_even_pace_rule_matches_the_examples() -> None:
     pol = Policy()
     even = [("easy", 8.0), ("easy", 8.0), ("medium", 8.0), ("hard", 9.5)]  # 8, 8, 8, then 9-10 s
@@ -204,6 +279,8 @@ def test_even_pace_and_passing_score_asks_one_hard_followup_and_passes(make_repo
     cl = _run(r, ask)[0]["classify"]
     assert len(ask.timed) == 1 and all(t == 15.0 for _, t in ask.calls if t is not None)
     assert ask.timed[0].verified_by == "execution-trace"
+    # the follow-up is a NEW question, never one that was already asked in the main set
+    assert ask.timed[0].question not in {p.question for p, t in ask.calls if t is None}
     assert cl.cleared and cl.reason == "verified_after_follow_up"
 
 
@@ -297,6 +374,58 @@ def test_no_timing_value_is_persisted_anywhere(make_repo, capsys) -> None:  # ty
     out = capsys.readouterr()
     assert "7.31337" not in out.out + out.err
     assert "status_reason" in (r.path / ".cdebt" / "understanding.json").read_text()
+
+
+def test_no_timing_value_reaches_git_notes_the_gate_or_the_pr_comment(make_repo, capsys) -> None:  # type: ignore[no-untyped-def]
+    """Marker timings go in; the git note (what the hook pushes), the stored record, the gate result
+    and the markdown posted on the PR must hold none of them, nor any time-like field."""
+    import json
+    import re
+    import subprocess
+
+    from cdebt import notes
+    from cdebt.gate import run_gate, to_markdown
+
+    r = _repo(make_repo)
+    markers = ("6.41729", "7.41729", "9.8765432")
+    ask = Scripted(
+        easy=6.41729, medium=6.41729, hard=6.41729, follow=7.41729
+    )  # even pace: follow-up too
+    outs, units = _run(r, ask)
+    recs = record_outcomes(REL, units, list(outs.values()), store=Store(r.path), label="audit-x")
+    assert any(o.reason == "verified_after_follow_up" for o in outs.values())  # the follow-up ran
+    sha = (
+        r.git("rev-parse", "HEAD").strip()
+        if hasattr(r, "git")
+        else subprocess.run(
+            ["git", "rev-parse", "HEAD"], cwd=r.path, capture_output=True, text=True
+        ).stdout.strip()
+    )
+    notes.write_records(r.path, sha, recs)
+    note = subprocess.run(
+        ["git", "notes", "--ref=cdebt", "show", sha], cwd=r.path, capture_output=True, text=True
+    ).stdout
+    gate = run_gate(r.path, Config(), "HEAD~0")
+    md = to_markdown(gate, pr=1)
+    stored = (r.path / ".cdebt" / "understanding.json").read_text()
+    out = capsys.readouterr()
+    for name, text in (("note", note), ("stored", stored), ("gate", repr(gate)), ("pr comment", md),
+                       ("console", out.out + out.err)):  # fmt: skip
+        for m in markers + ("6.4172", "7.4172"):
+            assert m not in text, f"{name} holds a timing value"
+
+    def keys(o):  # type: ignore[no-untyped-def]
+        if isinstance(o, dict):
+            for k, v in o.items():
+                yield k
+                yield from keys(v)
+        elif isinstance(o, list):
+            for v in o:
+                yield from keys(v)
+
+    bad = re.compile(r"time|second|elapsed|duration|latency|speed|pace|took", re.I)
+    for doc in (json.loads(note), json.loads(stored)):
+        assert not [k for k in keys(doc) if bad.search(str(k))]
 
 
 def test_cli_quiz_runs_the_flow_and_records_reasons(make_repo, monkeypatch, tmp_path) -> None:  # type: ignore[no-untyped-def]

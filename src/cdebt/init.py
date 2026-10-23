@@ -19,6 +19,8 @@ POLICY = """# cdebt policy (read by `cdebt quiz` and the pre-push hook). Trust a
 questions_per_unit = 4    # asked per function (3 to 5), easy to hard. 3 of 4 right = understood;
                           # one wrong is fine, two wrong is NOT understood (60%, rounded up)
 pass_ratio = 0.6
+require_hard = true       # ...and at least ONE hard question must be right (when the set has a hard
+                          # one), so easy questions alone cannot clear a function
 timer = true              # visible countdown on the follow-up; false asks it untimed (weaker check)
 follow_up_seconds = 15    # ONE hard follow-up when easy and hard answers took about the same time
 hard_vs_easy_ratio = 1.3  # hard answered in under 1.3 x the easy time counts as "the same time"
