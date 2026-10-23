@@ -408,3 +408,24 @@ ended `verified_no_follow_up_possible`, meaning the pace check fired but no new 
 generated; that outcome clears the function and is labelled as such, which is a limit of the built-in
 generator, not a verification. Not covered: Linux, Windows, a connected coding agent, a real PR.
 
+### 1.1.0rc5 from PyPI: the same rehearsal in a clean venv (2026-10-23)
+
+Published by the `publish` workflow (run 39977068347, approved by the maintainer). Right after the
+upload PyPI's JSON API showed rc5 while pip's index still said "no matching distribution" for a few
+minutes; a retry loop then installed it from files.pythonhosted.org and `cdebt --version` printed
+`1.1.0rc5`. Same demo, same steps as the rc4 section above, first answer wrong on purpose:
+
+- Hooked push: 12 questions, all three functions UNDERSTOOD, "notes pushed before the branch".
+  The note holds 3 records with `status_reason`, keeps the wrong first answer, and has **no
+  time-like key**. `cdebt gate` PASS; watcher saw 43 sandbox children; `sandbox_peek.py` 6 of 6
+  BLOCKED and 5 of 5 outside checks True; after editing `late_fee` the gate flagged it stale and
+  `--enforce` exited 1.
+- **Finding (not fixed in rc5): the staged timed follow-up no longer appears in the demo.** The rc5
+  fix stops a follow-up repeating an asked question; on this small demo project every follow-up the
+  built-in generator can make had already been asked, so all three functions ended
+  `verified_no_follow_up_possible` and nobody saw a countdown. The rule itself is covered by unit
+  tests (`tests/test_adaptive.py`), but the demo script's "timed follow-up appears" beat will not
+  show with the built-in questions alone. Candidate fix: also offer a fresh input of the same
+  function as a follow-up when the traced ones were already asked. Not done, not released.
+- Not covered: Linux, Windows, a connected coding agent, a real PR.
+
