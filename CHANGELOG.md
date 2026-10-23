@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.1.0rc4
+
+- **Quiz rules changed.** Each function gets a fixed set of 3-5 questions (easy, medium, hard).
+  A wrong answer no longer adds a harder question. 2 of 3, 3 of 4 or 3 of 5 correct clears the
+  function (ceil(0.6 x n); `pass_ratio` in `.cdebt/policy.toml`). A passing score answered at a
+  suspiciously even pace gets ONE timed hard follow-up; failing it means not understood. A failing
+  score gets no follow-up. Timing is still never stored.
+
 ## 1.1.0rc3
 
 - **Security fix: secrets could reach the sandbox and a quiz record.** `copy_tree` copied every
