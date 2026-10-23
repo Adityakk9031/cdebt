@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 1.1.0rc3
 
 - **Security fix: secrets could reach the sandbox and a quiz record.** `copy_tree` copied every
   file git would include, so an `.env` missing from `.gitignore` (or a committed key) was readable
