@@ -429,3 +429,23 @@ minutes; a retry loop then installed it from files.pythonhosted.org and `cdebt -
   function as a follow-up when the traced ones were already asked. Not done, not released.
 - Not covered: Linux, Windows, a connected coding agent, a real PR.
 
+### 1.1.0rc6 from PyPI: the follow-up gap closed, same rehearsal (2026-10-23)
+
+Published by the `publish` workflow (run 40001016156, approved by the maintainer). Clean venv,
+`pip install --no-cache-dir "cdebt==1.1.0rc6"` from files.pythonhosted.org, `cdebt --version`
+printed `1.1.0rc6`. Same demo and steps as the rc4 and rc5 sections, first answer wrong on purpose:
+
+- Hooked push: 15 questions. All three functions UNDERSTOOD with `verified_after_follow_up`; each got
+  one timed (15 s) follow-up that was a **new** question (the same function on a fresh input, for
+  example `apply_discount(15, 10)` after `apply_discount(14, 10)`), so the rc5 gap is closed in this
+  demo. "notes pushed before the branch". The note holds 3 records with `status_reason`, keeps the
+  wrong first answer, has **no time-like key**. `cdebt gate` PASS.
+- Watcher during `cdebt quiz pkg/pricing.py`: 39 sandbox children. `sandbox_peek.py`: 6 of 6 BLOCKED,
+  0 ALLOWED, 5 of 5 outside checks True. After editing `late_fee` the gate flagged it stale and
+  `--enforce` exited 1.
+- Observed limit: answering `A` to every question (not reading them) ended `subtotal` and
+  `apply_discount` NOT UNDERSTOOD but cleared `late_fee` (3 of 5 right, one of them hard) by chance,
+  because the questions have only 2 to 4 options. A short set cannot rule out lucky guessing; this
+  is one more reason the result is visibility, not proof (`docs/LIMITS.md`).
+- Not covered: Linux, Windows, a connected coding agent, a real PR.
+
