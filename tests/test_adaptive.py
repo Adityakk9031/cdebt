@@ -261,6 +261,27 @@ def test_require_hard_can_be_switched_off_and_is_waived_with_no_hard_question(ma
     assert all(p.difficulty != "hard" for p in inc.asked) and inc.cleared
 
 
+def test_followup_offers_a_fresh_input_when_every_traced_question_was_asked(make_repo) -> None:  # type: ignore[no-untyped-def]
+    """The rc5 demo gap: all traced follow-ups had been asked, so no follow-up existed at all."""
+    from cdebt.adaptive import followups, trace_questions
+
+    r = _repo(make_repo)
+    src = (r.path / REL).read_text()
+    unit = next(u for u in extract_units(REL, src) if u.symbol == "classify")
+    hard = next(p for p in _with_hard(r) if p.difficulty == "hard")
+    args = [hard.evidence["args_repr"]]
+    traced = trace_questions(r.path, REL, Config(), unit, src, eval(args[0]), {}, seed=101)
+    assert traced  # these are what the old code would have offered
+    asked = {q.question for q in traced}
+    fus = followups(r.path, REL, Config(), unit, src, hard, Policy(), asked)
+    assert fus, "a fresh input of the same function must still be available"
+    assert all(f.question not in asked | {hard.question} for f in fus)
+    assert fus[0].kind == "return_value" and fus[0].verified_by in (
+        "sandbox-exec",
+        "execution-trace",
+    )
+
+
 def test_the_even_pace_rule_matches_the_examples() -> None:
     pol = Policy()
     even = [("easy", 8.0), ("easy", 8.0), ("medium", 8.0), ("hard", 9.5)]  # 8, 8, 8, then 9-10 s

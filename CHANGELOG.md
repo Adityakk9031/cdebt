@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.1.0rc6
+
+- **The timed follow-up now falls back to a fresh input of the same function** when every traced
+  question had already been asked (found in the rc5 demo rehearsal, where no follow-up appeared at
+  all on the small demo project). Still never repeats an asked question.
+
 ## 1.1.0rc5
 
 - **A pass needs at least one hard question right** (`require_hard`, default true), on top of the

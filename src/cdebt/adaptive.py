@@ -19,6 +19,7 @@ attached to a probe or record and never written to disk, logs or notes.
 from __future__ import annotations
 
 import ast
+import contextlib
 import math
 import statistics
 import sys
@@ -250,25 +251,29 @@ def followups(
         return []
     args, kwargs = inputs
     out = trace_questions(repo, rel, cfg, unit, source, args, kwargs, seed=101)
-    pert = _perturb(args, kwargs)
-    if pert is not None and len(out) < policy.max_follow_ups:
-        try:
-            p = execute(
-                repo,
-                rel,
-                Proposal(
-                    target=unit.symbol,
-                    kind="return_value",
-                    call_inputs={"args": pert[0], "kwargs": pert[1]},
-                ),
-                cfg,
-                proposer="builtin",
-                seed=103,
-                source=source,
+    # fresh inputs of the same function (the traced questions above may all have been asked already)
+    cur: tuple[list[Any], dict[str, Any]] = (args, kwargs)
+    for seed in (103, 104):
+        pert = _perturb(*cur)
+        if pert is None:
+            break
+        cur = pert
+        with contextlib.suppress(Rejected):
+            out.append(
+                execute(
+                    repo,
+                    rel,
+                    Proposal(
+                        target=unit.symbol,
+                        kind="return_value",
+                        call_inputs={"args": pert[0], "kwargs": pert[1]},
+                    ),
+                    cfg,
+                    proposer="builtin",
+                    seed=seed,
+                    source=source,
+                )
             )
-            out.append(p)
-        except Rejected:
-            pass
     asked = {hard.question, *(exclude or ())}  # never repeat a question already asked
     out = drop_secret_probes(out)[0]
     out = [p for p in out if p.question not in asked]
