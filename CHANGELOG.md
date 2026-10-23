@@ -1,5 +1,16 @@
 # Changelog
 
+## Unreleased
+
+- **Security fix: secrets could reach the sandbox and a quiz record.** `copy_tree` copied every
+  file git would include, so an `.env` missing from `.gitignore` (or a committed key) was readable
+  inside the sandbox; a function or agent harness that returned it would have put the secret into
+  a question's answer, which is stored in `refs/notes/cdebt` and pushed. Now secret-looking files
+  (`.env*`, `*.pem`, `*.key`, `id_rsa*`, credential and secrets files, `.aws/`, `.ssh/` ...) are
+  never copied, and any question whose answer or options look like a secret (known token formats,
+  credentials in URLs, password assignments, long random tokens) is dropped. Pattern matching, not
+  a guarantee; keep secrets out of the repository. `cdebt.secretguard`, `tests/test_secretguard.py`.
+
 ## 1.1.0rc2
 
 - README links are absolute so they work on the PyPI page; the install section shows

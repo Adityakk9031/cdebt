@@ -174,3 +174,15 @@ state is closure-scoped, so no frame holds a handle on it. Evidence: `frame_deep
 object reachable from every frame and rewrites every function and closure cell it finds) and
 `getframe_depth_into_runner` in `tests/test_sandbox_redteam.py` leave the world untouched in every
 mode. Residual: frames are now reachable via `f_back`; this reasoning is by the author and AI only.
+
+### 6c. Secrets in the sandbox copy and in answers (fixed after 1.1.0rc2)
+
+Found by reading `copy_tree` while explaining the sandbox: it copied tracked and untracked-but-not-
+ignored files, so an `.env` that was not in `.gitignore`, or a committed key, was copied into the
+sandbox root, where reads are allowed. A function or an agent harness returning it would have made
+the secret a question's answer, stored in `.cdebt/understanding.json` and `refs/notes/cdebt` and
+pushed by the hook. Fix: `cdebt.secretguard` (never copy secret-looking files; drop questions whose
+answer, options or text look like a secret). Test: `tests/test_secretguard.py` shows the old leak
+path (with the file filter disabled the harness returns the secret) and both layers closing it.
+Residual: pattern matching can miss unusual secret formats; secrets inside ordinary source files
+(hard-coded keys) are caught only when they match a pattern.

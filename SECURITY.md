@@ -38,3 +38,12 @@ self-asserted and can be edited by whoever opens a pull request.
 ## Supported versions
 
 Pre-release only (1.0.0 release candidates). There are no supported stable releases yet.
+
+## Secrets and quiz records
+
+cdebt copies the project into a temporary folder before running any of its code. Files that
+usually hold credentials (`.env*`, private keys, `*.pem`/`*.key`, credential and secrets files,
+`.aws/`, `.ssh/` and similar) are never copied, even if git would include them, and a question
+whose answer looks like a secret is dropped, because answers are stored in `refs/notes/cdebt` and
+pushed. This is pattern matching and can miss an unusual secret format: keep secrets out of the
+repository, and treat the notes like any other pushed data.

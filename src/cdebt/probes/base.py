@@ -64,8 +64,13 @@ def grade(probe: Probe, raw: str) -> bool:
     return len(chosen) == 1 and _norm(chosen[0]) == _norm(probe.answer)
 
 
-def copy_tree(repo: Path, dest: Path, *, max_mb: int = 100) -> None:
-    """Copy tracked + untracked-but-not-ignored working-tree files (not .git/.venv/.cdebt)."""
+def copy_tree(repo: Path, dest: Path, *, max_mb: int = 100) -> list[str]:
+    """Copy tracked + untracked-but-not-ignored working-tree files (not .git/.venv/.cdebt), but
+    NEVER secret-looking files (`.env`, keys, credential files; see cdebt.secretguard), even when
+    git would include them. Returns the paths that were left out for that reason."""
+    from cdebt.secretguard import is_secret_file
+
+    skipped: list[str] = []
     p = subprocess.run(
         ["git", "ls-files", "-z", "--cached", "--others", "--exclude-standard"],
         cwd=repo,
@@ -74,6 +79,9 @@ def copy_tree(repo: Path, dest: Path, *, max_mb: int = 100) -> None:
     total = 0
     for rel in p.stdout.decode().split("\0"):
         if not rel or rel.startswith((".git/", ".venv/", ".cdebt/")):
+            continue
+        if is_secret_file(rel):
+            skipped.append(rel)
             continue
         src = repo / rel
         if src.is_symlink():
@@ -98,6 +106,7 @@ def copy_tree(repo: Path, dest: Path, *, max_mb: int = 100) -> None:
         d = dest / rel
         d.parent.mkdir(parents=True, exist_ok=True)
         shutil.copy2(src, d)
+    return skipped
 
 
 def temp_root(prefix: str = "cdebt-") -> Path:

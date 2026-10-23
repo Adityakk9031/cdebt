@@ -75,7 +75,17 @@ def build_quiz(
         )  # fmt: skip
         pool["agent"], skips = aps, skips + notes
     from cdebt.agents.probes import branch_count, difficulty_of
+    from cdebt.secretguard import drop_secret_probes
 
+    dropped = 0
+    for k in list(pool):  # a secret must never become an answer (records and notes are pushed)
+        pool[k], n_dropped = drop_secret_probes(pool[k])
+        dropped += n_dropped
+    if dropped:
+        skips.append(
+            f"{rel}: {dropped} question(s) dropped because the answer looked like a secret "
+            "(cdebt never stores secrets in records)"
+        )
     for ps in pool.values():  # label every question easy/hard from its kind and code complexity
         for p in ps:
             if p.difficulty is None:

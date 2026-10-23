@@ -122,3 +122,7 @@ causation. Blast radius and the quiz itself are not evaluated.
   repository. The
   `codex` and `cursor` adapters are UNVERIFIED (those CLIs were not installed); `command` is the
   generic route.
+
+- **Secret-looking files are not copied into the sandbox**, and questions whose answers look like
+  secrets are dropped. Code that needs those files to run is skipped. Detection is pattern-based
+  and can miss unusual formats (`cdebt.secretguard`).

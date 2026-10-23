@@ -30,6 +30,7 @@ from cdebt.config import Config
 from cdebt.models import CodeUnit, Probe, Record
 from cdebt.probes import runtime
 from cdebt.probes.base import grade
+from cdebt.secretguard import drop_secret_probes
 from cdebt.store import Store
 
 # (answer or None when the countdown ran out, seconds taken)
@@ -194,7 +195,7 @@ def trace_questions(
         p.evidence["args_repr"] = repr(args)
         p.evidence["kwargs_repr"] = repr(kwargs)
         out.append(p)
-    return out
+    return drop_secret_probes(out)[0]
 
 
 def followups(
@@ -230,6 +231,7 @@ def followups(
         except Rejected:
             pass
     asked = {hard.question}
+    out = drop_secret_probes(out)[0]
     return [p for p in out if p.question not in asked][: policy.max_follow_ups]
 
 
