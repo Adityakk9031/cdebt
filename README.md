@@ -165,6 +165,57 @@ cdebt plan --top 10
 For non-interactive use: `cdebt quiz FILE --emit q.json` writes the questions (no answers),
 then `cdebt quiz FILE --answers answers.json`.
 
+## Connect your coding agent (optional)
+
+By default cdebt writes the quiz questions itself (the built-in generator). You can let your own
+coding agent write them instead: it reads only the code being quizzed and proposes questions;
+cdebt runs every proposal in the sandbox to get the true answer, keeps only those it can verify,
+and never shows the agent an answer. The agent never grades you.
+
+The code for this ships in every release on PyPI since 1.1.0rc1 [src: CHANGELOG.md]. You need three things:
+
+1. **The `agent` extra** (it adds the `mcp` library the connection uses). A plain
+   `pip install cdebt` gives built-in questions only.
+
+   ```bash
+   pip install --pre "cdebt[agent]"
+   ```
+
+2. **The agent's own CLI, installed and logged in.** For Claude Code that is the terminal
+   `claude` command (the Claude desktop app alone is not enough: cdebt has to start the agent from
+   the terminal during your push).
+
+   ```bash
+   npm install -g @anthropic-ai/claude-code
+   claude            # once: type /login, finish in the browser, then /exit
+   ```
+
+   If npm says `EACCES: permission denied`, install into your home folder instead of using sudo:
+
+   ```bash
+   npm install -g --prefix ~/.npm-global @anthropic-ai/claude-code
+   echo 'export PATH="$HOME/.npm-global/bin:$PATH"' >> ~/.zshrc && export PATH="$HOME/.npm-global/bin:$PATH"
+   ```
+
+3. **Connect it** (saved only in your user config, `~/.config/cdebt/config.toml`, never in the
+   repository):
+
+   ```bash
+   cdebt agent connect --name claude_code --yes
+   cdebt agent status        # shows the connected agent
+   cdebt agent disconnect    # back to the built-in generator
+   ```
+
+After a quiz, cdebt prints how many questions the agent proposed and how many it verified.
+Expect a push to take longer (the agent is called each time) and it uses your agent plan's usage;
+a cheaper default model in the agent's own settings keeps that down. Only `claude_code` has been
+run against a real CLI; `codex` and `cursor` are UNVERIFIED.
+
+Known issues in 1.1.0rc9 [src: CHANGELOG.md] (to be fixed): `cdebt agent status` can report `claude_code` as detected
+when only the Claude desktop app is installed (check that `claude --version` works in your
+terminal), and without the `agent` extra the quiz reports "no proposals" instead of saying the
+extra is missing.
+
 ## Attribution setup (optional but recommended)
 
 Without Git AI, cdebt uses commit trailers (coarse) and reports everything else as unknown.
