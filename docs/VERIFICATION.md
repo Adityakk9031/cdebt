@@ -449,3 +449,36 @@ printed `1.1.0rc6`. Same demo and steps as the rc4 and rc5 sections, first answe
   is one more reason the result is visibility, not proof (`docs/LIMITS.md`).
 - Not covered: Linux, Windows, a connected coding agent, a real PR.
 
+### 1.1.0rc7 from PyPI: the reworked even-pace check, same rehearsal (2026-10-23)
+
+Published by the `publish` workflow (run 40011923890, approved by the maintainer). Clean venv,
+`pip install --no-cache-dir "cdebt==1.1.0rc7"` from files.pythonhosted.org, `cdebt --version`
+printed `1.1.0rc7`. Same demo as the rc4 to rc6 sections (`DEMO_FORCE_FOLLOWUP=1`, which sets
+`hard_vs_easy_ratio = 1000` and `min_median_seconds = 0` so the scripted instant answers are judged),
+with `CDEBT_FOLLOWUP_SEED=7` set for both the answer pre-computation and the real push, because the
+follow-ups are now random.
+
+- Hooked push: `apply_discount` UNDERSTOOD (`verified`; its set has no hard question, so there is
+  nothing to compare and no follow-up), `late_fee` and `invoice_total` UNDERSTOOD
+  (`verified_after_follow_up`), each after ONE follow-up that was a short-answer changed input
+  (`late_fee(22, 14)`, `invoice_total([-3], 19, -1)`) shown with a visible 5 s countdown (the floor,
+  because scripted answers take about 0 s; the 75%-of-own-pace rule is covered by unit tests, not
+  rehearsed with a human). Notes pushed before the branch; the note holds 3 records with
+  `status_reason` and **no time-like key** (searched for time, second, elapsed, duration, latency,
+  speed, pace, took, timer, countdown). `cdebt gate` PASS.
+- Watcher: 41 sandbox children. `sandbox_peek.py`: 6 of 6 BLOCKED, 0 ALLOWED, 5 of 5 outside checks
+  True. After editing `late_fee` the gate flagged it stale; `--enforce` exited 1.
+- Answering `A` to everything (not reading) now ended `late_fee` **NOT UNDERSTOOD with
+  `follow_up_failed`**: the lucky guesses passed the score (as they did on rc6) and the follow-up
+  stopped them. One run on one function, not a detection rate.
+- Mistake in my own rehearsal script, disclosed: my first run used an answers oracle that reported
+  0.0 s answer times; `0 < 1000 x 0` is false, so the oracle saw no follow-up while the real push did,
+  the scripted answers went out of step and `invoice_total` ended NOT UNDERSTOOD. This is an
+  artefact of the script (the oracle now reports 0.01 s), not of the product; I deleted that run and
+  redid it.
+- Found, not fixed (cosmetic): `cdebt quiz` prints `N of M right` with M counting the follow-up
+  while N counts only the main questions (`late_fee`: "3 of 6 right, needed 3" for 5 main questions
+  plus 1 follow-up). The verdict itself is right. `src/cdebt/cli.py` uses `len(o.asked)`.
+- Not covered: Linux, Windows, a connected coding agent, a real PR, a human answering at their own
+  pace against the 75% countdown.
+
