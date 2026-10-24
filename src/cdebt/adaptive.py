@@ -47,6 +47,16 @@ from cdebt.store import Store
 
 # (answer or None when the countdown ran out, seconds taken)
 AskFn = Callable[[Probe, float | None], tuple[str | None, float]]
+# called before a function's questions: (symbol, function number, functions in this run, questions)
+AnnounceFn = Callable[[str, int, int, int], None]
+
+
+@dataclass
+class RunBudget:
+    """Main questions still allowed in this quiz run (`max_questions_per_run`); None = no cap."""
+
+    remaining: int | None = None
+
 
 REASONS = (
     "verified",
@@ -62,7 +72,10 @@ RANK = {"easy": 0, "medium": 1, "hard": 2}
 class Policy(BaseModel):
     """`.cdebt/policy.toml`. Thresholds, timer and enforce mode; never trust or agent choice."""
 
-    questions_per_unit: int = 4  # asked per function; 3 to 5
+    questions_per_unit: int = 3  # asked per function; 3 to 5
+    max_questions_per_run: int = (
+        6  # main questions in one quiz/push, all functions together; 0 = no cap
+    )
     pass_ratio: float = 0.6  # share that must be right; see required_correct
     require_hard: bool = True  # also need one hard question right (when the set has a hard one)
     timer: bool = True  # visible countdown on the follow-ups; False asks them untimed (weaker)
@@ -369,14 +382,20 @@ def run_unit(
     pool: list[Probe],
     ask: AskFn,
     policy: Policy,
+    n_questions: int | None = None,
+    announce: AnnounceFn | None = None,
+    position: tuple[int, int] = (1, 1),
 ) -> UnitOutcome:
     """Ask a fixed set, then decide from the score; a suspiciously even pace earns one follow-up."""
-    n = min(5, max(3, policy.questions_per_unit))
+    n = n_questions or min(5, max(3, policy.questions_per_unit))
     if not any(_difficulty(p) == "hard" for p in pool) and len(pool) < n + 2:
         pool = [*pool, *_topup(repo, rel, cfg, unit, source, pool)]
     asked: list[Probe] = []
     times: list[tuple[str, float]] = []  # local to this call, never stored
-    for p in select_questions(pool, n):
+    chosen = select_questions(pool, n)
+    if announce is not None:
+        announce(unit.symbol, position[0], position[1], len(chosen))
+    for p in chosen:
         _ok, secs = _ask(ask, p, None)
         times.append((_difficulty(p), secs))
         asked.append(p)
@@ -431,16 +450,38 @@ def run_adaptive(
     probes: list[Probe],
     ask: AskFn,
     policy: Policy,
+    *,
+    budget: RunBudget | None = None,
+    announce: AnnounceFn | None = None,
+    not_quizzed: list[str] | None = None,
 ) -> list[UnitOutcome]:
-    """Run every unit that has questions."""
-    outcomes: list[UnitOutcome] = []
+    """Run the units that have questions, largest first, until the run's question budget is used.
+    Functions the budget did not reach are NOT marked understood: their names are appended to
+    `not_quizzed` so the caller can say so (the gate keeps flagging them)."""
+    if budget is None:
+        cap = policy.max_questions_per_run
+        budget = RunBudget(cap if cap > 0 else None)
     by_unit: dict[str, list[Probe]] = {}
     for p in probes:
         by_unit.setdefault(p.symbol, []).append(p)
-    for u in units:
-        pool = by_unit.get(u.symbol)
-        if pool:
-            outcomes.append(run_unit(repo, rel, cfg, u, source, pool, ask, policy))
+    todo = [u for u in units if by_unit.get(u.symbol)]
+    todo.sort(key=lambda u: -len(u.lines()))  # a proxy for "most AI-written code first"
+    per = min(5, max(3, policy.questions_per_unit))
+    outcomes: list[UnitOutcome] = []
+    for i, u in enumerate(todo, start=1):
+        n = per
+        if budget.remaining is not None:
+            if budget.remaining < 3:  # fewer than 3 would break the 3-to-5 rule: leave it unquizzed
+                if not_quizzed is not None:
+                    not_quizzed.append(u.symbol)
+                continue
+            n = min(per, budget.remaining)
+        out = run_unit(
+            repo, rel, cfg, u, source, by_unit[u.symbol], ask, policy, n, announce, (i, len(todo))
+        )
+        outcomes.append(out)
+        if budget.remaining is not None:
+            budget.remaining -= out.questions
     return outcomes
 
 

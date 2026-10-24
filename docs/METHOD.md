@@ -57,7 +57,11 @@ developer's explicit opt-in (`cdebt agent connect`). Rules that keep correctness
 ## Adaptive quiz (v1.1)
 
 Questions are labelled easy, medium or hard from their kind and code complexity. Each function
-gets a fixed set of 3 to 5 questions (default 4) mixing the tiers, asked easiest first. A wrong
+gets a fixed set of 3 to 5 questions (default 3) mixing the tiers, asked easiest first. One quiz
+or push asks at most `max_questions_per_run` main questions in total (default 6, a usability
+choice, not a measured optimum): the largest functions go first, and a function the budget does not
+reach is listed as "not quizzed" and stays NOT understood (the gate keeps flagging it). Each
+question shows "function X of Y" and "Q n of m". A wrong
 answer never adds a question. The function clears when at least ceil(0.6 x n) answers are right
 (2 of 3, 3 of 4, 3 of 5; with 2 or fewer questions all must be right; the 0.6 is a policy choice,
 UNVERIFIED as a predictor of understanding), and at least one hard question must be among the

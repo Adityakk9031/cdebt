@@ -441,17 +441,29 @@ def _adaptive_quiz(
     if not policy.timer:
         console.print("[yellow]timer off: follow-ups are untimed, which weakens the check.[/]")
     source = (r / rel).read_text()
-    count = {"n": 0}
+    shown = {"k": 0, "n": 0}
+
+    def announce(symbol: str, pos: int, total: int, n: int) -> None:
+        shown["k"], shown["n"] = 0, n
+        console.print(f"\n[bold cyan]{rel}::{symbol}[/]  function {pos} of {total}, {n} questions")
 
     def ask(p: Any, timeout: float | None) -> tuple[str | None, float]:
-        count["n"] += 1
-        tag = f" [yellow](follow-up, {timeout:.0f} s)[/]" if timeout is not None else ""
-        console.print(f"\n[bold]Q{count['n']}[/] [{p.difficulty}] {p.question}{tag}")
+        if timeout is not None:
+            tag = f" [yellow](follow-up, {timeout:.0f} s)[/]"
+            head = "Follow-up"
+        else:
+            shown["k"] += 1
+            tag = ""
+            head = f"Q{shown['k']} of {shown['n']}"
+        console.print(f"\n[bold]{head}[/] [{p.difficulty}] {p.question}{tag}")
         for j, o in enumerate(p.options):
             console.print(f"  {LETTERS[j]}) {o}")
         return adaptive.tty_ask(p, timeout)
 
-    outcomes = adaptive.run_adaptive(r, rel, cfg, units, source, probes, ask, policy)
+    left: list[str] = []
+    outcomes = adaptive.run_adaptive(
+        r, rel, cfg, units, source, probes, ask, policy, announce=announce, not_quizzed=left
+    )
     store = Store(r)
     adaptive.record_outcomes(rel, units, outcomes, store=store, expires_days=expires_days)
     for o in outcomes:
@@ -464,6 +476,12 @@ def _adaptive_quiz(
         console.print(
             f"[bold]{o.symbol}[/]: {verdict} ({o.correct} of {o.questions or len(o.asked)} right, "
             f"needed {o.needed}; {o.reason})"
+        )
+    for sym in left:
+        console.print(
+            f"[yellow]{rel}::{sym}: not quizzed this run (limit of {policy.max_questions_per_run} "
+            "questions); NOT marked understood. `cdebt quiz --pr <number>` asks only what is left, "
+            "or raise `max_questions_per_run` in .cdebt/policy.toml.[/]"
         )
     console.print("Quizzes show visibility, not proof: they cannot stop answers being looked up.")
 

@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.1.0rc9
+
+- **At most 6 questions per quiz or push** (`max_questions_per_run`, default 6; 0 = no cap). Found
+  in the first hand-answered test: a push touching 4 functions asked 13-15 questions. The default
+  per function is now 3 (2 of 3 right). The largest functions go first; a function the budget does
+  not reach is listed as "not quizzed this push" and is NOT marked understood, so the gate keeps
+  flagging it. One budget is shared by every file in a push.
+- **Progress labels**: each function starts with "function X of Y, N questions" and each question
+  shows "Q n of m" (follow-ups say "Follow-up").
+
 ## 1.1.0rc8
 
 - **Fix: the `cdebt quiz` score line counted follow-ups in the total but not in the score**

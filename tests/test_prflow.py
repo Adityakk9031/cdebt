@@ -162,6 +162,27 @@ def test_hook_honours_core_hooks_path_and_husky(make_repo) -> None:  # type: ign
 # ---- the full local flow: hook -> notes pushed first -> branch ----
 
 
+def test_push_shows_progress_and_the_cap_leaves_the_rest_not_understood(
+    make_repo, tmp_path
+) -> None:  # type: ignore[no-untyped-def]
+    r, _remote = _setup(make_repo, tmp_path)
+    r.write(".cdebt/policy.toml", POLICY + "max_questions_per_run = 3\n")
+    r.commit("cap the quiz at 3 questions")
+    answers = _oracle_answers(r.path, tmp_path)
+    hook.apply_install(hook.plan_install(r.path, str(_wrapper(tmp_path))))
+    res = _push(r, _env(CDEBT_TTY=str(answers)))
+    assert res.returncode == 0, res.stderr
+    assert "function 1 of 2" in res.stderr and "Q1 of 3" in res.stderr and "Q3 of 3" in res.stderr
+    assert "Q4" not in res.stderr  # never more than the cap
+    assert (
+        "m.py::inc: not quizzed this push (limit of 3 questions); NOT marked understood"
+        in res.stderr
+    )
+    after = run_gate(r.path, Config(), "origin/main")
+    flagged = {v.symbol for v in after.violations}
+    assert "inc" in flagged and "classify" not in flagged  # the unreached function stays flagged
+
+
 def test_push_with_hook_quizzes_writes_notes_and_pushes_them_first(make_repo, tmp_path) -> None:  # type: ignore[no-untyped-def]
     r, remote = _setup(make_repo, tmp_path)
     answers = _oracle_answers(r.path, tmp_path)

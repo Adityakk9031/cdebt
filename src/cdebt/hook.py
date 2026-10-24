@@ -209,12 +209,21 @@ def quiz_changes(
     policy = adaptive.load_policy(repo)
     choice = userconfig.load()
     sink = notes.NotesSink(repo, head)
-    n = {"q": 0}
+    shown = {"k": 0, "n": 0}
+    cap = policy.max_questions_per_run
+    budget = adaptive.RunBudget(cap if cap > 0 else None)  # shared by every file in this push
+
+    def announce(symbol: str, pos: int, total: int, count: int) -> None:
+        shown["k"], shown["n"] = 0, count
+        say(f"\n{shown['rel']}::{symbol}  function {pos} of {total}, {count} questions")
 
     def ask(p: Probe, timeout: float | None) -> tuple[str | None, float]:
-        n["q"] += 1
-        tag = f" (follow-up, {timeout:.0f} s)" if timeout is not None else ""
-        say(f"\nQ{n['q']} [{p.difficulty}] {p.question}{tag}")
+        if timeout is not None:
+            head, tag = "Follow-up", f" (follow-up, {timeout:.0f} s)"
+        else:
+            shown["k"] += 1
+            head, tag = f"Q{shown['k']} of {shown['n']}", ""
+        say(f"\n{head} [{p.difficulty}] {p.question}{tag}")
         for j, o in enumerate(p.options):
             say(f"  {LETTERS[j]}) {o}")
         return adaptive.tty_ask(p, timeout)
@@ -234,7 +243,18 @@ def quiz_changes(
         if not probes:
             continue
         source = (repo / rel).read_text()
-        outcomes = adaptive.run_adaptive(repo, rel, cfg, units, source, probes, ask, policy)
+        shown["rel"] = rel  # type: ignore[assignment]
+        left: list[str] = []
+        outcomes = adaptive.run_adaptive(
+            repo, rel, cfg, units, source, probes, ask, policy,
+            budget=budget, announce=announce, not_quizzed=left,
+        )  # fmt: skip
+        for sym in left:
+            out.skipped.append(
+                f"{rel}::{sym}: not quizzed this push (limit of {cap} questions); NOT marked "
+                "understood. Once the PR is open, `cdebt quiz --pr <number>` asks only what "
+                "is left."
+            )
         adaptive.record_outcomes(rel, units, outcomes, store=sink)  # type: ignore[arg-type]
         for o in outcomes:
             say(

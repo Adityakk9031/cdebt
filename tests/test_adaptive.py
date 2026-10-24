@@ -186,7 +186,7 @@ def test_set_mixes_tiers_and_is_asked_easiest_first() -> None:
 def test_one_wrong_of_four_is_understood_and_adds_no_question(make_repo) -> None:  # type: ignore[no-untyped-def]
     r = _repo(make_repo)
     ask = Scripted(**NATURAL, right=_wrong_first(1))
-    cl = _run(r, ask)[0]["classify"]
+    cl = _run(r, ask, Policy(questions_per_unit=4))[0]["classify"]
     assert len(cl.asked) == 4 and cl.correct == 3 and cl.needed == 3
     assert cl.cleared and cl.reason == "verified" and not ask.timed
 
@@ -194,7 +194,7 @@ def test_one_wrong_of_four_is_understood_and_adds_no_question(make_repo) -> None
 def test_two_wrong_of_four_is_not_understood(make_repo) -> None:  # type: ignore[no-untyped-def]
     r = _repo(make_repo)
     ask = Scripted(**NATURAL, right=_wrong_first(2))
-    cl = _run(r, ask)[0]["classify"]
+    cl = _run(r, ask, Policy(questions_per_unit=4))[0]["classify"]
     assert not cl.cleared and cl.reason == "score_too_low" and cl.correct == 2 and cl.needed == 3
     assert len(cl.asked) == 4 and not ask.timed
 
@@ -284,6 +284,56 @@ def test_followup_offers_a_fresh_input_when_every_traced_question_was_asked(make
     )
 
 
+def test_default_is_3_questions_per_function_and_6_per_run() -> None:
+    assert (Policy().questions_per_unit, Policy().max_questions_per_run) == (3, 6)
+
+
+def test_the_run_cap_asks_the_largest_function_first_and_lists_the_rest(make_repo) -> None:  # type: ignore[no-untyped-def]
+    r = _repo(make_repo)
+    src = (r.path / REL).read_text()
+    units = extract_units(REL, src)
+    ask = Scripted(**NATURAL)
+    left: list[str] = []
+    seen: list[tuple[str, int, int, int]] = []
+    outs = run_adaptive(
+        r.path, REL, Config(), units, src, _pool(r), ask, Policy(max_questions_per_run=4),
+        announce=lambda *a: seen.append(a), not_quizzed=left,
+    )  # fmt: skip
+    assert [o.symbol for o in outs] == ["classify"]  # the larger function went first
+    assert outs[0].questions == 3 and left == ["inc"]  # 1 left in the budget: under 3, so skipped
+    assert seen == [("classify", 1, 2, 3)]  # function 1 of 2, 3 questions
+    assert all(p.symbol == "classify" for p, _t in ask.calls)  # `inc` was never asked
+    recs = record_outcomes(REL, units, outs, store=Store(r.path))
+    assert {x.unit_symbol for x in recs} == {"classify"}  # no record, so `inc` is NOT understood
+
+
+def test_the_total_never_exceeds_the_cap_and_zero_means_no_cap(make_repo) -> None:  # type: ignore[no-untyped-def]
+    r = _repo(make_repo)
+    capped, _ = _run(r, Scripted(**NATURAL), Policy(max_questions_per_run=6))
+    assert sum(o.questions for o in capped.values()) <= 6
+    free, _ = _run(r, Scripted(**NATURAL), Policy(questions_per_unit=5, max_questions_per_run=0))
+    assert set(free) == {"classify", "inc"} and free["classify"].questions == 5
+
+
+def test_one_budget_is_shared_across_files_in_a_push(make_repo) -> None:  # type: ignore[no-untyped-def]
+    from cdebt.adaptive import RunBudget
+
+    r = _repo(make_repo)
+    src = (r.path / REL).read_text()
+    units = extract_units(REL, src)
+    budget = RunBudget(3)
+    first = run_adaptive(
+        r.path, REL, Config(), units, src, _pool(r), Scripted(**NATURAL), Policy(), budget=budget
+    )
+    left: list[str] = []
+    second = run_adaptive(
+        r.path, REL, Config(), units, src, _pool(r), Scripted(**NATURAL), Policy(),
+        budget=budget, not_quizzed=left,
+    )  # fmt: skip
+    assert len(first) == 1 and budget.remaining == 0
+    assert second == [] and sorted(left) == ["classify", "inc"]
+
+
 def test_the_even_pace_rule() -> None:
     pol = Policy()
     even = [("easy", 9.0), ("easy", 9.0), ("medium", 9.0), ("hard", 9.0)]
@@ -354,7 +404,7 @@ def test_a_followup_answered_in_time_passes_and_a_late_one_fails(make_repo) -> N
 def test_the_score_line_counts_only_the_main_questions_not_the_followups(make_repo) -> None:  # type: ignore[no-untyped-def]
     r = _repo(make_repo)
     ask = Scripted(easy=9.0, medium=9.0, hard=9.0)
-    cl = _run(r, ask, pool=_with_hard(r))[0]["classify"]
+    cl = _run(r, ask, Policy(questions_per_unit=4), _with_hard(r))[0]["classify"]
     assert ask.timed and len(cl.asked) > cl.questions  # follow-ups are in `asked`, not in the score
     assert cl.questions == 4 and cl.correct == 4 and cl.needed == 3
 
@@ -475,7 +525,12 @@ def test_policy_file_keys_and_old_keys_are_tolerated(make_repo) -> None:  # type
     pol = load_policy(r.path)  # `max_rounds` is from the old design and is ignored
     assert pol.timer is False and pol.follow_up_min_seconds == 6 and pol.enforce is True
     assert not hasattr(pol, "follow_up_seconds") and not hasattr(pol, "uniform_spread")
-    assert pol.questions_per_unit == 4 and pol.pass_ratio == 0.6 and pol.require_hard
+    assert (
+        pol.questions_per_unit == 3
+        and pol.max_questions_per_run == 6
+        and pol.pass_ratio == 0.6
+        and pol.require_hard
+    )
     assert (pol.follow_up_fraction, pol.follow_up_max_seconds, pol.hard_vs_easy_ratio) == (
         0.75,
         15.0,
@@ -583,7 +638,10 @@ def test_cli_quiz_runs_the_flow_and_records_reasons(make_repo, monkeypatch, tmp_
     import re
 
     totals = [int(m) for m in re.findall(r"\d+ of (\d+) right", res.output)]
-    assert totals and all(2 <= t <= 5 for t in totals)  # the main set only, never main + follow-ups
+    assert totals and all(2 <= t <= 5 for t in totals)
+    assert (
+        "function 1 of" in res.output and "Q1 of" in res.output
+    )  # the main set only, never main + follow-ups
     data = json.loads((r.path / ".cdebt" / "understanding.json").read_text())
     reasons = {x["unit_symbol"]: x["status_reason"] for x in data["records"]}
     assert set(reasons.values()) <= {

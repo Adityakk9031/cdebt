@@ -109,7 +109,8 @@ resolve; call-graph probes need a SCIP index. Run `cdebt coverage` before trusti
 1. Someone runs `cdebt init` once and commits the workflow and policy files.
 2. A developer's coding agent writes code. On `git push`, the pre-push hook finds AI-written lines
    that nobody has understood and asks questions on the terminal. Each answer is checked by running
-   the code in a sandbox. Each function gets a fixed set of 3-5 questions (easy, medium and hard) [src: src/cdebt/adaptive.py].
+   the code in a sandbox. Each function gets 3 questions by default (3-5 allowed; easy, medium and hard), and one push asks
+   at most 6 in total, largest function first; any function not reached stays not understood [src: src/cdebt/adaptive.py].
    One wrong answer is tolerated (2 of 3, 3 of 4, 3 of 5 right), and at least one hard question must
    be right. If the hard answers were not slower than the easy and medium ones, 1-2 random
    short-answer follow-ups follow, on a countdown of 75% of that person's own usual answer time (5-15 s) [src: src/cdebt/adaptive.py]. The records go to
