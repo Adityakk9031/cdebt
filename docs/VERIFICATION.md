@@ -482,3 +482,24 @@ follow-ups are now random.
 - Not covered: Linux, Windows, a connected coding agent, a real PR, a human answering at their own
   pace against the 75% countdown.
 
+### 1.1.0rc8 from PyPI: the score-line fix, same rehearsal (2026-10-24)
+
+Published by the `publish` workflow (run 40060764747, approved by the maintainer). Clean venv,
+`pip install --no-cache-dir "cdebt==1.1.0rc8"` from files.pythonhosted.org, `cdebt --version`
+printed `1.1.0rc8`. Same demo and settings as the rc7 section (`DEMO_FORCE_FOLLOWUP=1`,
+`CDEBT_FOLLOWUP_SEED=7`, answers oracle reporting 0.01 s):
+
+- Hooked push: `apply_discount` UNDERSTOOD (`verified`, no hard question in its set so no
+  follow-up), `late_fee` and `invoice_total` UNDERSTOOD (`verified_after_follow_up`), each after one
+  short-answer changed-input follow-up on a visible 5 s countdown (`late_fee(22, 14)`,
+  `invoice_total([-3], 19, -1)`); notes pushed before the branch; the note has 3 records with
+  `status_reason` and **no time-like key**. `cdebt gate` PASS.
+- Watcher: 51 sandbox children. `sandbox_peek.py`: 6 of 6 BLOCKED, 0 ALLOWED, 5 of 5 outside checks
+  True. After editing `late_fee`: flagged stale, `--enforce` exit 1.
+- **The rc7 cosmetic bug is fixed**: the quiz score line now counts only the main questions.
+  Answering `A` to everything, `late_fee` printed `NOT UNDERSTOOD (3 of 4 right, needed 3;
+  follow_up_failed)`: 4 main questions, the score passed by luck, the follow-up failed (rc7 printed
+  "3 of 6" for 5 main questions plus a follow-up).
+- Not covered: Linux, Windows, a connected coding agent, a real PR, a human answering at their own
+  pace against the 75% countdown.
+
