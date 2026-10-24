@@ -1,5 +1,16 @@
 # cdebt
 
+[![PyPI](https://img.shields.io/pypi/v/cdebt?include_prereleases&label=PyPI)](https://pypi.org/project/cdebt/)
+[![Python](https://img.shields.io/pypi/pyversions/cdebt)](https://pypi.org/project/cdebt/)
+[![License](https://img.shields.io/github/license/Adityakk9031/cdebt)](https://github.com/Adityakk9031/cdebt/blob/main/LICENSE)
+
+**Who actually understood the code your AI wrote?** cdebt quizzes you on AI-written code before you
+push, checks every answer by running the code, and shows the result on the pull request.
+
+[Demo](#watch-the-demo) · [Quick start](#quick-start) · [How it works](#how-it-works) ·
+[Quiz rules](#quiz-rules) · [Status and limits](#status-read-this-before-using-it) ·
+[Commands](#commands) · [Your coding agent](#connect-your-coding-agent-optional)
+
 **Comprehension debt** is the gap between the code that exists in a repo and the code any human
 actually understands. AI agents write much of the code, reviews get skipped or rubber-stamped,
 and nobody knows how big the gap is. `cdebt` tries to make it visible and testable, and can warn
@@ -10,6 +21,55 @@ and nobody knows how big the gap is. `cdebt` tries to make it visible and testab
 >
 > **A quiz is not a lie detector.** It cannot stop anyone pasting the questions into an AI.
 > cdebt gives *visibility*, not proof of understanding. See [docs/LIMITS.md](https://github.com/Adityakk9031/cdebt/blob/main/docs/LIMITS.md).
+
+## Watch the demo
+
+[![Watch the cdebt demo on YouTube](https://raw.githubusercontent.com/Adityakk9031/cdebt/main/docs/assets/cdebt-demo-thumbnail.jpg)](https://youtu.be/zO4w61hFr9A)
+
+**[▶ Watch the demo on YouTube](https://youtu.be/zO4w61hFr9A)**
+
+*A real push, a real quiz answered by hand, the real pull request comment, the sandbox, and the
+honest limits. Source: [examples/first_user/launch-video](https://github.com/Adityakk9031/cdebt/tree/main/examples/first_user/launch-video).*
+
+## Quick start
+
+```bash
+pip install --pre "cdebt[agent]"     # the agent extra lets your coding agent write the questions
+cd your-repo
+cdebt init                           # pre-push hook + .cdebt/policy.toml + GitHub workflow (asks first)
+git switch main && git add .github .cdebt && git commit -m "Add cdebt" && git push   # the workflow must be on main
+cdebt agent connect --name claude_code --yes   # optional: needs the `claude` CLI, logged in
+cdebt map                            # where is the AI-written code nobody has understood?
+git push                             # on a feature branch: the hook quizzes you before the push
+```
+
+## How it works
+
+1. **You push.** The pre-push hook finds the AI-written functions that nobody has understood yet
+   (attribution from Git AI line notes, or commit trailers as a labelled fallback).
+2. **Your coding agent writes the questions**, or the built-in generator does. The agent never
+   sees an answer.
+3. **cdebt runs every question in a sandbox** to get the true answer and grades yours by a plain
+   rule. No AI grades you.
+4. **The result travels with the push** as a git note, bound to a hash of that exact code. Change
+   the code and the understanding expires.
+5. **On the pull request**, the GitHub Action re-checks every recorded answer in CI and posts one
+   comment: understood or NOT UNDERSTOOD per function, naming no one. `/cdebt recheck` re-runs it.
+
+## Quiz rules
+
+- At most 6 questions per push, 3 per function, biggest function first [src: src/cdebt/adaptive.py].
+  A function the push does not reach stays NOT UNDERSTOOD; `cdebt quiz --pr <number>` asks only
+  what is left.
+- 2 of 3 right passes [src: src/cdebt/adaptive.py], so one wrong answer is fine, and a hard
+  question must be among the right ones. A failing score gets no follow-up.
+- **The timing check.** Someone who pastes every question into an AI answers easy and hard
+  questions at the same speed; a person who is thinking slows down on the hard ones. When the hard
+  answers come about as fast as the easy ones, cdebt asks 1 or 2 short follow-ups on changed values
+  of the same code, with a countdown of 75% of that person's own median answer time, between 5 and
+  15 seconds [src: src/cdebt/adaptive.py]. Right and in time: understood. Wrong or too slow: NOT
+  UNDERSTOOD. This raises the effort of pasting into an AI; it does not prove anything, and timing
+  is never stored or reported about anyone.
 
 ## Status (read this before using it)
 
@@ -32,6 +92,8 @@ Experimental pre-release (release candidate). Not validated: read this section b
   run once end to end with the real Claude Code CLI (other agents are unverified). A record is made locally, so a determined
   person can forge one; CI re-execution catches wrong answers, not hand-written correct ones
   ([docs/LIMITS.md](https://github.com/Adityakk9031/cdebt/blob/main/docs/LIMITS.md)).
+
+## Commands
 
 | command | what it does |
 |---|---|
@@ -108,14 +170,10 @@ resolve; call-graph probes need a SCIP index. Run `cdebt coverage` before trusti
 
 1. Someone runs `cdebt init` once and commits the workflow and policy files.
 2. A developer's coding agent writes code. On `git push`, the pre-push hook finds AI-written lines
-   that nobody has understood and asks questions on the terminal. Each answer is checked by running
-   the code in a sandbox. Each function gets 3 questions by default (3-5 allowed; easy, medium and hard), and one push asks
-   at most 6 in total, largest function first; any function not reached stays not understood [src: src/cdebt/adaptive.py].
-   One wrong answer is tolerated (2 of 3, 3 of 4, 3 of 5 right), and at least one hard question must
-   be right. If the hard answers were not slower than the easy and medium ones, 1-2 random
-   short-answer follow-ups follow, on a countdown of 75% of that person's own usual answer time (5-15 s) [src: src/cdebt/adaptive.py]. The records go to
-   `refs/notes/cdebt` and are pushed before the branch. With no terminal (an agent pushing on its
-   own) the hook prints a notice and lets the push through.
+   that nobody has understood and asks questions on the terminal, following the
+   [quiz rules](#quiz-rules); every answer is checked by running the code in a sandbox. The records
+   go to `refs/notes/cdebt` and are pushed before the branch. With no terminal (an agent pushing on
+   its own) the hook prints a notice and lets the push through.
 3. On the pull request the Action re-runs the recorded questions, posts one comment that marks
    CODE as understood or not (never a person), and sets a `cdebt / gate` check that is `neutral`
    in advisory mode. `git push --no-verify` skips the hook, and CI then shows the code as not
@@ -146,7 +204,7 @@ cdebt map     ... AI lines verified: 0%   | AI units verified: 0/3
 cdebt quiz    ... total: 2/2 -> UNDERSTOOD (bound to hash ccffd334cb)
 cdebt map     ... AI lines verified: 67%  | AI units verified: 2/3
 (edit total() and commit)
-cdebt gate    ... FAIL (advisory; use --enforce to fail the build)   pkg/shop.py::total  1 AI lines [stale, trailer]
+cdebt gate    ... FAIL (advisory; use --enforce to fail the build)   pkg/shop.py::total  1 AI lines NOT UNDERSTOOD (code_changed) [trailer]
 cdebt gate --enforce  ... same verdict, non-zero exit status
 ```
 
