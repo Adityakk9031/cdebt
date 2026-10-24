@@ -462,7 +462,7 @@ def _adaptive_quiz(
             )
         verdict = "UNDERSTOOD" if o.cleared else "NOT UNDERSTOOD"
         console.print(
-            f"[bold]{o.symbol}[/]: {verdict} ({o.correct} of {len(o.asked)} right, "
+            f"[bold]{o.symbol}[/]: {verdict} ({o.correct} of {o.questions or len(o.asked)} right, "
             f"needed {o.needed}; {o.reason})"
         )
     console.print("Quizzes show visibility, not proof: they cannot stop answers being looked up.")

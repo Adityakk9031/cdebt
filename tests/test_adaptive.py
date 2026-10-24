@@ -351,6 +351,14 @@ def test_a_followup_answered_in_time_passes_and_a_late_one_fails(make_repo) -> N
     assert not late.cleared and late.reason == "follow_up_failed"  # right, but too slow
 
 
+def test_the_score_line_counts_only_the_main_questions_not_the_followups(make_repo) -> None:  # type: ignore[no-untyped-def]
+    r = _repo(make_repo)
+    ask = Scripted(easy=9.0, medium=9.0, hard=9.0)
+    cl = _run(r, ask, pool=_with_hard(r))[0]["classify"]
+    assert ask.timed and len(cl.asked) > cl.questions  # follow-ups are in `asked`, not in the score
+    assert cl.questions == 4 and cl.correct == 4 and cl.needed == 3
+
+
 def test_wrong_followup_is_not_understood_whatever_the_score(make_repo) -> None:  # type: ignore[no-untyped-def]
     r = _repo(make_repo)
     base = Scripted(easy=9.0, medium=9.0, hard=9.0)
@@ -572,6 +580,10 @@ def test_cli_quiz_runs_the_flow_and_records_reasons(make_repo, monkeypatch, tmp_
     assert (
         "UNDERSTOOD" in res.output and "timer off" in res.output and "right, needed" in res.output
     )
+    import re
+
+    totals = [int(m) for m in re.findall(r"\d+ of (\d+) right", res.output)]
+    assert totals and all(2 <= t <= 5 for t in totals)  # the main set only, never main + follow-ups
     data = json.loads((r.path / ".cdebt" / "understanding.json").read_text())
     reasons = {x["unit_symbol"]: x["status_reason"] for x in data["records"]}
     assert set(reasons.values()) <= {

@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.1.0rc8
+
+- **Fix: the `cdebt quiz` score line counted follow-ups in the total but not in the score**
+  ("3 of 6 right" for 5 main questions plus 1 follow-up). It now shows the main set only. The
+  verdict was always right; only the printed line was misleading.
+
 ## 1.1.0rc7
 
 - **Even-pace check and follow-ups reworked.** Trigger: hard answers not meaningfully slower than

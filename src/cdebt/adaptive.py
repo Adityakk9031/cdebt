@@ -100,6 +100,7 @@ class UnitOutcome:
     asked: list[Probe] = field(default_factory=list)
     correct: int = 0  # right answers among the main questions (follow-ups are separate)
     needed: int = 0
+    questions: int = 0  # size of the main set (`asked` also holds any follow-ups)
 
 
 def _difficulty(p: Probe) -> str:
@@ -382,7 +383,13 @@ def run_unit(
     correct = sum(1 for p in asked if p.correct)
     need = required_correct(len(asked), policy.pass_ratio)
     out = UnitOutcome(
-        unit.symbol, False, "score_too_low", asked=list(asked), correct=correct, needed=need
+        unit.symbol,
+        False,
+        "score_too_low",
+        asked=list(asked),
+        correct=correct,
+        needed=need,
+        questions=len(asked),
     )
     if not asked or correct < need:
         return out
