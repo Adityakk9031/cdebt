@@ -524,3 +524,16 @@ not as a changed function. Not covered here: a real fork pull request, `/cdebt r
 and `enforce: "true"` on a hosted runner. Found, not changed: the `v1` tag still points at the
 rc3 commit (a2d60b5), 11 commits behind `main`; whether to move it is a release decision.
 
+### The `v1` tag moved to `main`, Action verified from `@v1` (2026-10-24)
+
+`v1` pointed at the rc3 commit (a2d60b5), 11 commits behind. With the maintainer's go-ahead it was
+force-moved to `main` (c7ee7e8). In the same throwaway repository on the second account the workflow
+was switched to `uses: Adityakk9031/cdebt@v1` with the Action's default `version` (an unpinned
+`pip install cdebt`) and the PR was re-triggered with an empty commit. The job log shows
+`Download action repository 'Adityakk9031/cdebt@v1' (SHA:c7ee7e82...)`, the workflow succeeded, there
+is still ONE sticky comment with the same verdicts as before, and the check run `cdebt / gate` is
+neutral (advisory). Not observed: which cdebt version the unpinned install picked (the install is
+quiet and the log does not print it); PyPI's latest was rc8 at the time and pip falls back to a
+pre-release when no stable release exists, but I did not see it happen in this log. A moved tag is
+outward-facing: anyone already using `@v1` now gets the current action scripts.
+
