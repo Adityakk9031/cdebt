@@ -172,7 +172,8 @@ def test_push_shows_progress_and_the_cap_leaves_the_rest_not_understood(
     hook.apply_install(hook.plan_install(r.path, str(_wrapper(tmp_path))))
     res = _push(r, _env(CDEBT_TTY=str(answers)))
     assert res.returncode == 0, res.stderr
-    assert "function 1 of 2" in res.stderr and "Q1 of 3" in res.stderr and "Q3 of 3" in res.stderr
+    # only the functions the cap reaches are counted
+    assert "function 1 of 1" in res.stderr and "Q1 of 3" in res.stderr and "Q3 of 3" in res.stderr
     assert "Q4" not in res.stderr  # never more than the cap
     assert (
         "m.py::inc: not quizzed this push (limit of 3 questions); NOT marked understood"
@@ -227,6 +228,8 @@ def test_no_verify_bypasses_the_hook_and_the_gate_catches_it(make_repo, tmp_path
         app, ["gate", "--repo", str(r.path), "--base", "origin/main", "--enforce", "--recheck"]
     )
     assert out.exit_code == 1 and "FAIL" in out.output  # CI would mark the code NOT UNDERSTOOD
+    # the local gate names the reason, not the internal status ("stale" was misleading)
+    assert "NOT UNDERSTOOD (not_quizzed)" in out.output and "[stale" not in out.output
 
 
 def test_edit_after_understanding_makes_the_record_stale(make_repo, tmp_path) -> None:  # type: ignore[no-untyped-def]

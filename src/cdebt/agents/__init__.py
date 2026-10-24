@@ -6,6 +6,7 @@ to get the true answer. Nothing the agent says decides correctness."""
 
 from __future__ import annotations
 
+import importlib.util
 import os
 import signal
 import subprocess
@@ -79,6 +80,11 @@ def propose_with_agent(
     sess = Session.create(repo, choice.name, targets, per_target)
     try:
         try:
+            if importlib.util.find_spec("mcp") is None:
+                raise ValueError(
+                    "the `mcp` library is missing; install the agent extra: "
+                    'pip install "cdebt[agent]"'
+                )
             run = adapters.build(choice, sess.dir, repo, per_target)
         except (FileNotFoundError, ValueError) as e:
             return [], [f"agent {choice.name}: {e}; using the builtin generator"]

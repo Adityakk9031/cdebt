@@ -301,7 +301,7 @@ def test_the_run_cap_asks_the_largest_function_first_and_lists_the_rest(make_rep
     )  # fmt: skip
     assert [o.symbol for o in outs] == ["classify"]  # the larger function went first
     assert outs[0].questions == 3 and left == ["inc"]  # 1 left in the budget: under 3, so skipped
-    assert seen == [("classify", 1, 2, 3)]  # function 1 of 2, 3 questions
+    assert seen == [("classify", 1, 1, 3)]  # only 1 function fits the budget: "function 1 of 1"
     assert all(p.symbol == "classify" for p, _t in ask.calls)  # `inc` was never asked
     recs = record_outcomes(REL, units, outs, store=Store(r.path))
     assert {x.unit_symbol for x in recs} == {"classify"}  # no record, so `inc` is NOT understood

@@ -211,10 +211,8 @@ Expect a push to take longer (the agent is called each time) and it uses your ag
 a cheaper default model in the agent's own settings keeps that down. Only `claude_code` has been
 run against a real CLI; `codex` and `cursor` are UNVERIFIED.
 
-Known issues in 1.1.0rc9 [src: CHANGELOG.md] (to be fixed): `cdebt agent status` can report `claude_code` as detected
-when only the Claude desktop app is installed (check that `claude --version` works in your
-terminal), and without the `agent` extra the quiz reports "no proposals" instead of saying the
-extra is missing.
+If `cdebt agent status` lists `claude_code` but `claude --version` fails in your terminal,
+install the CLI as above (fixed in 1.1.0rc10 [src: CHANGELOG.md]: only a `claude` that runs counts).
 
 ## Attribution setup (optional but recommended)
 

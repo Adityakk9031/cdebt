@@ -232,6 +232,8 @@ def quiz_changes(
         if dirty(repo, rel):
             out.skipped.append(f"{rel}: differs from HEAD; commit it first")
             continue
+        if choice is not None and choice.name != "builtin":
+            say(f"\ncdebt: {choice.name} is writing questions about {rel} (about a minute)...")
         probes, units, skips = build_quiz(
             repo, rel, cfg, n=12, per_unit=6, agent=choice, store=None
         )
@@ -248,6 +250,7 @@ def quiz_changes(
         outcomes = adaptive.run_adaptive(
             repo, rel, cfg, units, source, probes, ask, policy,
             budget=budget, announce=announce, not_quizzed=left,
+            first={v.symbol for v in vs if v.path == rel and v.reason == "not_quizzed"},
         )  # fmt: skip
         for sym in left:
             out.skipped.append(

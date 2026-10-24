@@ -79,6 +79,16 @@ def _trusted_fixture_repos(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("CDEBT_TRUSTED", "1")
 
 
+@pytest.fixture(autouse=True)
+def _no_real_agent(
+    monkeypatch: pytest.MonkeyPatch, tmp_path_factory: pytest.TempPathFactory
+) -> None:
+    """Never read the developer's own ~/.config/cdebt: a connected real agent would write random
+    questions and make tests depend on the machine. Tests that need a config set their own."""
+    cfg = tmp_path_factory.mktemp("usercfg") / "config.toml"
+    monkeypatch.setenv("CDEBT_USER_CONFIG", str(cfg))
+
+
 # Windows: execution of probes is unsupported (docs/LIMITS.md); skip the tests that need the POSIX
 # sandbox so CI proves everything else works there.
 _NEEDS_POSIX = {

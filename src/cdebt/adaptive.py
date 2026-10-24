@@ -454,6 +454,7 @@ def run_adaptive(
     budget: RunBudget | None = None,
     announce: AnnounceFn | None = None,
     not_quizzed: list[str] | None = None,
+    first: set[str] | None = None,
 ) -> list[UnitOutcome]:
     """Run the units that have questions, largest first, until the run's question budget is used.
     Functions the budget did not reach are NOT marked understood: their names are appended to
@@ -465,10 +466,17 @@ def run_adaptive(
     for p in probes:
         by_unit.setdefault(p.symbol, []).append(p)
     todo = [u for u in units if by_unit.get(u.symbol)]
-    todo.sort(key=lambda u: -len(u.lines()))  # a proxy for "most AI-written code first"
+    # functions never quizzed come first (so a retry reaches them), then the largest
+    todo.sort(key=lambda u: (u.symbol not in (first or set()), -len(u.lines())))
     per = min(5, max(3, policy.questions_per_unit))
+    planned = len(todo)  # how many functions this run will reach (shown as "function i of N")
+    if budget.remaining is not None:
+        planned = min(
+            len(todo), budget.remaining // per + (1 if budget.remaining % per >= 3 else 0)
+        )
     outcomes: list[UnitOutcome] = []
-    for i, u in enumerate(todo, start=1):
+    asked = 0
+    for u in todo:
         n = per
         if budget.remaining is not None:
             if budget.remaining < 3:  # fewer than 3 would break the 3-to-5 rule: leave it unquizzed
@@ -476,8 +484,10 @@ def run_adaptive(
                     not_quizzed.append(u.symbol)
                 continue
             n = min(per, budget.remaining)
+        asked += 1
+        total = max(planned, asked)
         out = run_unit(
-            repo, rel, cfg, u, source, by_unit[u.symbol], ask, policy, n, announce, (i, len(todo))
+            repo, rel, cfg, u, source, by_unit[u.symbol], ask, policy, n, announce, (asked, total)
         )
         outcomes.append(out)
         if budget.remaining is not None:
@@ -519,19 +529,41 @@ def record_outcomes(
 # ---- interactive terminal answer with a visible countdown ----
 
 
+def _flush_typeahead() -> None:
+    """Drop keys typed before the question appeared (for example Enter pressed while the agent was
+    writing questions), so they are never taken as the answer."""
+    if sys.platform == "win32":  # no termios there (and no sandboxed quiz either)
+        return
+    import termios
+
+    try:
+        if sys.stdin.isatty():
+            termios.tcflush(sys.stdin.fileno(), termios.TCIFLUSH)
+    except (OSError, ValueError, AttributeError):
+        pass
+
+
+EMPTY_HINT = "  (type a letter or the value, then Enter)\n"
+
+
 def tty_ask(p: Probe, timeout: float | None) -> tuple[str | None, float]:
-    """Read one answer from the terminal. With a timeout, show a countdown; None = ran out."""
+    """Read one answer from the terminal. With a timeout, show a countdown; None = ran out.
+    Keys typed before the question are dropped, and an empty line is asked again, never graded."""
     import select
 
+    _flush_typeahead()
     t0 = time.monotonic()
     if timeout is None or not sys.stdin.isatty():
-        sys.stdout.write("answer: ")
-        sys.stdout.flush()
-        line = sys.stdin.readline()
-        return line.strip(), time.monotonic() - t0
+        while True:
+            sys.stdout.write("answer: ")
+            sys.stdout.flush()
+            line = sys.stdin.readline()
+            if line == "":  # end of input: nothing more will come
+                return "", time.monotonic() - t0
+            if line.strip():
+                return line.strip(), time.monotonic() - t0
+            sys.stdout.write(EMPTY_HINT)
     deadline = t0 + timeout
-    sys.stdout.write("answer: ")
-    sys.stdout.flush()
     while True:
         left = deadline - time.monotonic()
         if left <= 0:
@@ -541,4 +573,7 @@ def tty_ask(p: Probe, timeout: float | None) -> tuple[str | None, float]:
         sys.stdout.flush()
         ready, _, _ = select.select([sys.stdin], [], [], min(1.0, left))
         if ready:
-            return sys.stdin.readline().strip(), time.monotonic() - t0
+            line = sys.stdin.readline()
+            if line.strip() or line == "":
+                return line.strip(), time.monotonic() - t0
+            sys.stdout.write(EMPTY_HINT)

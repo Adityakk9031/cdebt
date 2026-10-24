@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "cdebt"
-version = "1.1.0rc9"
+version = "1.1.0rc10"
 description = "Measure, test and pay down comprehension debt: AI-written code nobody has verifiably understood."
 readme = "README.md"
 requires-python = ">=3.11"

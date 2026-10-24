@@ -1,5 +1,29 @@
 # Changelog
 
+## 1.1.0rc10
+
+Fixes found in the first hand-answered test of rc9 (a real person, a real push, Claude Code
+writing the questions):
+
+- **Q1 was answered before the person could type.** A key pressed while the agent was writing
+  questions (about a minute, with nothing on screen) was read as the answer to the first
+  question, graded wrong, and Q2 appeared at once. Now keys typed before a question are dropped,
+  an empty answer is asked again and never graded, and the quiz says the agent is writing
+  questions while it waits.
+- **"function 1 of 4" when only 2 would be asked**: the label now counts only the functions the
+  question cap reaches.
+- **A retry never reached the functions left out.** `cdebt quiz --pr` asked the largest failed
+  functions again; functions never quizzed now come first.
+- **`cdebt gate` printed `stale` for a failed quiz** (the internal status). It now prints the
+  reason, for example `NOT UNDERSTOOD (score_too_low)` or `NOT UNDERSTOOD (code_changed)`.
+- **Agent detection:** a `claude` that cannot run (the Claude desktop app's own Linux binary) is
+  no longer reported as detected. Without the `agent` extra the quiz now says
+  `pip install "cdebt[agent]"` instead of "0 proposals".
+- **Fairer questions:** the built-in generator uses non-negative numbers by default, and the
+  agent is asked for realistic inputs (no negative balances or ages unless the code handles
+  them), not language tricks such as `-2 // 100`.
+- Tests never read the developer's own agent config.
+
 ## 1.1.0rc9
 
 - **At most 6 questions per quiz or push** (`max_questions_per_run`, default 6; 0 = no cap). Found

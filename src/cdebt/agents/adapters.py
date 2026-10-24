@@ -10,6 +10,7 @@ import json
 import os
 import shlex
 import shutil
+import subprocess
 import sys
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -27,10 +28,13 @@ Use the cdebt MCP tools only: call get_targets, read each target's source and ne
 return_value (call_inputs: {{"args": [...], "kwargs": {{...}}}}), branch_taken and
 variable_at_line (need `line`; variable_at_line also `variable`), constant_value (`name`),
 what_calls, which_test_fails. Choose inputs that exercise different branches and edge cases;
-prefer questions whose answer a reader must reason about, not guess. For code that touches time,
-randomness, files or the network, you may supply harness_code defining `def probe():` that mocks
-that I/O and calls the REAL target (target_module.<name>); never replace the target itself. A
-harness_code proposal MUST also include `question`: one sentence describing the scenario.
+prefer questions whose answer a reader must reason about, not guess. Use realistic inputs the
+code was written for (no negative prices, balances, counts or ages unless the code handles them
+on purpose), and avoid tricks that test the programming language rather than this code.
+For code that touches time, randomness, files or the network, you may supply harness_code
+defining `def probe():` that mocks that I/O and calls the REAL target (target_module.<name>);
+never replace the target itself. A harness_code proposal MUST also include `question`: one
+sentence describing the scenario.
 cdebt runs every proposal and works out the answers itself; you will only be told accepted or
 rejected with a reason. Do not try to find or compute answers, and do not edit anything.
 When done, reply with one short line."""
@@ -63,12 +67,27 @@ def mcp_argv(session_dir: Path) -> list[str]:
     ]  # fmt: skip
 
 
+def _runs(exe: str) -> bool:
+    """True when `exe --version` works on this machine (the Claude desktop app ships a Linux
+    binary for its own VM that matches the glob below but cannot run here)."""
+    try:
+        r = subprocess.run(  # noqa: S603 - a fixed flag on a found CLI
+            [exe, "--version"], capture_output=True, text=True, timeout=20,
+            stdin=subprocess.DEVNULL,
+        )  # fmt: skip
+    except (OSError, subprocess.TimeoutExpired):
+        return False
+    return r.returncode == 0
+
+
 def find_claude() -> str | None:
     found = shutil.which("claude")
-    if found:
+    if found and _runs(found):
         return found
-    hits = sorted(Path.home().glob(CLAUDE_MAC_GLOB))
-    return str(hits[-1]) if hits else None
+    for hit in sorted(Path.home().glob(CLAUDE_MAC_GLOB), reverse=True):
+        if _runs(str(hit)):
+            return str(hit)
+    return None
 
 
 def detect() -> dict[str, str]:

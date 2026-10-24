@@ -351,6 +351,8 @@ def quiz_cmd(
     adaptive_mode = not simple and answers is None and emit is None and not json_out
     with _sandbox_errors():
         choice = None if no_agent else userconfig.load()
+        if choice is not None and choice.name != "builtin":
+            console.print(f"{choice.name} is writing questions about {rel} (about a minute)...")
         probes, units, skips = build_quiz(
             r, rel, cfg, n=max(n, 12) if adaptive_mode else n, seed=seed, kinds=ks, agent=choice,
             per_unit=6 if adaptive_mode else 2,
@@ -567,7 +569,7 @@ def gate_cmd(
         for v in res.violations[:20]:
             console.print(
                 f"  {v.path}::{v.symbol}  {len(v.ai_lines)} AI lines "
-                f"\\[{v.status}, {v.attribution_source.value}]"
+                f"NOT UNDERSTOOD ({v.reason or v.status}) \\[{v.attribution_source.value}]"
             )
         if res.attested_accepted_lines:
             console.print(

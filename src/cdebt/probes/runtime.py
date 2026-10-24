@@ -59,9 +59,11 @@ def gen_value(a: ast.expr | None, rng: random.Random) -> object:
     if n == "bool":
         return rng.random() < 0.5
     if n == "int":
-        return rng.randint(-5, 20)
+        return rng.randint(
+            0, 20
+        )  # realistic by default: negative inputs are rarely what code is for
     if n == "float":
-        return rng.choice([0.5, 1.5, 2.0, -3.25, 10.0])
+        return rng.choice([0.5, 1.5, 2.0, 3.25, 10.0])
     if n == "str":
         return rng.choice(WORDS)
     raise Unsupported(f"type {n}")
