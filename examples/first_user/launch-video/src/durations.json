@@ -1,0 +1,367 @@
+[
+ {
+  "id": "title",
+  "seconds": 6.002,
+  "sentences": [
+   {
+    "text": "AI writes more and more of our code.",
+    "start": 0.0,
+    "end": 1.947
+   },
+   {
+    "text": "But can anyone show that a human actually understood it?",
+    "start": 2.127,
+    "end": 4.999
+   },
+   {
+    "text": "This is cdebt.",
+    "start": 5.179,
+    "end": 6.002
+   }
+  ]
+ },
+ {
+  "id": "problem",
+  "seconds": 12.054,
+  "sentences": [
+   {
+    "text": "Code review skims.",
+    "start": 0.0,
+    "end": 1.275
+   },
+   {
+    "text": "Tests check behaviour, not understanding.",
+    "start": 1.455,
+    "end": 4.009
+   },
+   {
+    "text": "The gap between code that exists and code a person has understood is comprehension debt.",
+    "start": 4.189,
+    "end": 8.729
+   },
+   {
+    "text": "cdebt makes it visible, for code, never for people.",
+    "start": 8.909,
+    "end": 12.054
+   }
+  ]
+ },
+ {
+  "id": "how",
+  "seconds": 14.923,
+  "sentences": [
+   {
+    "text": "Here is the loop.",
+    "start": 0.0,
+    "end": 0.82
+   },
+   {
+    "text": "You push.",
+    "start": 1.0,
+    "end": 1.608
+   },
+   {
+    "text": "Your coding agent writes questions about the AI-written functions.",
+    "start": 1.788,
+    "end": 5.31
+   },
+   {
+    "text": "cdebt runs every question in a sandbox to get the true answer, so no AI ever grades you.",
+    "start": 5.49,
+    "end": 10.714
+   },
+   {
+    "text": "The result travels with the push as a git note, and the pull request shows it.",
+    "start": 10.894,
+    "end": 14.923
+   }
+  ]
+ },
+ {
+  "id": "setup",
+  "seconds": 14.181,
+  "sentences": [
+   {
+    "text": "Setup takes a minute.",
+    "start": 0.0,
+    "end": 1.234
+   },
+   {
+    "text": "Install cdebt from PyPI with the agent extra.",
+    "start": 1.414,
+    "end": 3.988
+   },
+   {
+    "text": "Run cdebt init to add a pre-push hook and a GitHub workflow.",
+    "start": 4.168,
+    "end": 7.275
+   },
+   {
+    "text": "Connect Claude Code.",
+    "start": 7.455,
+    "end": 8.569
+   },
+   {
+    "text": "Then cdebt map shows this file is ninety two percent AI-written, and zero percent verified.",
+    "start": 8.749,
+    "end": 14.181
+   }
+  ]
+ },
+ {
+  "id": "quiz",
+  "seconds": 12.806,
+  "sentences": [
+   {
+    "text": "Now I push.",
+    "start": 0.0,
+    "end": 0.877
+   },
+   {
+    "text": "Claude Code writes the questions, and cdebt checks each one by executing the real code.",
+    "start": 1.057,
+    "end": 5.781
+   },
+   {
+    "text": "At most six questions per push, three per function, biggest function first, each labelled so you know where you are.",
+    "start": 5.961,
+    "end": 12.806
+   }
+  ]
+ },
+ {
+  "id": "rules",
+  "seconds": 16.389,
+  "sentences": [
+   {
+    "text": "Here are all the rules.",
+    "start": 0.0,
+    "end": 1.145
+   },
+   {
+    "text": "At most six questions per push, three per function, biggest function first.",
+    "start": 1.325,
+    "end": 6.046
+   },
+   {
+    "text": "Two of three right passes, so one wrong answer is fine.",
+    "start": 6.226,
+    "end": 9.581
+   },
+   {
+    "text": "A hard question must be among the right ones.",
+    "start": 9.761,
+    "end": 12.138
+   },
+   {
+    "text": "A failing score gets no follow-up, the function is simply not understood.",
+    "start": 12.318,
+    "end": 16.389
+   }
+  ]
+ },
+ {
+  "id": "pace",
+  "seconds": 35.541,
+  "sentences": [
+   {
+    "text": "Why the timing check?",
+    "start": 0.0,
+    "end": 1.256
+   },
+   {
+    "text": "Someone who pastes every question into an AI answers easy and hard questions at the same speed.",
+    "start": 1.436,
+    "end": 6.756
+   },
+   {
+    "text": "A person who is really thinking slows down on the hard ones.",
+    "start": 6.936,
+    "end": 10.184
+   },
+   {
+    "text": "So when your hard answers come as fast as your easy ones, cdebt asks one or two quick follow-ups about the same code, with changed values and a countdown set from your own pace, about three quarters of your usual time.",
+    "start": 10.364,
+    "end": 22.685
+   },
+   {
+    "text": "Get them right in time and you are understood.",
+    "start": 22.865,
+    "end": 24.993
+   },
+   {
+    "text": "Wrong or too slow, and it is not understood.",
+    "start": 25.173,
+    "end": 27.804
+   },
+   {
+    "text": "This raises the effort of pasting into an AI, but it does not prove anything, and nothing about your timing is stored or reported about you.",
+    "start": 27.984,
+    "end": 35.541
+   }
+  ]
+ },
+ {
+  "id": "verdict",
+  "seconds": 11.253,
+  "sentences": [
+   {
+    "text": "Here, apply discount is understood.",
+    "start": 0.0,
+    "end": 2.221
+   },
+   {
+    "text": "Late fee is not: too many wrong answers.",
+    "start": 2.401,
+    "end": 4.959
+   },
+   {
+    "text": "And invoice total was not reached in this push, so it stays not understood.",
+    "start": 5.139,
+    "end": 9.488
+   },
+   {
+    "text": "Nothing is silently passed.",
+    "start": 9.668,
+    "end": 11.253
+   }
+  ]
+ },
+ {
+  "id": "pr",
+  "seconds": 13.919,
+  "sentences": [
+   {
+    "text": "I open the pull request the normal way.",
+    "start": 0.0,
+    "end": 2.132
+   },
+   {
+    "text": "The cdebt action re-checks every recorded answer in CI and posts one comment.",
+    "start": 2.312,
+    "end": 6.492
+   },
+   {
+    "text": "Understood, or not understood, per function, naming no one.",
+    "start": 6.672,
+    "end": 10.627
+   },
+   {
+    "text": "The check is advisory, so it does not block the merge.",
+    "start": 10.807,
+    "end": 13.919
+   }
+  ]
+ },
+ {
+  "id": "retry",
+  "seconds": 9.404,
+  "sentences": [
+   {
+    "text": "To clear what is left, cdebt quiz dash dash pr asks only the remaining functions, never-quizzed ones first, pushes the proof, and asks CI to re-check.",
+    "start": 0.0,
+    "end": 9.404
+   }
+  ]
+ },
+ {
+  "id": "recheck",
+  "seconds": 13.508,
+  "sentences": [
+   {
+    "text": "The same comment is edited in place.",
+    "start": 0.0,
+    "end": 1.963
+   },
+   {
+    "text": "GitHub's edit history shows invoice total moving from not quizzed to its real result.",
+    "start": 2.143,
+    "end": 6.674
+   },
+   {
+    "text": "The answers were wrong, so it stays not understood.",
+    "start": 6.854,
+    "end": 9.871
+   },
+   {
+    "text": "A recheck reads the record; it cannot make wrong answers right.",
+    "start": 10.051,
+    "end": 13.508
+   }
+  ]
+ },
+ {
+  "id": "sandbox",
+  "seconds": 14.555,
+  "sentences": [
+   {
+    "text": "Behind the scenes, every question runs your real function in a throw-away sandbox, twice.",
+    "start": 0.0,
+    "end": 5.426
+   },
+   {
+    "text": "Pointed at hostile code, it blocks reading secrets, writing files, the network, killing processes, and shell commands, checked from outside.",
+    "start": 5.606,
+    "end": 14.555
+   }
+  ]
+ },
+ {
+  "id": "expire",
+  "seconds": 9.662,
+  "sentences": [
+   {
+    "text": "Understanding expires.",
+    "start": 0.0,
+    "end": 1.586
+   },
+   {
+    "text": "Change one line of late fee and cdebt flags it as code changed.",
+    "start": 1.766,
+    "end": 5.108
+   },
+   {
+    "text": "In enforce mode the gate exits with code one, so a team can block the merge.",
+    "start": 5.288,
+    "end": 9.662
+   }
+  ]
+ },
+ {
+  "id": "limits",
+  "seconds": 12.256,
+  "sentences": [
+   {
+    "text": "This is an experimental release.",
+    "start": 0.0,
+    "end": 1.879
+   },
+   {
+    "text": "The score is not validated, a quiz cannot stop someone pasting questions into an AI, and the sandbox has not had an independent review.",
+    "start": 2.059,
+    "end": 9.966
+   },
+   {
+    "text": "It gives visibility, not proof.",
+    "start": 10.146,
+    "end": 12.256
+   }
+  ]
+ },
+ {
+  "id": "end",
+  "seconds": 3.779,
+  "sentences": [
+   {
+    "text": "cdebt is on PyPI.",
+    "start": 0.0,
+    "end": 1.102
+   },
+   {
+    "text": "Try it on your next AI-written pull request.",
+    "start": 1.282,
+    "end": 3.779
+   }
+  ]
+ }
+]

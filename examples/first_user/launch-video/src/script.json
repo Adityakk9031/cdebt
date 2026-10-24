@@ -1,0 +1,62 @@
+[
+ {
+  "id": "title",
+  "text": "AI writes more and more of our code. But can anyone show that a human actually understood it? This is cdebt."
+ },
+ {
+  "id": "problem",
+  "text": "Code review skims. Tests check behaviour, not understanding. The gap between code that exists and code a person has understood is comprehension debt. cdebt makes it visible, for code, never for people."
+ },
+ {
+  "id": "how",
+  "text": "Here is the loop. You push. Your coding agent writes questions about the AI-written functions. cdebt runs every question in a sandbox to get the true answer, so no AI ever grades you. The result travels with the push as a git note, and the pull request shows it."
+ },
+ {
+  "id": "setup",
+  "text": "Setup takes a minute. Install cdebt from PyPI with the agent extra. Run cdebt init to add a pre-push hook and a GitHub workflow. Connect Claude Code. Then cdebt map shows this file is ninety two percent AI-written, and zero percent verified."
+ },
+ {
+  "id": "quiz",
+  "text": "Now I push. Claude Code writes the questions, and cdebt checks each one by executing the real code. At most six questions per push, three per function, biggest function first, each labelled so you know where you are."
+ },
+ {
+  "id": "rules",
+  "text": "Here are all the rules. At most six questions per push, three per function, biggest function first. Two of three right passes, so one wrong answer is fine. A hard question must be among the right ones. A failing score gets no follow-up, the function is simply not understood."
+ },
+ {
+  "id": "pace",
+  "text": "Why the timing check? Someone who pastes every question into an AI answers easy and hard questions at the same speed. A person who is really thinking slows down on the hard ones. So when your hard answers come as fast as your easy ones, cdebt asks one or two quick follow-ups about the same code, with changed values and a countdown set from your own pace, about three quarters of your usual time. Get them right in time and you are understood. Wrong or too slow, and it is not understood. This raises the effort of pasting into an AI, but it does not prove anything, and nothing about your timing is stored or reported about you."
+ },
+ {
+  "id": "verdict",
+  "text": "Here, apply discount is understood. Late fee is not: too many wrong answers. And invoice total was not reached in this push, so it stays not understood. Nothing is silently passed."
+ },
+ {
+  "id": "pr",
+  "text": "I open the pull request the normal way. The cdebt action re-checks every recorded answer in CI and posts one comment. Understood, or not understood, per function, naming no one. The check is advisory, so it does not block the merge."
+ },
+ {
+  "id": "retry",
+  "text": "To clear what is left, cdebt quiz dash dash pr asks only the remaining functions, never-quizzed ones first, pushes the proof, and asks CI to re-check."
+ },
+ {
+  "id": "recheck",
+  "text": "The same comment is edited in place. GitHub's edit history shows invoice total moving from not quizzed to its real result. The answers were wrong, so it stays not understood. A recheck reads the record; it cannot make wrong answers right."
+ },
+ {
+  "id": "sandbox",
+  "text": "Behind the scenes, every question runs your real function in a throw-away sandbox, twice. Pointed at hostile code, it blocks reading secrets, writing files, the network, killing processes, and shell commands, checked from outside."
+ },
+ {
+  "id": "expire",
+  "text": "Understanding expires. Change one line of late fee and cdebt flags it as code changed. In enforce mode the gate exits with code one, so a team can block the merge."
+ },
+ {
+  "id": "limits",
+  "text": "This is an experimental release. The score is not validated, a quiz cannot stop someone pasting questions into an AI, and the sandbox has not had an independent review. It gives visibility, not proof."
+ },
+ {
+  "id": "end",
+  "text": "cdebt is on PyPI. Try it on your next AI-written pull request."
+ }
+]
