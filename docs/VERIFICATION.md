@@ -503,3 +503,24 @@ printed `1.1.0rc8`. Same demo and settings as the rc7 section (`DEMO_FORCE_FOLLO
 - Not covered: Linux, Windows, a connected coding agent, a real PR, a human answering at their own
   pace against the 75% countdown.
 
+### The Action on a real pull request, on GitHub-hosted runners (2026-10-24)
+
+First real hosted-runner test (before this, only a self-hosted runner and a read-only-token
+simulation had been run). A second GitHub account with no Actions limit (`A9031`, not the
+publishing account) owned a private throwaway repository `cdebt-action-test`: the rehearsal demo
+project, a workflow using `Adityakk9031/cdebt@main` with `version: "cdebt==1.1.0rc8"` (so cdebt came
+from PyPI), `ubuntu-latest`. The `git push` of the `feature` branch went through the real pre-push
+hook with the real GitHub remote, which pushed `refs/notes/cdebt` and `refs/notes/ai` before the
+branch.
+
+| step | result |
+|---|---|
+| PR opened | workflow succeeded on a hosted runner; ONE sticky comment: "all AI-written changed lines are understood", all 3 functions "understood (verified by execution), re-checked" (the recorded questions, follow-ups included, were re-executed in CI), attribution `git-ai` 18 lines; check run `cdebt / gate` **success** |
+| push of an edit to `late_fee` | the SAME comment was edited in place (1 comment, not 2): `late_fee` NOT UNDERSTOOD (`code_changed`), `invoice_total` NOT UNDERSTOOD (`recheck_failed`: its recorded answer no longer matches re-execution, because it calls `late_fee`), `apply_discount` still understood; check run `cdebt / gate` **neutral** (advisory) |
+
+Note: `invoice_total` was flagged although its own lines did not change, because its recorded
+answers depend on `late_fee`. That is the re-check working, and it is worded as a failed re-check,
+not as a changed function. Not covered here: a real fork pull request, `/cdebt recheck` by comment,
+and `enforce: "true"` on a hosted runner. Found, not changed: the `v1` tag still points at the
+rc3 commit (a2d60b5), 11 commits behind `main`; whether to move it is a release decision.
+
