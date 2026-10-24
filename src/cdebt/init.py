@@ -82,8 +82,43 @@ def workflow_plan(repo: Path) -> FilePlan:
     p = repo / ".github" / "workflows" / "cdebt.yml"
     if p.exists():
         return FilePlan(p, "exists", f"{p} already exists (left as it is)")
-    return FilePlan(
-        p, "create", f"create {p} (edit the `uses:` line: the Action is unpublished)", WORKFLOW
+    return FilePlan(p, "create", f"create {p}", WORKFLOW)
+
+
+def _git(repo: Path, *args: str) -> str | None:
+    try:
+        return gitutil.run(list(args), repo).strip() or None
+    except gitutil.GitError:
+        return None
+
+
+def default_branch(repo: Path) -> str | None:
+    """The repository's default branch name, from origin/HEAD, else a local main or master."""
+    ref = _git(repo, "rev-parse", "--abbrev-ref", "origin/HEAD")
+    if ref and "/" in ref and ref != "origin/HEAD":
+        return ref.split("/", 1)[1]
+    for name in ("main", "master"):
+        if _git(repo, "rev-parse", "--verify", "-q", f"refs/heads/{name}"):
+            return name
+    return None
+
+
+def workflow_branch_note(repo: Path) -> str:
+    """GitHub runs comment-triggered workflows (`/cdebt recheck`) only from the workflow file on
+    the DEFAULT branch, so the file must be committed there, not only on a feature branch."""
+    rel = ".github/workflows/cdebt.yml"
+    cur = _git(repo, "rev-parse", "--abbrev-ref", "HEAD")
+    cur = None if cur == "HEAD" else cur  # detached
+    main = default_branch(repo) or "main"
+    if cur and cur != main:
+        return (
+            f"you are on `{cur}`. Commit {rel} to `{main}` (the default branch) and push it: "
+            "GitHub runs `/cdebt recheck` only from the default branch's workflow. For example:\n"
+            f"  git switch {main} && git checkout {cur} -- {rel} && "
+            f"git commit -m 'Add the cdebt workflow' && git push && git switch {cur}"
+        )
+    return (
+        f"commit {rel} on `{main}` and push it (`/cdebt recheck` needs it on the default branch)."
     )
 
 

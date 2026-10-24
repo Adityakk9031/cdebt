@@ -36,6 +36,12 @@ if [ "${CDEBT_COMMENT:-true}" = "true" ] && [ -n "${GITHUB_TOKEN:-}" ] && [ -n "
   case "$ID" in ''|*[!0-9]*) ID="" ;; esac   # only a numeric id counts, never an error body
   if [ -n "$ID" ]; then
     gh api -X PATCH "repos/${GITHUB_REPOSITORY}/issues/comments/${ID}" -F body=@cdebt-gate.md >/dev/null || true
+    # a `/cdebt recheck` comment: say so under it, so the person sees that something happened
+    if [ -z "${PR_NUMBER:-}" ] && [ -n "${ISSUE_NUMBER:-}" ]; then
+      TITLE=$(grep -m1 '^## ' cdebt-gate.md | sed 's/^## //')
+      printf 're-checked: %s. The cdebt comment above is updated.\n' "$TITLE" > cdebt-recheck.md
+      gh api -X POST "repos/${GITHUB_REPOSITORY}/issues/${PR}/comments" -F body=@cdebt-recheck.md >/dev/null || true
+    fi
   else
     gh api -X POST "repos/${GITHUB_REPOSITORY}/issues/${PR}/comments" -F body=@cdebt-gate.md >/dev/null || true
   fi

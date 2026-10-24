@@ -231,7 +231,14 @@ cdebt only reads the notes; it never writes to your repo except `.cdebt/`.
 ```
 
 It runs `cdebt gate`, fetches `refs/notes/ai` best-effort, writes a job summary and a sticky PR
-comment. It is advisory unless you set `enforce: "true"`. See [docs/VERIFICATION.md](https://github.com/Adityakk9031/cdebt/blob/main/docs/VERIFICATION.md) for what was tested on a real PR.
+comment. It is advisory unless you set `enforce: "true"`.
+
+**Commit the workflow to your default branch (`main`).** `cdebt init` writes
+`.github/workflows/cdebt.yml`; it must be on `main`, not only on a feature branch. Pull-request
+runs work from either, but GitHub runs the `/cdebt recheck` comment trigger only from the default
+branch's workflow, so on a feature branch alone a recheck silently does nothing. `cdebt init`
+prints the exact commands when you run it on another branch. A recheck edits the sticky comment
+in place and replies "re-checked: ..." under your `/cdebt recheck` comment. See [docs/VERIFICATION.md](https://github.com/Adityakk9031/cdebt/blob/main/docs/VERIFICATION.md) for what was tested on a real PR.
 
 ## Safety model
 

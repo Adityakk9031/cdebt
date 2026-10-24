@@ -810,6 +810,8 @@ def init_cmd(
         console.print(f"[bold]GitHub workflow[/]: {wf.message}")
         if wf.action == "create" and consent("Write the workflow file?"):
             wf.apply()
+        if (r / ".github" / "workflows" / "cdebt.yml").exists():
+            console.print(f"[yellow]  next: {init_mod.workflow_branch_note(r)}[/]")
     if github:
         rs = init_mod.ruleset_plan(r)
         console.print("[bold]branch rule[/] (changes the GitHub repository settings):")

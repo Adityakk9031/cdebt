@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.1.0rc11
+
+- **`/cdebt recheck` did nothing when the workflow was only on a feature branch.** GitHub runs
+  comment-triggered workflows only from the default branch's workflow file. `cdebt init` now says
+  so and prints the commands to commit the workflow on the default branch; the README says it too.
+  The old "the Action is unpublished" note is gone (`@v1` exists).
+- **A recheck now answers visibly**: besides editing the sticky comment in place, the Action
+  replies "re-checked: ..." under the `/cdebt recheck` comment, so it no longer looks like nothing
+  happened.
+
 ## 1.1.0rc10
 
 Fixes found in the first hand-answered test of rc9 (a real person, a real push, Claude Code

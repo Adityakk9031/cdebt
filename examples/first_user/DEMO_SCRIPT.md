@@ -30,6 +30,7 @@ To start over: `rm -rf ~/cdebt-demo ~/cdebt-demo-remote.git` and run the setup a
 | 0:20 | `pip install --pre "cdebt[agent]"` then `cdebt --version` | "This is how a new user installs it. The agent extra is only needed if you want your own coding agent to write the questions." *(If PyPI is not ready: `pip install "cdebt[agent] @ git+https://github.com/Adityakk9031/cdebt"`.)* |
 | 0:40 | `cd ~/cdebt-demo && git log --oneline` | "A tiny billing project. The last commit was written by an AI agent, and Git AI recorded exactly which lines." |
 | 0:55 | `cdebt init` *(answer `y` to each step)* | "init asks before every change: a pre-push hook that never overwrites an existing one, a policy file, a GitHub workflow." |
+| 1:10 | *(on GitHub)* commit `.github/workflows/cdebt.yml` to `main` and push, as `cdebt init` prints | "The workflow goes on the default branch: GitHub only runs `/cdebt recheck` from there." |
 | 1:20 | `cdebt agent connect` *(choose claude_code, answer `y`)* | "Optional: my own coding agent writes the questions. It only sees the code being quizzed, is never told an answer, and cdebt runs every question itself to get the true answer." |
 | 1:50 | `cdebt map` | "Where is the AI-written code nobody has understood? Verified: zero percent. Note the attribution source says git-ai, line-level." |
 | 2:15 | `cdebt coverage` | "Before trusting anything: how much of this can a quiz actually verify? On real code this is often small, and I will say so in the README." |
