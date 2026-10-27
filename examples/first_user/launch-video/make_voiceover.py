@@ -12,7 +12,8 @@ import wave
 GAP = 0.18  # seconds of silence between sentences
 VOICE, RATE = "Samantha", "172"
 
-script = json.load(open("src/script.json"))
+with open("src/script.json") as fh:
+    script = json.load(fh)
 os.makedirs("public/vo", exist_ok=True)
 tmp = tempfile.mkdtemp()
 out = []
@@ -34,5 +35,6 @@ for scene in script:
         o.setparams(params)
         o.writeframes(silence.join(frames))
     out.append({"id": scene["id"], "seconds": round(t - GAP, 3), "sentences": timings})
-json.dump(out, open("src/durations.json", "w"), indent=1)
+with open("src/durations.json", "w") as fh:
+    json.dump(out, fh, indent=1)
 print(f"{len(out)} scenes, {sum(o['seconds'] for o in out):.1f} s of voice-over")

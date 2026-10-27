@@ -5,6 +5,7 @@ No network and no real agent: `tests/_fake_agent.py` is a stub that speaks real 
 from __future__ import annotations
 
 import json
+import shlex
 import sys
 from pathlib import Path
 
@@ -118,7 +119,7 @@ def test_end_to_end_with_a_fake_mcp_agent(make_repo, tmp_path, monkeypatch) -> N
     r = _repo(make_repo)
     report = tmp_path / "report.json"
     monkeypatch.setenv("FAKE_AGENT_REPORT", str(report))
-    choice = AgentChoice(name="command", command=f"{sys.executable} {FAKE}")
+    choice = AgentChoice(name="command", command=shlex.join([sys.executable, str(FAKE)]))
     probes, notes = propose_with_agent(r.path, "pkg/shop.py", Config(), choice, timeout=120)
     rep = json.loads(report.read_text())
     replies = rep["replies"]
@@ -142,7 +143,7 @@ def test_budget_per_target_is_enforced(make_repo, tmp_path, monkeypatch) -> None
     r = _repo(make_repo)
     report = tmp_path / "report.json"
     monkeypatch.setenv("FAKE_AGENT_REPORT", str(report))
-    choice = AgentChoice(name="command", command=f"{sys.executable} {FAKE}")
+    choice = AgentChoice(name="command", command=shlex.join([sys.executable, str(FAKE)]))
     propose_with_agent(r.path, "pkg/shop.py", Config(), choice, per_target=2, timeout=120)
     replies = json.loads(report.read_text())["replies"]
     # shipping gets 2 proposals; the rest of its attempts are refused for budget
@@ -231,7 +232,7 @@ def test_a_question_from_both_the_agent_and_the_builtin_generator_is_asked_once(
 ) -> None:  # type: ignore[no-untyped-def]
     r = _repo(make_repo)
     monkeypatch.setenv("FAKE_AGENT_REPORT", str(tmp_path / "report.json"))
-    choice = AgentChoice(name="command", command=f"{sys.executable} {FAKE}")
+    choice = AgentChoice(name="command", command=shlex.join([sys.executable, str(FAKE)]))
     probes, _u, _s = build_quiz(r.path, "pkg/shop.py", Config(), agent=choice, n=20, per_unit=6)
     qs = [p.question for p in probes]
     assert len(qs) == len(set(qs))
