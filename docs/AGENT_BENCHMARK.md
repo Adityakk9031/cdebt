@@ -56,3 +56,35 @@ gives the same built-in coverage as the fixed code, so the fix restores the earl
 the older 19%: the top-25 selection depends on recent churn and moves with the date, so those
 figures are examples from one day, not constants. `agent-meta` (call-graph index) and the
 TypeScript repository were not re-measured.
+
+## Reach: batching, retry and the fake world (measured 2026-10-27)
+
+Change: the agent now gets a file's functions in batches of 6 (one run each) and any function with
+fewer than 3 verified agent questions is offered once more; clock, random and environment reads are
+faked in the sandbox (see CHANGELOG). Reproduce with `scripts/bench_agent_reach.py`.
+
+Sample: 6 files of cdebt's own code (52 functions), strict sandbox, Claude Code agent, **one run
+per mode**. Questions differ from run to run, so treat the gap as indicative, not exact.
+
+| | before (1 run, 1 round) | after (batches + retry) |
+|---|---|---|
+| functions with >= 1 verified question | 32 of 52 | 41 of 52 |
+| functions with >= 3 verified questions | 3 of 52 | 28 of 52 |
+| verified questions | 53 | 128 |
+| agent time | 297 s | 953 s |
+
+- **Cost: about 3x the agent time.** The gain comes from more agent runs, not from a better prompt.
+- "Before" counted a function with 1 question as covered; the quiz needs 3 (see the second row).
+- This is cdebt's own code, which the agent can read freely and whose dependencies are installed.
+  It says nothing about repositories with heavy dependencies (next point). The 2026-10-22 numbers
+  above (7% on hard files) are a different sample and were not re-run.
+- Two earlier attempts produced 0 questions for reasons of my own setup, not of cdebt: a scratch copy
+  that was not a git repo (the sandbox copies tracked files) and an editable install of the project
+  (the sandbox cannot list the original source folder). Both are documented in the script's header.
+- `backtest/matched.py` got **0 questions in both runs**. Cause (checked by running a proposal
+  directly): it imports `numpy`. First, the sandbox runs with the Python that runs cdebt, which did
+  not have `numpy` (a project's own dependencies are not available unless that Python has them).
+  After installing `numpy` there, the next block is `ctypes.dlopen: network/native`: native
+  libraries that load through `ctypes` at import are blocked on purpose. So code that needs such
+  packages (numpy, and likely pandas and similar) cannot be quizzed by execution today. Allowing
+  them would be a sandbox change that needs a security review; it was not made.

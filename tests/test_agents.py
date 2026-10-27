@@ -34,6 +34,12 @@ def shipping(total: int, express: bool = False) -> int:
 
 def stamp() -> int:
     return int(time.time())
+
+
+def launch() -> int:
+    import subprocess
+
+    return subprocess.call(["true"])
 """
 FAKE = Path(__file__).parent / "_fake_agent.py"
 
@@ -75,7 +81,7 @@ def test_a_harness_may_mock_io_but_must_run_the_real_target(make_repo) -> None: 
         "replaced": ("def probe():\n    target_module.shipping = lambda *a, **k: 3\n"
                      "    return target_module.shipping(1)\n", "replaced the target"),
         "never called": ("def probe():\n    return 3\n", "did not execute"),
-        "flaky": ("def probe():\n    import time\n    return time.time_ns() + target_module.stamp()\n",
+        "flaky": ("def probe():\n    import os\n    return os.urandom(4).hex() + str(target_module.stamp())\n",
                   "non-deterministic"),
     }  # fmt: skip
     for name, (code, why) in cases.items():
@@ -87,7 +93,7 @@ def test_a_harness_may_mock_io_but_must_run_the_real_target(make_repo) -> None: 
 def test_bad_proposals_are_rejected_with_reasons(make_repo) -> None:  # type: ignore[no-untyped-def]
     r = _repo(make_repo)
     for kw, why in [
-        (dict(target="stamp", kind="return_value"), "side effects"),  # uses time, no harness
+        (dict(target="launch", kind="return_value"), "side effects"),  # spawns a process, no harness
         (dict(target="nope", kind="return_value"), "no function"),
         (dict(target="shipping", kind="branch_taken", call_inputs={"args": [1]}), "`line`"),
         (dict(target="shipping", kind="branch_taken", call_inputs={"args": [1]}, line=999), "`line`"),
@@ -177,7 +183,7 @@ def test_targets_only_list_unverified_functions_with_source_and_tests(make_repo)
     )
     r.commit("tests")
     ts = {t.symbol: t for t in targets_for_file(r.path, "pkg/shop.py", Config())}
-    assert set(ts) == {"shipping", "stamp"}
+    assert set(ts) == {"shipping", "stamp", "launch"}
     assert "def shipping(total: int" in ts["shipping"].signature
     assert "return base" in ts["shipping"].source
     assert ts["shipping"].tests and "test_s" in ts["shipping"].tests[0]

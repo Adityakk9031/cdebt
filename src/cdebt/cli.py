@@ -352,7 +352,10 @@ def quiz_cmd(
     with _sandbox_errors():
         choice = None if no_agent else userconfig.load()
         if choice is not None and choice.name != "builtin":
-            console.print(f"{choice.name} is writing questions about {rel} (about a minute)...")
+            console.print(
+                f"{choice.name} is writing questions about {rel} "
+                "(about a minute per 6 functions)..."
+            )
         probes, units, skips = build_quiz(
             r, rel, cfg, n=max(n, 12) if adaptive_mode else n, seed=seed, kinds=ks, agent=choice,
             per_unit=6 if adaptive_mode else 2,

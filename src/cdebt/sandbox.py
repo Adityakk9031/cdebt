@@ -164,10 +164,84 @@ def screen_module_level(source: str) -> list[str]:
     return sorted(reasons)
 
 
-def screen_function(source: str, name: str) -> list[str]:
+# The "fake world": inside the sandbox the clock is frozen, random is seeded and sleep is a no-op,
+# so functions that read them become deterministic and can be run for real. `os` is allowed only
+# for environment/path helpers (the sandbox scrubs the environment; writes stay blocked).
+FAKE_EPOCH = 1577836800.0  # 2020-01-01 00:00:00 UTC
+FAKE_RANDOM_SEED = 0
+FAKE_MODULES = {"time": "clock", "datetime": "clock", "random": "random"}
+OS_FAKEABLE = {"environ", "getenv", "path", "sep", "linesep", "name", "curdir", "pardir"}
+
+
+def _from_names(tree: ast.AST) -> dict[str, tuple[str, str]]:
+    """local name -> (top-level module, imported name) for every `from m import x [as y]`."""
+    out: dict[str, tuple[str, str]] = {}
+    for n in ast.walk(tree):
+        if isinstance(n, ast.ImportFrom) and n.module and n.level == 0:
+            for a in n.names:
+                out[a.asname or a.name] = (n.module.split(".")[0], a.name)
+    return out
+
+
+def _fakeable_use(
+    node: ast.Name,
+    parents: dict[int, ast.AST],
+    aliases: dict[str, str],
+    froms: dict[str, tuple[str, str]],
+) -> str | None:
+    """The fake-world feature ("clock", "random", "env") if this use of a blocked module is
+    covered by the fake world, else None."""
+    mod = aliases.get(node.id)
+    if mod in FAKE_MODULES:
+        return FAKE_MODULES[mod]
+    if mod == "os":
+        if node.id in froms:  # `from os import environ`
+            return "env" if froms[node.id][1] in OS_FAKEABLE else None
+        par = parents.get(id(node))
+        if isinstance(par, ast.Attribute) and par.attr in OS_FAKEABLE:
+            return "env"
+    return None
+
+
+def fake_world_uses(source: str, name: str) -> list[str]:
+    """Which fake-world features ("clock", "random", "env") the function `name` relies on."""
+    try:
+        tree = ast.parse(source)
+    except SyntaxError:
+        return []
+    fn = next((n for n in tree.body if isinstance(n, ast.FunctionDef) and n.name == name), None)
+    if fn is None:
+        return []
+    aliases, froms = _import_aliases(tree), _from_names(tree)
+    parents = {id(c): p for p in ast.walk(fn) for c in ast.iter_child_nodes(p)}
+    return sorted(
+        {
+            f
+            for n in ast.walk(fn)
+            if isinstance(n, ast.Name)
+            for f in [_fakeable_use(n, parents, aliases, froms)]
+            if f
+        }
+    )
+
+
+def world_note(uses: list[str]) -> str:
+    """Suffix for a question so the reader knows which parts of the world were faked."""
+    parts = []
+    if "clock" in uses:
+        parts.append("the clock is fixed at 2020-01-01 00:00:00 UTC")
+    if "random" in uses:
+        parts.append(f"random is seeded with {FAKE_RANDOM_SEED}")
+    if "env" in uses:
+        parts.append("no environment variables are set")
+    return f" (in the test sandbox {', '.join(parts)})" if parts else ""
+
+
+def screen_function(source: str, name: str, fake_world: bool = False) -> list[str]:
     """Reasons the function `name` is not safe to run for a probe: it touches a side-effecting
     module (os, time, random, pathlib, ...), calls a side-effecting builtin, mutates global
-    state, or is async."""
+    state, or is async. With `fake_world`, clock/random/environment uses are allowed because the
+    sandbox runner fakes them (see `FAKE_EPOCH`)."""
     try:
         tree = ast.parse(source)
     except SyntaxError as e:
@@ -176,11 +250,15 @@ def screen_function(source: str, name: str) -> list[str]:
     if fn is None:
         return [f"function {name} not found"]
     aliases = _import_aliases(tree)
+    froms = _from_names(tree)
+    parents = {id(c): p for p in ast.walk(fn) for c in ast.iter_child_nodes(p)}
     reasons: set[str] = set()
     for n in ast.walk(fn):
         if isinstance(n, ast.Name):
             mod = aliases.get(n.id)
-            if mod in BLOCKED_MODULES:
+            if mod in BLOCKED_MODULES and not (
+                fake_world and _fakeable_use(n, parents, aliases, froms)
+            ):
                 reasons.add(f"uses {mod} (side effects)")
             if isinstance(n.ctx, ast.Load) and n.id in BLOCKED_CALLS:
                 reasons.add(f"uses {n.id}()")
@@ -398,6 +476,41 @@ def _run():
     real_out = _sys.stdout
     try:
         _sys.stdout = io.StringIO()
+        _reseed = lambda: None
+        if spec.get("fake_world"):
+            import time as _t, datetime as _dt, random as _r
+            _E = spec["fake_epoch"]
+            _gm, _lt, _sf = _t.gmtime, _t.localtime, _t.strftime
+            _t.time = lambda: _E
+            _t.time_ns = lambda: int(_E * 1e9)
+            _t.monotonic = _t.perf_counter = _t.process_time = lambda: 0.0
+            _t.monotonic_ns = _t.perf_counter_ns = lambda: 0
+            _t.sleep = lambda s=0: None
+            _t.gmtime = lambda s=None: _gm(_E if s is None else s)
+            _t.localtime = lambda s=None: _lt(_E if s is None else s)
+            _t.strftime = lambda f, tt=None: _sf(f, _lt(_E) if tt is None else tt)
+            _DTR, _DR = _dt.datetime, _dt.date
+
+            class _DT(_DTR):
+                @classmethod
+                def now(cls, tz=None):
+                    return cls.fromtimestamp(_E, tz)
+                @classmethod
+                def utcnow(cls):
+                    return cls.fromtimestamp(_E, _dt.timezone.utc).replace(tzinfo=None)
+                @classmethod
+                def today(cls):
+                    return cls.fromtimestamp(_E)
+
+            class _D(_DR):
+                @classmethod
+                def today(cls):
+                    return cls.fromtimestamp(_E)
+
+            _DT.__name__ = _DT.__qualname__ = "datetime"
+            _D.__name__ = _D.__qualname__ = "date"
+            _dt.datetime, _dt.date = _DT, _D
+            _reseed = lambda: _r.seed(spec["fake_seed"])
         if spec["mode"] == "call":
             import importlib
             mod = importlib.import_module(spec["module"])
@@ -406,6 +519,7 @@ def _run():
             args = ast.literal_eval(spec["args_repr"])
             results = []
             for _ in range(2):  # determinism check
+                _reseed()
                 try:
                     results.append(("ok", repr(fn(*args))))
                 except PermissionError:
@@ -447,6 +561,7 @@ def _run():
             runs = []
             for ph in range(2):  # determinism check; line/variable data come from both runs
                 _TR["phase"] = ph
+                _reseed()
                 try:
                     runs.append(("ok", repr(call())))
                 except PermissionError:
@@ -882,6 +997,8 @@ def run_in_sandbox(
     runner = Path(tempfile.mkdtemp(prefix="cdebt-runner-")) / "runner.py"
     runner.write_text(_RUNNER)
     spec = {**spec, "root": str(root), "policy": policy}
+    if spec.get("fake_world"):
+        spec = {**spec, "fake_epoch": FAKE_EPOCH, "fake_seed": FAKE_RANDOM_SEED}
     py = python or sys.executable
     env = {
         "PATH": "/usr/bin:/bin",
@@ -890,6 +1007,7 @@ def run_in_sandbox(
         "PYTHONDONTWRITEBYTECODE": "1",
         "PYTHONHASHSEED": "0",
         "LANG": "C.UTF-8",
+        "TZ": "UTC",
         "NO_PROXY": "*",
         "PYTHONUNBUFFERED": "1",
     }

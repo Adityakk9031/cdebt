@@ -92,9 +92,11 @@ def test_runtime_skips_side_effecting_functions(make_repo) -> None:  # type: ign
     r.write("m.py", src)
     r.commit("x")
     probes, skips = runtime.generate(r.path, "m.py", src, extract_units("m.py", src), seed=0)
-    assert {p.symbol for p in probes} == {"pure"}  # importing os/random does not block `pure`
+    # `roll` is quizzable now: random is seeded in the sandbox (the question says so)
+    assert {p.symbol for p in probes} == {"pure", "roll"}
+    assert all("random is seeded" in p.question for p in probes if p.symbol == "roll")
     text = " | ".join(skips)
-    assert "roll" in text and "random" in text and "listing" in text and "os" in text
+    assert "listing" in text and "os" in text
     assert "writer" in text and "open" in text
 
 

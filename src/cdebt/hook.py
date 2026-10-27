@@ -21,7 +21,7 @@ from pathlib import Path
 from typing import IO
 
 from cdebt import gitutil, notes
-from cdebt.agents import userconfig
+from cdebt.agents import DEFAULT_BATCH, userconfig
 from cdebt.config import Config
 from cdebt.models import Probe, Violation
 
@@ -233,10 +233,14 @@ def quiz_changes(
             out.skipped.append(f"{rel}: differs from HEAD; commit it first")
             continue
         if choice is not None and choice.name != "builtin":
-            say(f"\ncdebt: {choice.name} is writing questions about {rel} (about a minute)...")
+            say(
+                f"\ncdebt: {choice.name} is writing questions about {len(syms)} function(s) in "
+                f"{rel} (about a minute per {DEFAULT_BATCH} functions)..."
+            )
         probes, units, skips = build_quiz(
-            repo, rel, cfg, n=12, per_unit=6, agent=choice, store=None
-        )
+            repo, rel, cfg, n=max(12, 5 * len(syms)), per_unit=6, agent=choice,
+            store=None, agent_only=syms,
+        )  # fmt: skip
         probes = [p for p in probes if p.symbol in syms]
         out.skipped += [s for s in skips if "agent" in s.lower()]
         quizzable = {p.symbol for p in probes}

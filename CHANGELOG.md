@@ -1,5 +1,26 @@
 # Changelog
 
+## Unreleased
+
+- **Fake world in the sandbox.** Functions that read the clock (`time`, `datetime`), random numbers
+  or environment variables/paths (`os.environ`, `os.getenv`, `os.path`) can now be run for real: the
+  clock is frozen at 2020-01-01 00:00:00 UTC, `time.sleep` returns at once, `random` is seeded with
+  0 before each run and no environment variables are set. The question says so ("in the test sandbox
+  the clock is fixed ..."). Writes, network, processes and every other `os` call stay blocked.
+  Known gap: `uuid`, `secrets` and `datetime` objects created before the fake is installed are not
+  faked; the two-run determinism check still discards anything that differs between runs.
+- **Agent reach.** The agent now gets the PR's functions in batches of 6 (one run each, own timeout)
+  instead of one run for the whole file, and any function with fewer than 3 verified agent
+  questions is offered again in a second round. The hook offers only the functions the push changed
+  and no longer cuts the question pool at 12 for the whole push.
+- Measured on 1,188 top-level functions from rich, typer, click, pydantic and cdebt: the safety
+  screen passes 71.4% -> 74.0% (+31 functions). That is only the screen. After it, the built-in
+  generator can build inputs for 15.4%; most of the rest fail on type hints (`Any`, generics, missing
+  return hint, `*args`). So the agent path matters more than the sandbox for coverage.
+  Batching/retry on 6 files of cdebt's own code (one run per mode): functions with >= 3 verified
+  agent questions 3 -> 28 of 52, with >= 1: 32 -> 41, at about 3x the agent time
+  (docs/AGENT_BENCHMARK.md). Code that needs numpy-like native packages still gets 0 questions.
+
 ## 1.1.0rc11
 
 - **`/cdebt recheck` did nothing when the workflow was only on a feature branch.** GitHub runs

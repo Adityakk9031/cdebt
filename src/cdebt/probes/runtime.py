@@ -10,7 +10,13 @@ from pathlib import Path
 
 from cdebt.models import CodeUnit, Probe
 from cdebt.probes.base import copy_tree, probe_id, shuffled, temp_root
-from cdebt.sandbox import run_in_sandbox, screen_function, screen_module_level
+from cdebt.sandbox import (
+    fake_world_uses,
+    run_in_sandbox,
+    screen_function,
+    screen_module_level,
+    world_note,
+)
 
 WORDS = ["ab", "hello", "x", "", "Cat", "a b", "zed"]
 EXC = ["ValueError", "TypeError", "KeyError", "ZeroDivisionError", "IndexError"]
@@ -129,7 +135,7 @@ def generate(
         (root / rel).write_text(source)  # exercise exactly the text we hashed
         rng = random.Random(seed)
         for fn in funcs:
-            fn_why = screen_function(source, fn.name)
+            fn_why = screen_function(source, fn.name, fake_world=True)
             if fn_why:
                 skips.append(f"{rel}::{fn.name}: skipped ({'; '.join(fn_why[:3])})")
                 continue
@@ -137,6 +143,7 @@ def generate(
             if a.vararg or a.kwarg or a.kwonlyargs or a.posonlyargs or fn.returns is None:
                 skips.append(f"{rel}::{fn.name}: unsupported signature")
                 continue
+            uses = fake_world_uses(source, fn.name)
             got = 0
             tries = 0
             while got < per_unit and tries < per_unit * 3:
@@ -155,6 +162,7 @@ def generate(
                         "func": fn.name,
                         "args_repr": args_repr,
                         "sys_path": [str(root / r) for r in roots],
+                        "fake_world": True,
                     },
                     root=root,
                     timeout=10,
@@ -188,7 +196,7 @@ def generate(
                 if len(opts) < 2:
                     skips.append(f"{rel}::{fn.name}: could not build distractors")
                     break
-                q = f"What does `{call}` evaluate to?"
+                q = f"What does `{call}` evaluate to?{world_note(uses)}"
                 probes.append(
                     Probe(
                         id=probe_id("runtime", rel, fn.name, q, seed),
@@ -205,6 +213,7 @@ def generate(
                             "args": args_repr,
                             "result": value,
                             "deterministic_runs": 2,
+                            "fake_world": uses,
                         },
                     )
                 )

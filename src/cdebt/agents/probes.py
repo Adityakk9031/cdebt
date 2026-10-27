@@ -25,7 +25,13 @@ from cdebt.models import CodeUnit, Probe
 from cdebt.probes import callgraph, constants, mutation
 from cdebt.probes.base import copy_tree, probe_id, shuffled, temp_root
 from cdebt.probes.runtime import distractors, module_info
-from cdebt.sandbox import run_in_sandbox, screen_function, screen_module_level
+from cdebt.sandbox import (
+    fake_world_uses,
+    run_in_sandbox,
+    screen_function,
+    screen_module_level,
+    world_note,
+)
 from cdebt.scip import index_is_fresh, load_all
 from cdebt.units import extract_units
 
@@ -226,7 +232,7 @@ def _trace_probe(
         if not text:
             raise Rejected("a harness probe needs `question` text describing the scenario")
     else:
-        fn_why = screen_function(source, leaf)
+        fn_why = screen_function(source, leaf, fake_world=True)
         if fn_why:
             raise Rejected("not safely executable without a harness: " + "; ".join(fn_why[:2]))
     args = list(prop.call_inputs.get("args", []))
@@ -262,6 +268,7 @@ def _trace_probe(
                 "kwargs_repr": repr(kwargs),
                 "watch_line": prop.line if prop.kind == "variable_at_line" else None,
                 "watch_var": prop.variable,
+                "fake_world": True,
             },
             root=root,
             timeout=15,
@@ -287,11 +294,14 @@ def _trace_probe(
     if pl["results"][0] != pl["results"][1] or executed[0] != executed[1]:
         raise Rejected("non-deterministic: two runs differed (mock time, randomness and I/O)")
     call = _call_text(unit.symbol, args, kwargs)
+    uses = fake_world_uses(source, leaf)
+    note = "" if harness else world_note(uses)
     ev: dict[str, object] = {
         "isolation": res.isolation,
         "deterministic_runs": 2,
         "proposed_kind": prop.kind,
         "executed_lines": sorted(executed[0]),
+        "fake_world": uses,
     }
 
     def build(kind: str, q: str, opts: list[str], answer: str) -> Probe:
@@ -322,7 +332,7 @@ def _trace_probe(
                 [answer, "returns None", *[f"raises {e}" for e in ("ValueError", "KeyError")]], rng
             )[:4]
         ev["result"] = answer
-        q = text if harness else f"What does `{call}` evaluate to?"
+        q = text if harness else f"What does `{call}` evaluate to?{note}"
         return build("return_value", q, opts, answer)
     if prop.kind == "branch_taken":
         assert prop.line is not None
@@ -330,7 +340,7 @@ def _trace_probe(
         shown = src_lines[prop.line - 1].strip()
         ev["line"] = prop.line
         q = (
-            f"{text} " if harness and text else f"When `{call}` runs, "
+            f"{text} " if harness and text else f"When `{call}` runs{note}, "
         ) + f"does line {prop.line} of {rel} (`{shown}`) execute?"
         return build("branch_taken", q, ["yes", "no"], "yes" if ran else "no")
     assert prop.line is not None and prop.variable is not None
@@ -345,6 +355,6 @@ def _trace_probe(
     shown = src_lines[prop.line - 1].strip()
     ev.update({"line": prop.line, "variable": prop.variable})
     q = (
-        f"{text} " if harness and text else f"When `{call}` runs, "
+        f"{text} " if harness and text else f"When `{call}` runs{note}, "
     ) + f"what is `{prop.variable}` just before line {prop.line} (`{shown}`) runs?"
     return build("variable_at_line", q, opts, seen[0])

@@ -36,6 +36,7 @@ def build_quiz(
     agent: AgentChoice | None = None,
     agent_per_target: int = 8,
     agent_timeout: float = 90.0,
+    agent_only: set[str] | None = None,
 ) -> tuple[list[Probe], list[CodeUnit], list[str]]:
     f = repo / rel
     if not f.is_file():
@@ -71,7 +72,7 @@ def build_quiz(
 
         aps, notes = propose_with_agent(
             repo, rel, cfg, agent, per_target=agent_per_target, timeout=agent_timeout,
-            seed=seed, store=store,
+            seed=seed, store=store, only=agent_only,
         )  # fmt: skip
         pool["agent"], skips = aps, skips + notes
     from cdebt.agents.probes import branch_count, difficulty_of

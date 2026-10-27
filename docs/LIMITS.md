@@ -126,3 +126,8 @@ causation. Blast radius and the quiz itself are not evaluated.
 - **Secret-looking files are not copied into the sandbox**, and questions whose answers look like
   secrets are dropped. Code that needs those files to run is skipped. Detection is pattern-based
   and can miss unusual formats (`cdebt.secretguard`).
+
+- **Project dependencies.** Probes run in the Python that runs cdebt, so third-party packages the
+  project needs must be importable there, and packages that load native libraries through `ctypes`
+  (for example numpy) are blocked by the sandbox. Functions that need them cannot be quizzed by
+  execution (verified on `backtest/matched.py`, 2026-10-27; see docs/AGENT_BENCHMARK.md).
