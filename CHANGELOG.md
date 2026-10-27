@@ -9,6 +9,11 @@
   the clock is fixed ..."). Writes, network, processes and every other `os` call stay blocked.
   Known gap: `uuid`, `secrets` and `datetime` objects created before the fake is installed are not
   faked; the two-run determinism check still discards anything that differs between runs.
+- **numpy/pandas/scipy can be imported in the sandbox** when the OS layer is on (strict Seatbelt or
+  Docker): ctypes is imported before the guard with its raw-memory helpers removed; all other
+  ctypes events stay blocked (tests/test_sandbox_ctypes.py, 20 tests). Known residual: numpy's
+  `__array_interface__` gives arbitrary in-process memory read/write; the OS layer is the boundary
+  (docs/LIMITS.md).
 - **Agent reach.** The agent now gets the PR's functions in batches of 6 (one run each, own timeout)
   instead of one run for the whole file, and any function with fewer than 3 verified agent
   questions is offered again in a second round. The hook offers only the functions the push changed

@@ -468,6 +468,29 @@ def _run():
             return _local
 
         _sys.settrace(_tracer)
+    if spec.get("os_isolated") is True:
+        # numpy, pandas and scipy import ctypes, and `import ctypes` runs `dlopen(None)`, which
+        # the guard blocks. With the OS layer on (strict Seatbelt or Docker, which is the real
+        # boundary) we import ctypes HERE, before the guard, and strip the helpers that touch raw
+        # memory or run native code without raising an audit event. The guard still blocks every
+        # other ctypes event (dlopen/dlsym/call_function/cdata/addressof/...). Measured 2026-10-27;
+        # residual risks are listed in docs/LIMITS.md.
+        import ctypes as _ct, _ctypes as _cc
+
+        def _refuse(*a, _cdll=_ct.CDLL, **k):
+            _cdll(None)  # raises through the guard, which records the violation
+
+        for _n in ("memmove", "memset", "string_at", "wstring_at", "cast", "CFUNCTYPE",
+                   "PYFUNCTYPE"):
+            if hasattr(_ct, _n):
+                setattr(_ct, _n, _refuse)
+        for _n in ("_memmove_addr", "_memset_addr", "_string_at_addr", "_cast_addr",
+                   "_wstring_at_addr", "_string_at", "_wstring_at", "_cast", "_memmove",
+                   "_memset"):
+            for _m in (_ct, _cc):
+                if hasattr(_m, _n):
+                    delattr(_m, _n)
+        del _ct, _cc
     _install()
     os.chdir(ROOT)
     for p in reversed(spec.get("sys_path", [])):
@@ -1061,6 +1084,10 @@ def run_in_sandbox(
         and mode in ("strong", "docker")
         and docker_available(image)
     )
+    os_isolated = want_docker or strict_seatbelt  # see _CT_OK in the runner
+    if runtime == "python" and command is None:
+        spec = {**spec, "os_isolated": os_isolated}
+        stdin_data = json.dumps(spec)
     if want_docker:
         # Files are copied in with `docker cp` (no bind mounts: temp dirs are usually not
         # shared with the Docker VM). No network, capped memory/pids, no capabilities,
@@ -1129,6 +1156,8 @@ def run_in_sandbox(
         if not copied:
             _docker(["rm", "-f", docker_name], 30)
             docker_name, iso_label = None, "audit+rlimit"
+            if runtime == "python" and command is None:  # the OS layer is not strict any more
+                stdin_data = json.dumps({**spec, "os_isolated": False})
         else:
             docker_bin = shutil.which("docker") or "docker"
             env["PATH"] = f"{Path(docker_bin).parent}:{env['PATH']}"

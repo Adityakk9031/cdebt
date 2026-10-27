@@ -128,6 +128,18 @@ causation. Blast radius and the quiz itself are not evaluated.
   and can miss unusual formats (`cdebt.secretguard`).
 
 - **Project dependencies.** Probes run in the Python that runs cdebt, so third-party packages the
-  project needs must be importable there, and packages that load native libraries through `ctypes`
-  (for example numpy) are blocked by the sandbox. Functions that need them cannot be quizzed by
-  execution (verified on `backtest/matched.py`, 2026-10-27; see docs/AGENT_BENCHMARK.md).
+  project needs must be importable there. Otherwise those functions cannot be quizzed by execution
+  (verified on `backtest/matched.py`, 2026-10-27; see docs/AGENT_BENCHMARK.md).
+- **numpy, pandas, scipy (native packages) run only with the OS layer.** `import ctypes` runs
+  `dlopen(None)`, which the in-process guard blocks. Under strict Seatbelt or Docker (the default
+  for untrusted repositories) the runner imports ctypes before the guard and removes the ctypes
+  helpers that touch raw memory without an audit event (`memmove`, `memset`, `string_at`, `cast`,
+  `CFUNCTYPE`, the `_ctypes` address constants); every other ctypes event stays blocked. In the
+  audit-hook-only mode (`--trusted`) these packages are still refused.
+  **Known residual (red-teamed 2026-10-27, reproduced):** once numpy is importable, its
+  `__array_interface__` gives code inside the sandbox arbitrary read and write of the process's own
+  memory with no audit event, so the in-process guard can be defeated. A fresh attacker agent found
+  no file write outside the sandbox, no network and no shell command; those were stopped by the
+  guard and by the Seatbelt/Docker layer. So the OS layer is the boundary for untrusted code, as
+  the sandbox docstring already says; the guard only catches accidents. Docker was not available
+  in this test, so the Docker path is covered by the same code but was not attacked.
