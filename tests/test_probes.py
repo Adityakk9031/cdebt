@@ -80,7 +80,7 @@ def test_runtime_is_seeded(make_repo) -> None:  # type: ignore[no-untyped-def]
     assert [p.model_dump() for p in a] == [p.model_dump() for p in b]
 
 
-def test_runtime_skips_side_effecting_functions(make_repo) -> None:  # type: ignore[no-untyped-def]
+def test_runtime_runs_side_effecting_functions_in_the_fake_world(make_repo) -> None:  # type: ignore[no-untyped-def]
     r: Repo = make_repo()
     src = (
         "import random\nimport os\n\n"
@@ -91,22 +91,23 @@ def test_runtime_skips_side_effecting_functions(make_repo) -> None:  # type: ign
     )
     r.write("m.py", src)
     r.commit("x")
-    probes, skips = runtime.generate(r.path, "m.py", src, extract_units("m.py", src), seed=0)
-    # `roll` is quizzable now: random is seeded in the sandbox (the question says so)
-    assert {p.symbol for p in probes} == {"pure", "roll"}
-    assert all("random is seeded" in p.question for p in probes if p.symbol == "roll")
-    text = " | ".join(skips)
-    assert "listing" in text and "os" in text
-    assert "writer" in text and "open" in text
+    probes, _ = runtime.generate(r.path, "m.py", src, extract_units("m.py", src), seed=0)
+    by = {p.symbol: p for p in probes}
+    assert set(by) == {"pure", "roll", "listing", "writer"}
+    assert "seeded" in by["roll"].question
+    # a directory listing describes the scratch copy, and the question says so
+    assert "scratch copy" in by["listing"].question
+    assert "scratch" not in by["pure"].question
+    assert not (r.path / "x").exists()  # the write went to the scratch copy, never the repo
 
 
-def test_runtime_skips_module_level_side_effects(make_repo) -> None:  # type: ignore[no-untyped-def]
+def test_runtime_import_time_writes_stay_in_the_scratch_copy(make_repo) -> None:  # type: ignore[no-untyped-def]
     r: Repo = make_repo()
     src = "x = open('f.txt', 'w')\n\ndef f(n: int) -> int:\n    return n\n"
     r.write("m.py", src)
     r.commit("x")
-    probes, skips = runtime.generate(r.path, "m.py", src, extract_units("m.py", src), seed=0)
-    assert probes == [] and "module-level" in skips[0]
+    probes, _ = runtime.generate(r.path, "m.py", src, extract_units("m.py", src), seed=0)
+    assert {p.symbol for p in probes} == {"f"}
     assert not (r.path / "f.txt").exists()
 
 

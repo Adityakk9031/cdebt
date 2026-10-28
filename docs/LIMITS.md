@@ -56,8 +56,20 @@
   which is a human sign-off, NON-VERIFIED, and trivially easy to over-use (one note can cover
   hundreds of units). It is labelled NON-VERIFIED in the map, gate, plan and PR comment;
   `--require verified` ignores it and `attested_weight` controls how much it counts.
-- Anything touching files, network, time, randomness, subprocesses or globals is skipped (with the
-  reason shown) and cannot be verified by runtime probes.
+- **Fake world.** Code that touches files, the network, shell commands, the clock, randomness,
+  UUIDs or the environment is no longer skipped: it runs for real inside the sandbox against a
+  scenario (`cdebt.world`): HTTP (urllib, http.client, requests, httpx), subprocess, `os.system`
+  and `os.popen` are answered by fakes (nothing is contacted or spawned), the clock is fixed,
+  random numbers/UUIDs/secrets are seeded, the environment is the scenario's, files are written to
+  a scratch copy that is reset between the two determinism runs, and async functions are driven
+  without an event loop. The question text names every fake the run actually touched. Limits:
+  `aiohttp`, raw sockets and DNS stay blocked; `asyncio.create_task`/executors are not supported
+  (such functions are rejected, never answered); code that needs a project dependency missing
+  from cdebt's Python is rejected; a directory listing describes the scratch copy (tracked files
+  only), and the question says so; on Docker the scratch-write path is UNVERIFIED (Docker was not
+  available when it was built); the fake HTTP layer covers the libraries above only, so a
+  function using another client fails closed (blocked socket, rejected). An answer is true in the
+  fake world; it is not a claim about what the real service would do.
 - Call-graph probes need a fresh SCIP index (`cdebt index`, needs node and network for the
   indexers). Dynamic dispatch, reflection and string-based calls are invisible to SCIP; an
   approximate answer is never used as quiz ground truth.

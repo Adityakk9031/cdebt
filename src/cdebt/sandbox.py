@@ -35,7 +35,9 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Literal
 
-Policy = Literal["pure", "tests"]
+# pure: no writes, no processes. world: the fake world (writes inside the scratch root only, no
+# real processes; subprocess/os.system are faked in-process). tests: a project's own test suite.
+Policy = Literal["pure", "tests", "world"]
 MARK = "\x00CDEBT-RESULT\x00"
 
 BLOCKED_MODULES = {
@@ -394,7 +396,7 @@ def _run():
                  _PathLike=_PathLike, _bytes=bytes):
             if event.startswith(_BLOCK):
                 deny(event, "network/native")
-            if event.startswith(_PROC) and POLICY == "pure":
+            if event.startswith(_PROC) and POLICY in ("pure", "world"):
                 deny(event, "process creation")
             if event in ("os.kill", "os.killpg", "signal.pthread_kill"):
                 deny(event, "signalling other processes")
@@ -422,7 +424,7 @@ def _run():
                     write = True
                 if _isinstance(mode, _str) and _any(c in mode for c in "wax+"):
                     write = True
-                if write and not (POLICY == "tests" and inside(path)):
+                if write and not (POLICY in ("tests", "world") and inside(path)):
                     deny(event, "file write")
                 if not write and not read_ok(path):
                     deny(event, "file read outside the sandbox")
@@ -431,7 +433,7 @@ def _run():
                     deny(event, "directory listing outside the sandbox")
             elif event.startswith(_FS):
                 paths = [a for a in args if _isinstance(a, (_str, _bytes, _PathLike))]
-                if not (POLICY == "tests" and paths and _all(inside(p) for p in paths)):
+                if not (POLICY in ("tests", "world") and paths and _all(inside(p) for p in paths)):
                     deny(event, "file mutation")
 
         _sys.addaudithook(hook)
@@ -497,58 +499,420 @@ def _run():
         _sys.path.insert(0, p)
     out = {"violations": _violations}
     real_out = _sys.stdout
+    _USED = set()  # which parts of the fake world the code actually touched
+    _NET, _CMD, _EFF = [], [], []
+    _W = spec.get("world")
+    _reseed = lambda: None
+    _begin = lambda: _reseed()
+    _end = lambda: None
+
+    def _drive(c):
+        # Run a coroutine with no event loop: in the fake world nothing really waits.
+        while True:
+            try:
+                y = c.send(None)
+            except StopIteration as e:
+                return e.value
+            if y is None or (hasattr(y, "done") and y.done()):
+                continue
+            c.close()
+            raise RuntimeError("the coroutine waits on something that cannot finish in the sandbox")
+
+    def _settle(r):
+        import inspect
+        return _drive(r) if inspect.iscoroutine(r) else r
+
+    def _outcome(f):
+        try:
+            return ("ok", repr(_settle(f())))
+        except (PermissionError, ImportError):
+            raise  # the sandbox (or a missing package) stopped it: not a fact about the code
+        except RuntimeError as e:
+            if "event loop" in str(e) or "cannot finish in the sandbox" in str(e):
+                raise  # a limit of the fake world, not a fact about the code
+            return ("raises", "RuntimeError")
+        except BaseException as e:
+            return ("raises", type(e).__name__)
+
     try:
         _sys.stdout = io.StringIO()
-        _reseed = lambda: None
         if spec.get("fake_world"):
-            import time as _t, datetime as _dt, random as _r
+            import time as _t, datetime as _dt, random as _r, uuid as _u, secrets as _s
+            import base64 as _b64
             _E = spec["fake_epoch"]
+            _use = lambda k, v: (_USED.add(k), v)[1]
             _gm, _lt, _sf = _t.gmtime, _t.localtime, _t.strftime
-            _t.time = lambda: _E
-            _t.time_ns = lambda: int(_E * 1e9)
-            _t.monotonic = _t.perf_counter = _t.process_time = lambda: 0.0
-            _t.monotonic_ns = _t.perf_counter_ns = lambda: 0
-            _t.sleep = lambda s=0: None
-            _t.gmtime = lambda s=None: _gm(_E if s is None else s)
-            _t.localtime = lambda s=None: _lt(_E if s is None else s)
-            _t.strftime = lambda f, tt=None: _sf(f, _lt(_E) if tt is None else tt)
+            _t.time = lambda: _use("clock", _E)
+            _t.time_ns = lambda: _use("clock", int(_E * 1e9))
+            _t.monotonic = _t.perf_counter = _t.process_time = lambda: _use("clock", 0.0)
+            _t.monotonic_ns = _t.perf_counter_ns = lambda: _use("clock", 0)
+            _t.sleep = lambda s=0: _use("clock", None)
+            _t.gmtime = lambda s=None: _gm(s) if s is not None else _gm(_use("clock", _E))
+            _t.localtime = lambda s=None: _lt(s) if s is not None else _lt(_use("clock", _E))
+            _t.strftime = lambda f, tt=None: _sf(f, _lt(_use("clock", _E)) if tt is None else tt)
             _DTR, _DR = _dt.datetime, _dt.date
 
             class _DT(_DTR):
                 @classmethod
                 def now(cls, tz=None):
+                    _USED.add("clock")
                     return cls.fromtimestamp(_E, tz)
                 @classmethod
                 def utcnow(cls):
+                    _USED.add("clock")
                     return cls.fromtimestamp(_E, _dt.timezone.utc).replace(tzinfo=None)
                 @classmethod
                 def today(cls):
+                    _USED.add("clock")
                     return cls.fromtimestamp(_E)
 
             class _D(_DR):
                 @classmethod
                 def today(cls):
+                    _USED.add("clock")
                     return cls.fromtimestamp(_E)
 
             _DT.__name__ = _DT.__qualname__ = "datetime"
             _D.__name__ = _D.__qualname__ = "date"
             _dt.datetime, _dt.date = _DT, _D
-            _reseed = lambda: _r.seed(spec["fake_seed"])
+            # randomness: one seeded stream for random, another for os.urandom/uuid/secrets
+            _ur = _r.Random(0)
+            _RS = [None]
+            _urandom = lambda n: _use("random", _ur.getrandbits(8 * n).to_bytes(n, "little") if n else b"")
+            os.urandom = _r._urandom = _urandom
+            _u.uuid4 = lambda: _u.UUID(bytes=_urandom(16), version=4)
+            _u.uuid1 = lambda *a, **k: _u.UUID(bytes=_urandom(16), version=1)
+            _s.token_bytes = lambda n=None: _urandom(32 if n is None else n)
+            _s.token_hex = lambda n=None: _urandom(32 if n is None else n).hex()
+            _s.token_urlsafe = lambda n=None: _b64.urlsafe_b64encode(
+                _urandom(32 if n is None else n)).rstrip(b"=").decode()
+            _s.randbelow = lambda n: _use("random", _ur.randrange(n))
+            _s.choice = lambda seq: _use("random", seq[_ur.randrange(len(seq))])
+
+            def _reseed():
+                _r.seed(spec["fake_seed"])
+                _ur.seed(spec["fake_seed"] + 1)
+                _RS[0] = _r.getstate()
+        if _W is not None:
+            import io as _io
+            import http.client as _hc, urllib.request as _urq, urllib.error as _ue
+            import subprocess as _sp
+            import asyncio as _aio
+            _envw = dict(_W.get("env") or {})
+
+            class _Env(dict):
+                def __getitem__(s, k):
+                    _USED.add("env")
+                    return dict.__getitem__(s, k)
+                def get(s, k, d=None):
+                    _USED.add("env")
+                    return dict.get(s, k, d)
+                def __contains__(s, k):
+                    _USED.add("env")
+                    return dict.__contains__(s, k)
+
+            os.environ = _Env(_envw)
+
+            # ---- HTTP: urllib, http.client, requests, httpx answer from the scenario ----
+            def _http_rule(method, url):
+                _USED.add("http")
+                _NET.append(method.upper() + " " + url)
+                for rule in _W["http"]:
+                    if rule.get("method") and rule["method"].upper() != method.upper():
+                        continue
+                    if rule["url"] != "*" and rule["url"] not in url:
+                        continue
+                    return rule
+                return {"status": 200, "body_text": "{}",
+                        "headers": {"content-type": "application/json"}}
+
+            def _hdrs(rule):
+                m = _hc.HTTPMessage()
+                for k, v in rule["headers"].items():
+                    m[k] = v
+                return m
+
+            class _UResp(_io.BytesIO):
+                def __init__(s, url, rule):
+                    super().__init__(rule["body_text"].encode())
+                    s.status = s.code = rule["status"]
+                    s.url, s.headers, s.reason, s.msg = url, _hdrs(rule), "OK", "OK"
+                def getcode(s):
+                    return s.status
+                def geturl(s):
+                    return s.url
+                def info(s):
+                    return s.headers
+                def getheader(s, k, d=None):
+                    return s.headers.get(k, d)
+                def getheaders(s):
+                    return list(s.headers.items())
+
+            def _urlopen(req, data=None, timeout=None, *a, **k):
+                url = req.full_url if hasattr(req, "full_url") else str(req)
+                if hasattr(req, "get_method"):
+                    method = req.get_method()
+                else:
+                    method = "POST" if data is not None else "GET"
+                rule = _http_rule(method, url)
+                if rule["status"] >= 400:
+                    raise _ue.HTTPError(url, rule["status"], "fake", _hdrs(rule),
+                                        _io.BytesIO(rule["body_text"].encode()))
+                return _UResp(url, rule)
+
+            _urq.urlopen = _urlopen
+            _urq.OpenerDirector.open = lambda self, fullurl, data=None, timeout=None: _urlopen(
+                fullurl, data, timeout)
+
+            def _hc_request(self, method, url, body=None, headers={}, **k):
+                scheme = "https" if isinstance(self, _hc.HTTPSConnection) else "http"
+                port = "" if self.port in (80, 443, None) else ":" + str(self.port)
+                self._cd_rule = _http_rule(method, scheme + "://" + self.host + port + url)
+
+            class _HResp:
+                def __init__(s, rule):
+                    s.status, s.reason, s.version, s.closed = rule["status"], "OK", 11, False
+                    s.msg = s.headers = _hdrs(rule)
+                    s._b = _io.BytesIO(rule["body_text"].encode())
+                def read(s, amt=None):
+                    return s._b.read() if amt is None else s._b.read(amt)
+                def getheader(s, k, d=None):
+                    return s.headers.get(k, d)
+                def getheaders(s):
+                    return list(s.headers.items())
+                def getcode(s):
+                    return s.status
+                def close(s):
+                    s.closed = True
+
+            _hc.HTTPConnection.request = _hc_request
+            _hc.HTTPConnection.getresponse = lambda self: _HResp(self._cd_rule)
+            _hc.HTTPConnection.connect = lambda self: None
+            _hc.HTTPConnection.close = lambda self: None
+            try:
+                import requests as _rq
+                import requests.adapters as _ra
+
+                def _rq_send(self, request, **kw):
+                    rule = _http_rule(request.method, request.url)
+                    resp = _rq.Response()
+                    resp.status_code = rule["status"]
+                    resp._content, resp._content_consumed = rule["body_text"].encode(), True
+                    resp.headers.update(rule["headers"])
+                    resp.url, resp.request, resp.reason, resp.encoding = (
+                        request.url, request, "OK", "utf-8")
+                    return resp
+
+                _ra.HTTPAdapter.send = _rq_send
+            except ImportError:
+                pass
+            try:
+                import httpx as _hx
+
+                def _hx_resp(request):
+                    rule = _http_rule(request.method, str(request.url))
+                    return _hx.Response(rule["status"], headers=rule["headers"],
+                                        content=rule["body_text"].encode(), request=request)
+
+                async def _hx_async(self, request):
+                    return _hx_resp(request)
+
+                _hx.HTTPTransport.handle_request = lambda self, request: _hx_resp(request)
+                _hx.AsyncHTTPTransport.handle_async_request = _hx_async
+            except ImportError:
+                pass
+
+            # ---- shell commands: nothing is ever spawned; the scenario answers ----
+            def _cmd_rule(cmd):
+                _USED.add("commands")
+                _CMD.append(cmd)
+                for rule in _W["commands"]:
+                    if rule["cmd"] == "*" or rule["cmd"] in cmd:
+                        return rule
+                return {"returncode": 0, "stdout": "", "stderr": ""}
+
+            class _FPopen:
+                def __init__(s, args, bufsize=-1, executable=None, stdin=None, stdout=None,
+                             stderr=None, *a, **k):
+                    cmd = args if isinstance(args, str) else " ".join(str(x) for x in args)
+                    rule = _cmd_rule(cmd)
+                    text = bool(k.get("text") or k.get("universal_newlines") or k.get("encoding")
+                                or k.get("errors"))
+                    enc = (lambda x: x) if text else (lambda x: x.encode())
+                    out_t, err_t = rule["stdout"], rule["stderr"]
+                    if stderr == _sp.STDOUT:
+                        out_t, err_t = out_t + err_t, ""
+                    s.args, s.returncode, s.pid = args, rule["returncode"], 4242
+                    s._out = enc(out_t) if stdout == _sp.PIPE else None
+                    s._err = enc(err_t) if stderr == _sp.PIPE else None
+                    mk = (lambda x: _io.StringIO(x)) if text else (lambda x: _io.BytesIO(x))
+                    s.stdout = mk(s._out) if s._out is not None else None
+                    s.stderr = mk(s._err) if s._err is not None else None
+                    s.stdin = mk(enc("")) if stdin == _sp.PIPE else None
+                def communicate(s, input=None, timeout=None):
+                    return s._out, s._err
+                def wait(s, timeout=None):
+                    return s.returncode
+                def poll(s):
+                    return s.returncode
+                def kill(s):
+                    pass
+                terminate = kill
+                def send_signal(s, sig):
+                    pass
+                def __enter__(s):
+                    return s
+                def __exit__(s, *a):
+                    return None
+
+            _sp.Popen = _FPopen
+            os.system = lambda cmd: _cmd_rule(str(cmd))["returncode"] << 8
+
+            class _PO(_io.StringIO):
+                def close(s):
+                    super().close()
+                    return s._rc << 8 if s._rc else None
+
+            def _popen(cmd, mode="r", buffering=-1):
+                rule = _cmd_rule(str(cmd))
+                p = _PO(rule["stdout"])
+                p._rc = rule["returncode"]
+                return p
+
+            os.popen = _popen
+
+            # ---- async: coroutines are driven by hand; sleeping does not wait ----
+            async def _asleep(d=0, result=None):
+                _USED.add("clock")
+                return result
+
+            async def _agather(*aws, return_exceptions=False, **_k):
+                res = []
+                for a in aws:
+                    try:
+                        res.append(await a)
+                    except Exception as e:
+                        if not return_exceptions:
+                            raise
+                        res.append(e)
+                return res
+
+            async def _await_for(aw, timeout=None):
+                return await aw
+
+            _aio.sleep, _aio.gather, _aio.wait_for = _asleep, _agather, _await_for
+            _aio.run = lambda c, **k: _drive(c)
+
+            # ---- files: writes stay in the scratch copy and are undone between the two runs ----
+            _SMALL, _CAP = 1 << 20, 32 << 20
+            _INIT = [None]
+            _SCANNING = [False]
+            _ld, _sd = os.listdir, os.scandir
+
+            def _listdir(*a, **k):
+                if not _SCANNING[0]:
+                    _USED.add("listing")  # answers then describe the scratch copy
+                return _ld(*a, **k)
+
+            def _scandir(*a, **k):
+                if not _SCANNING[0]:
+                    _USED.add("listing")
+                return _sd(*a, **k)
+
+            os.listdir, os.scandir = _listdir, _scandir
+
+            def _scan():
+                _SCANNING[0] = True
+                try:
+                    return _scan_tree()
+                finally:
+                    _SCANNING[0] = False
+
+            def _scan_tree():
+                meta, cache, dirs, total = {}, {}, set(), 0
+                for dp, dn, fn in os.walk(ROOT):
+                    dirs.add(dp)
+                    for f in fn:
+                        p = dp + "/" + f
+                        try:
+                            st = os.lstat(p)
+                        except OSError:
+                            continue
+                        if not stat.S_ISREG(st.st_mode):
+                            continue
+                        meta[p] = (st.st_size, st.st_mtime_ns)
+                        if st.st_size <= _SMALL and total < _CAP:
+                            try:
+                                with open(p, "rb") as fh:
+                                    cache[p] = fh.read()
+                                total += st.st_size
+                            except OSError:
+                                pass
+                return meta, cache, dirs
+
+            def _kind(p, cur):
+                im, ic, _d = _INIT[0]
+                cm, cc, _e = cur
+                if p not in cm:
+                    return "-"
+                if p not in im:
+                    return "+"
+                if p in ic and p in cc:
+                    return "~" if ic[p] != cc[p] else None
+                return "~" if im[p] != cm[p] else None
+
+            def _begin():
+                del _NET[:]
+                del _CMD[:]
+                os.environ.clear()
+                os.environ.update(_envw)
+                _reseed()
+                if _INIT[0] is None:
+                    _INIT[0] = _scan()
+                _sys.stdout = io.StringIO()
+
+            def _end():
+                cap = _sys.stdout.getvalue()
+                cur = _scan()
+                changed, im, ic = [], _INIT[0][0], _INIT[0][1]
+                for p in sorted(set(cur[0]) | set(im)):
+                    k = _kind(p, cur)
+                    if k:
+                        changed.append((k, p))
+                if spec.get("fake_world") and _r.getstate() != _RS[0]:
+                    _USED.add("random")
+                _EFF.append({
+                    "net": list(_NET), "cmd": list(_CMD), "stdout": cap[:2000],
+                    "files": [k + p[len(ROOT) + 1:] for k, p in changed
+                              if not p[len(ROOT) + 1:].startswith("tmp/")],
+                })
+                for k, p in changed:  # put the scratch copy back as it was
+                    if k == "+":
+                        os.remove(p)
+                    elif p in ic:
+                        with open(p, "wb") as fh:
+                            fh.write(ic[p])
+                    else:
+                        raise RuntimeError("a large file changed and cannot be reset between runs")
+                for d in sorted(cur[2] - _INIT[0][2], reverse=True):
+                    try:
+                        os.rmdir(d)
+                    except OSError:
+                        pass
+                for d in sorted(_INIT[0][2] - cur[2]):
+                    os.makedirs(d, exist_ok=True)
         if spec["mode"] == "call":
             import importlib
             mod = importlib.import_module(spec["module"])
             fn = getattr(mod, spec["func"])
+            _USED.clear()  # report only what the call itself touches, not imports
             import ast
             args = ast.literal_eval(spec["args_repr"])
             results = []
             for _ in range(2):  # determinism check
-                _reseed()
-                try:
-                    results.append(("ok", repr(fn(*args))))
-                except PermissionError:
-                    raise
-                except BaseException as e:
-                    results.append(("raises", type(e).__name__))
+                _begin()
+                results.append(_outcome(lambda: fn(*args)))
+                _end()
             out["results"] = results
         elif spec["mode"] == "attrs":
             import importlib
@@ -581,17 +945,14 @@ def _run():
                 def call():
                     return _resolve(mod, spec["qual"])(*a, **k)
 
+            _USED.clear()  # report only what the call itself touches, not imports
             runs = []
             for ph in range(2):  # determinism check; line/variable data come from both runs
+                _begin()
                 _TR["phase"] = ph
-                _reseed()
-                try:
-                    runs.append(("ok", repr(call())))
-                except PermissionError:
-                    raise
-                except BaseException as e:
-                    runs.append(("raises", type(e).__name__))
-            _TR["phase"] = -1
+                runs.append(_outcome(call))
+                _TR["phase"] = -1
+                _end()
             out["results"] = runs
             out["same_target"] = _resolve(mod, spec["qual"]) is orig
             out["lines"] = [sorted(x) for x in _TR["lines"]]
@@ -599,6 +960,8 @@ def _run():
             out["watch"] = _TR["watch"]
         elif spec["mode"] == "exec":
             exec(compile(spec["code"], "<sandbox>", "exec"), {"__name__": "__sandbox__"})
+        out["effects"] = _EFF
+        out["world_used"] = sorted(_USED)
         out["stdout"] = _sys.stdout.getvalue()[:10000]
     except BaseException as e:
         out["error"] = type(e).__name__ + ": " + str(e)[:500]
@@ -756,10 +1119,63 @@ def _sbx_profile(
     return prof
 
 
+PROJECT_PYTHON_ENV = "CDEBT_PROJECT_PYTHON"
+_PROJECT_PY_OK: dict[str, str] = {}
+_PREFIXES: dict[str, list[str]] = {}
+_PREFIX_CODE = (
+    "import sys,sysconfig,json;"
+    "print(json.dumps([sys.prefix,sys.base_prefix,sys.exec_prefix,*sysconfig.get_paths().values()]))"
+)
+
+
+def project_python() -> str | None:
+    """The Python the PERSON running cdebt chose for the project's own dependencies
+    (`--project-python` / CDEBT_PROJECT_PYTHON), or None. Never read from the repository: an
+    interpreter or `.pth` file a PR controls would run code before any sandbox exists. The
+    runner is stdlib-only, so any CPython 3.8+ can host it (only 3.12 is tested: UNVERIFIED for
+    other versions)."""
+    raw = os.environ.get(PROJECT_PYTHON_ENV)
+    if not raw:
+        return None
+    if raw not in _PROJECT_PY_OK:
+        path = os.path.abspath(os.path.expanduser(raw))
+        if not (os.path.isfile(path) and os.access(path, os.X_OK)):
+            raise SandboxUnavailable(f"--project-python {raw!r} is not an executable file")
+        try:
+            r = subprocess.run(  # noqa: S603 - the interpreter the person named
+                [path, "-I", "-c", "import sys;print(sys.version_info[0]*100+sys.version_info[1])"],
+                capture_output=True, text=True, timeout=30, env={"PATH": "/usr/bin:/bin"},
+            )  # fmt: skip
+            version = int(r.stdout.strip())
+        except (OSError, ValueError, subprocess.TimeoutExpired):
+            raise SandboxUnavailable(f"--project-python {raw!r} did not run as a Python") from None
+        if version < 308:
+            raise SandboxUnavailable(f"--project-python {raw!r} is older than Python 3.8")
+        _PROJECT_PY_OK[raw] = path
+    return _PROJECT_PY_OK[raw]
+
+
+def _interpreter_prefixes(py: str) -> list[str]:
+    """Where `py` keeps its standard library and packages (a venv's site-packages included)."""
+    if py not in _PREFIXES:
+        try:
+            r = subprocess.run(  # noqa: S603 - the interpreter the person named
+                [py, "-I", "-c", _PREFIX_CODE],
+                capture_output=True, text=True, timeout=30, env={"PATH": "/usr/bin:/bin"},
+            )  # fmt: skip
+            _PREFIXES[py] = [str(x) for x in json.loads(r.stdout)]
+        except (OSError, ValueError, subprocess.TimeoutExpired):
+            _PREFIXES[py] = []
+    return _PREFIXES[py]
+
+
 def _strict_read_roots(py: str, node_bin: str | None) -> list[str]:
     import sysconfig
 
-    roots = {sys.prefix, sys.base_prefix, sys.exec_prefix, *sysconfig.get_paths().values()}
+    if py == sys.executable:
+        roots = {sys.prefix, sys.base_prefix, sys.exec_prefix, *sysconfig.get_paths().values()}
+    else:  # the project's own interpreter: ITS prefixes, not cdebt's
+        roots = set(_interpreter_prefixes(py))
     roots.add(str(Path(os.path.realpath(py)).parent.parent))
     if node_bin:
         roots.add(str(Path(os.path.realpath(node_bin)).parent.parent))
@@ -830,6 +1246,18 @@ def _capped_communicate(
 
 MAX_OUTPUT = 8 << 20  # bytes of stdout kept; more kills the run
 MAX_STDERR = 1 << 20
+MAX_SCRATCH = 256 << 20  # bytes a fake-world run may leave in its scratch root
+
+
+def _tree_bytes(root: Path) -> int:
+    total = 0
+    for dp, _dn, files in os.walk(root):
+        for f in files:
+            with contextlib.suppress(OSError):
+                total += os.lstat(os.path.join(dp, f)).st_size
+    return total
+
+
 MAX_PROCS = 64  # descendants allowed in "tests"/command mode
 DOCKER_IMAGE = "python:3.11-slim"
 NODE_IMAGE = "node:24-slim"
@@ -1021,8 +1449,9 @@ def run_in_sandbox(
     runner.write_text(_RUNNER)
     spec = {**spec, "root": str(root), "policy": policy}
     if spec.get("fake_world"):
-        spec = {**spec, "fake_epoch": FAKE_EPOCH, "fake_seed": FAKE_RANDOM_SEED}
-    py = python or sys.executable
+        spec = {"fake_epoch": FAKE_EPOCH, "fake_seed": FAKE_RANDOM_SEED, **spec}
+    pp = project_python() if python is None and runtime == "python" and command is None else None
+    py = python or pp or sys.executable
     env = {
         "PATH": "/usr/bin:/bin",
         "HOME": str(root),
@@ -1062,7 +1491,12 @@ def run_in_sandbox(
     mode: Isolation = isolation or DEFAULT_ISOLATION
     strict_seatbelt = False
     if use_os_isolation and mode in ("strong", "docker"):
-        docker_ok = command is None and docker_available(image)
+        docker_ok = command is None and pp is None and docker_available(image)
+        if mode == "docker" and pp is not None:
+            raise SandboxUnavailable(
+                "--project-python cannot run in Docker (the image has none of the project's "
+                "packages); use macOS strict isolation or --trusted"
+            )
         if mode == "docker" and not docker_ok:
             raise SandboxUnavailable(
                 f"Docker isolation requested but unavailable (needs a running Docker daemon with "
@@ -1081,6 +1515,7 @@ def run_in_sandbox(
     want_docker = (
         use_os_isolation
         and command is None
+        and pp is None
         and mode in ("strong", "docker")
         and docker_available(image)
     )
@@ -1143,7 +1578,11 @@ def run_in_sandbox(
             capture_output=True,
             timeout=60,
         )
-        subprocess.run(["chmod", "-R", "a+rX", str(root)], capture_output=True)  # nobody must read
+        # nobody must read; in the fake world nobody must also write (scratch files)
+        subprocess.run(
+            ["chmod", "-R", "a+rwX" if policy == "world" else "a+rX", str(root)],
+            capture_output=True,
+        )
         copied = (
             created.returncode == 0
             and subprocess.run(
@@ -1176,6 +1615,8 @@ def run_in_sandbox(
     client_only = docker_name is not None  # the docker CLI is only a client; limits live in the
     # container (a Go binary also cannot run under RLIMIT_AS: "failed to reserve page summary")
 
+    fsize = (16 << 20) if policy == "world" else (0 if command is None else 512 << 20)
+
     def preexec() -> None:
         os.setsid()
         if client_only:
@@ -1184,7 +1625,7 @@ def run_in_sandbox(
             ("RLIMIT_CPU", int(timeout) + 2),
             ("RLIMIT_NOFILE", 256),
             ("RLIMIT_CORE", 0),
-        ) + ((("RLIMIT_FSIZE", 0 if command is None else 512 << 20),) if policy else ()):
+        ) + ((("RLIMIT_FSIZE", fsize),) if policy else ()):
             with contextlib.suppress(ValueError, OSError):
                 resource.setrlimit(getattr(resource, name), (val, val))
         if sys.platform != "darwin" and runtime != "node":  # not enforced on macOS; breaks V8
@@ -1224,7 +1665,12 @@ def run_in_sandbox(
     timer.start()
 
     def rss_watch() -> None:
+        ticks = 0
         while not done.wait(0.25):
+            ticks += 1
+            if policy == "world" and ticks % 4 == 0 and _tree_bytes(root) > MAX_SCRATCH:
+                terminate("output")  # a function filling the scratch disk
+                return
             if docker_name is None and _rss_kb(proc.pid) > mem_mb * 1024:
                 terminate("mem")
                 return

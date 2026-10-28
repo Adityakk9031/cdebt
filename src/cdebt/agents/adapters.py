@@ -24,17 +24,28 @@ CLAUDE_MAC_GLOB = (
 TOOL_PREFIX = "mcp__cdebt__"
 PROMPT = """You are helping `cdebt` write a comprehension quiz about code in this repository.
 Use the cdebt MCP tools only: call get_targets, read each target's source and nearby tests
-(read-only tools are allowed), then call propose_probe up to {n} times per target. Mix kinds:
-return_value (call_inputs: {{"args": [...], "kwargs": {{...}}}}), branch_taken and
-variable_at_line (need `line`; variable_at_line also `variable`), constant_value (`name`),
-what_calls, which_test_fails. Choose inputs that exercise different branches and edge cases;
-prefer questions whose answer a reader must reason about, not guess. Use realistic inputs the
-code was written for (no negative prices, balances, counts or ages unless the code handles them
-on purpose), and avoid tricks that test the programming language rather than this code.
-For code that touches time, randomness, files or the network, you may supply harness_code
-defining `def probe():` that mocks that I/O and calls the REAL target (target_module.<name>);
-never replace the target itself. A harness_code proposal MUST also include `question`: one
-sentence describing the scenario.
+(read-only tools are allowed), then call propose_probe up to {n} times per target. Any question
+is welcome as long as cdebt can answer it by running the real code. Kinds: return_value
+(call_inputs: {{"args": [...], "kwargs": {{...}}}}), branch_taken and variable_at_line (need
+`line`; variable_at_line also `variable`), constant_value (`name`), what_calls,
+which_test_fails, and the effect kinds net_requests, commands_run, files_written and
+stdout_text (which requests / commands / file changes / printed text the call produces).
+Choose inputs that exercise different branches and edge cases; prefer questions whose answer a
+reader must reason about, not guess. Use realistic inputs the code was written for, and avoid
+tricks that test the programming language rather than this code.
+Do not avoid code that touches the environment, files, the network, shell commands, the clock
+or randomness: cdebt runs it in a FAKE WORLD and you describe that world in `world`:
+{{"env": {{"NAME": "value"}}, "files": {{"path/in/repo": "file text"}},
+"http": [{{"url": "substring or *", "method": "GET", "status": 200, "body": {{...}}}}],
+"commands": [{{"cmd": "substring of the command line", "returncode": 0, "stdout": "..."}}],
+"now": "2024-03-01T12:00:00Z"}}. Nothing real is contacted or run: requests (urllib, http.client,
+requests, httpx), shell commands, the clock, random numbers, UUIDs and the environment are all
+faked, files are written to a scratch copy, async functions run. Unlisted requests get 200 and
+{{}}, unlisted commands exit 0 with no output. Create scenarios that make the code take its
+interesting paths: success, failure statuses, missing files, a command that fails. For anything
+else you may supply harness_code defining `def probe():` that calls the REAL target
+(target_module.<name>) and returns what the question asks; never replace the target itself. A
+harness_code proposal MUST also include `question`: one sentence describing the scenario.
 cdebt runs every proposal and works out the answers itself; you will only be told accepted or
 rejected with a reason. Do not try to find or compute answers, and do not edit anything.
 When done, reply with one short line."""
@@ -59,9 +70,14 @@ def _trusted() -> bool:
 
 def mcp_argv(session_dir: Path) -> list[str]:
     """How an agent launches the cdebt MCP server (stdio)."""
+    from cdebt import sandbox
+
     code = "from cdebt.cli import app; app()"
+    pp = os.environ.get(sandbox.PROJECT_PYTHON_ENV)  # the person's choice, passed on explicitly
     return [
-        sys.executable, "-c", code, "mcp",
+        sys.executable, "-c", code,
+        *(["--project-python", pp] if pp else []),
+        "mcp",
         *(["--trusted"] if _trusted() else []),
         "--session", str(session_dir),
     ]  # fmt: skip

@@ -25,16 +25,20 @@ from cdebt.models import CodeUnit, Probe
 from cdebt.probes import callgraph, constants, mutation
 from cdebt.probes.base import copy_tree, probe_id, shuffled, temp_root
 from cdebt.probes.runtime import distractors, module_info
-from cdebt.sandbox import (
-    fake_world_uses,
-    run_in_sandbox,
-    screen_function,
-    screen_module_level,
-    world_note,
-)
+from cdebt.sandbox import FAKE_EPOCH, FAKE_RANDOM_SEED, run_in_sandbox
 from cdebt.scip import index_is_fresh, load_all
 from cdebt.units import extract_units
+from cdebt.world import World, epoch, relevant_uses, runner_spec
+from cdebt.world import note as world_note
 
+# The first four run the real function in the fake world (cdebt.world) and answer from the run;
+# the effect kinds ask about what the run DID: requests made, commands run, files written, output.
+EFFECT_KINDS = {
+    "net_requests": ("net", "HTTP requests"),
+    "commands_run": ("cmd", "shell commands"),
+    "files_written": ("files", "file changes"),
+    "stdout_text": ("stdout", "printed output"),
+}
 KINDS = (
     "return_value",
     "branch_taken",
@@ -42,6 +46,7 @@ KINDS = (
     "which_test_fails",
     "what_calls",
     "constant_value",
+    *EFFECT_KINDS,
 )
 MAX_HARNESS = 8000
 MAX_TEXT = 300
@@ -59,8 +64,13 @@ class Proposal(BaseModel):
         "which_test_fails",
         "what_calls",
         "constant_value",
+        "net_requests",
+        "commands_run",
+        "files_written",
+        "stdout_text",
     ]
     question: str = ""
+    world: World | None = None  # the fake world to run in: env, files, HTTP, commands, clock
     call_inputs: dict[str, Any] = Field(default_factory=dict)  # {"args": [...], "kwargs": {...}}
     harness_code: str | None = None  # Python defining `def probe():`; may mock I/O, not the target
     line: int | None = None  # 1-indexed file line (branch_taken, variable_at_line)
@@ -117,6 +127,29 @@ def _options(value_repr: str, rng: random.Random) -> list[str] | None:
         return None
     opts = shuffled([value_repr, *distractors(v, rng)[:3]], rng)
     return opts if len(opts) >= 2 else None
+
+
+def _flip(s: str, kind: str) -> str:
+    for a, b in (("GET ", "POST "), ("POST ", "GET "), ("PUT ", "DELETE "), ("DELETE ", "PUT ")):
+        if s.startswith(a):
+            return b + s[len(a) :]
+    if kind == "files_written":
+        return {"+": "~", "~": "+", "-": "+"}.get(s[:1], "+") + s[1:]
+    return s + " -v"
+
+
+def _effect_options(truth: list[str], kind: str, rng: random.Random) -> list[str] | None:
+    """Answer options for a list of effects: the true list and edits of it."""
+    wrong = [
+        truth[:-1],
+        truth[::-1],
+        truth + truth[:1],
+        [_flip(truth[0], kind), *truth[1:]],
+        truth[1:],
+    ]
+    seen = [repr(x) for x in wrong if x != truth]
+    opts = list(dict.fromkeys(seen))[:3]
+    return shuffled([repr(truth), *opts], rng) if opts else None
 
 
 def _unit(units: list[CodeUnit], symbol: str) -> CodeUnit:
@@ -212,9 +245,10 @@ def _trace_probe(
     text: str,
     seed: int,
 ) -> Probe:
-    why = screen_module_level(source)
-    if why:
-        raise Rejected("module has import-time side effects: " + "; ".join(why[:2]))
+    # No static screen: the fake world runs everything and execution decides what can be asked.
+    world = prop.world or World()
+    if any(f.lower().endswith((".py", ".pyc", ".pth")) for f in world.files):
+        raise Rejected("scenario files are data: a .py file would replace code under test")
     leaf = unit.symbol.split(".")[-1]
     harness = prop.harness_code
     if harness is not None:
@@ -231,10 +265,6 @@ def _trace_probe(
             raise Rejected("harness must define a top-level `def probe():` with no arguments")
         if not text:
             raise Rejected("a harness probe needs `question` text describing the scenario")
-    else:
-        fn_why = screen_function(source, leaf, fake_world=True)
-        if fn_why:
-            raise Rejected("not safely executable without a harness: " + "; ".join(fn_why[:2]))
     args = list(prop.call_inputs.get("args", []))
     kwargs = dict(prop.call_inputs.get("kwargs", {}))
     lo = min(a for a, _ in unit.ranges)
@@ -253,6 +283,13 @@ def _trace_probe(
     try:
         copy_tree(repo, root)
         (root / rel).write_text(source)  # exactly the text that is hashed
+        for fp, text in world.files.items():
+            dest = root / fp
+            if not dest.resolve().is_relative_to(root.resolve()) or dest.is_symlink():
+                raise Rejected(f"scenario file {fp!r} would land outside the sandbox")
+            dest.parent.mkdir(parents=True, exist_ok=True)
+            dest.write_text(text)
+        fake_epoch = epoch(world.now) if world.now else FAKE_EPOCH
         res = run_in_sandbox(
             {
                 "mode": "trace",
@@ -269,9 +306,12 @@ def _trace_probe(
                 "watch_line": prop.line if prop.kind == "variable_at_line" else None,
                 "watch_var": prop.variable,
                 "fake_world": True,
+                "fake_epoch": fake_epoch,
+                "world": runner_spec(world),
             },
             root=root,
             timeout=15,
+            policy="world",
         )
     finally:
         shutil.rmtree(root, ignore_errors=True)
@@ -291,18 +331,26 @@ def _trace_probe(
             "the real target's own lines did not execute (the harness tested a mock or never "
             "called the target)"
         )
-    if pl["results"][0] != pl["results"][1] or executed[0] != executed[1]:
+    effects = pl["effects"]
+    if (
+        pl["results"][0] != pl["results"][1]
+        or executed[0] != executed[1]
+        or effects[0] != effects[1]
+    ):
         raise Rejected("non-deterministic: two runs differed (mock time, randomness and I/O)")
     call = _call_text(unit.symbol, args, kwargs)
-    uses = fake_world_uses(source, leaf)
-    note = "" if harness else world_note(uses)
+    uses = relevant_uses(source, list(pl.get("world_used", [])))
+    note = world_note(uses, world, fake_epoch, FAKE_RANDOM_SEED)
     ev: dict[str, object] = {
         "isolation": res.isolation,
         "deterministic_runs": 2,
         "proposed_kind": prop.kind,
         "executed_lines": sorted(executed[0]),
         "fake_world": uses,
+        "effects": effects[0],
     }
+    if prop.world is not None:
+        ev["world"] = prop.world.model_dump(exclude_defaults=True)
 
     def build(kind: str, q: str, opts: list[str], answer: str) -> Probe:
         p = Probe(
@@ -319,6 +367,22 @@ def _trace_probe(
         )
         return _finish(p, proposer, branches, harness, text)
 
+    if prop.kind in EFFECT_KINDS:
+        key, label = EFFECT_KINDS[prop.kind]
+        got = effects[0][key]
+        if not got:
+            raise Rejected(f"no {label} happened in the fake world, so there is nothing to ask")
+        if key == "stdout":
+            eopts = _options(repr(got), rng)
+            if eopts is None:
+                raise Rejected("could not build answer options for that output")
+        else:
+            eopts = _effect_options(got, prop.kind, rng)
+            if eopts is None:
+                raise Rejected(f"could not build answer options for those {label}")
+        ev["result"] = repr(got)
+        q = f"{text}{note}" if harness and text else f"Which {label} does `{call}` produce{note}?"
+        return build(prop.kind, q, eopts, repr(got))
     if prop.kind == "return_value":
         kind_, value = pl["results"][0]
         if kind_ == "ok":
@@ -332,7 +396,7 @@ def _trace_probe(
                 [answer, "returns None", *[f"raises {e}" for e in ("ValueError", "KeyError")]], rng
             )[:4]
         ev["result"] = answer
-        q = text if harness else f"What does `{call}` evaluate to?{note}"
+        q = f"{text}{note}" if harness else f"What does `{call}` evaluate to?{note}"
         return build("return_value", q, opts, answer)
     if prop.kind == "branch_taken":
         assert prop.line is not None

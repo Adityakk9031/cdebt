@@ -21,7 +21,11 @@ CLOCK = (
     "    return target_module.stamp()\n"
 )
 NOT_TARGET = "def probe():\n    return 3\n"
-FLAKY = "def probe():\n    import os\n    return os.urandom(4).hex() + str(target_module.stamp())\n"
+# state kept in the harness namespace survives into the second run, so the two runs differ
+FLAKY = (
+    "def probe():\n    n = globals().setdefault('_n', [0])\n    n[0] += 1\n"
+    "    return str(n[0]) + str(target_module.stamp())\n"
+)
 
 
 async def main() -> None:
@@ -34,7 +38,7 @@ async def main() -> None:
         sc: Any = tl.structured_content
         targets = sc["result"] if sc else json.loads(tl.content[0].text)  # type: ignore[union-attr]
         ids = {t["symbol"]: t["id"] for t in targets}
-        sid, stamp, launch = ids["shipping"], ids["stamp"], ids["launch"]
+        sid, stamp = ids["shipping"], ids["stamp"]
 
         async def prop(**kw: Any) -> None:
             r = await c.call_tool("propose_probe", kw)
@@ -59,7 +63,6 @@ async def main() -> None:
         await prop(
             target=sid, kind="return_value", question="not the target", harness_code=NOT_TARGET
         )
-        await prop(target=launch, kind="return_value")  # spawns a process: unsafe without a harness
         await prop(target=stamp, kind="return_value", question="flaky", harness_code=FLAKY)
         await prop(target="nope::nope", kind="return_value")
         await prop(target=sid, kind="not_a_kind")

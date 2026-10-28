@@ -49,7 +49,7 @@ def wait(n: int) -> int:
 """
 
 
-def test_screen_allows_fakeable_uses_only() -> None:
+def test_static_screen_still_flags_side_effects() -> None:
     assert screen_function(CODE, "stamp") != []  # off by default
     for name in ("stamp", "year", "pick", "home", "wait"):
         assert screen_function(CODE, name, fake_world=True) == [], name
@@ -86,6 +86,9 @@ def test_runtime_probes_run_with_the_fake_world(make_repo) -> None:  # type: ign
     assert by["pick"].answer == "True"
     assert by["wait"].answer  # sleep(30) returned instantly instead of timing out
     assert by["stamp"].evidence["fake_world"] == ["clock"]
-    # never faked: process spawning and file removal stay skipped
-    assert "run" not in by and "remove" not in by
-    assert any("run" in s and "side effects" in s for s in skips)
+    # process spawning is faked too (nothing is spawned: the fake exits 0)
+    assert by["run"].answer == str(int(by["run"].question.split("run(")[1].split(")")[0]))
+    assert by["run"].evidence["fake_world"] == ["commands"]
+    # a write outside the scratch copy is still blocked, so that function is skipped
+    assert "remove" not in by
+    assert any("remove" in s and "blocked" in s for s in skips)

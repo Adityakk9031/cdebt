@@ -81,7 +81,8 @@ def test_a_harness_may_mock_io_but_must_run_the_real_target(make_repo) -> None: 
         "replaced": ("def probe():\n    target_module.shipping = lambda *a, **k: 3\n"
                      "    return target_module.shipping(1)\n", "replaced the target"),
         "never called": ("def probe():\n    return 3\n", "did not execute"),
-        "flaky": ("def probe():\n    import os\n    return os.urandom(4).hex() + str(target_module.stamp())\n",
+        "flaky": ("def probe():\n    n = globals().setdefault('_n', [0])\n    n[0] += 1\n"
+                  "    return str(n[0]) + str(target_module.stamp())\n",
                   "non-deterministic"),
     }  # fmt: skip
     for name, (code, why) in cases.items():
@@ -93,7 +94,6 @@ def test_a_harness_may_mock_io_but_must_run_the_real_target(make_repo) -> None: 
 def test_bad_proposals_are_rejected_with_reasons(make_repo) -> None:  # type: ignore[no-untyped-def]
     r = _repo(make_repo)
     for kw, why in [
-        (dict(target="launch", kind="return_value"), "side effects"),  # spawns a process, no harness
         (dict(target="nope", kind="return_value"), "no function"),
         (dict(target="shipping", kind="branch_taken", call_inputs={"args": [1]}), "`line`"),
         (dict(target="shipping", kind="branch_taken", call_inputs={"args": [1]}, line=999), "`line`"),
@@ -130,7 +130,7 @@ def test_end_to_end_with_a_fake_mcp_agent(make_repo, tmp_path, monkeypatch) -> N
     rep = json.loads(report.read_text())
     replies = rep["replies"]
     assert replies[:4] == ["accepted"] * 4
-    assert all(x.startswith("rejected: ") for x in replies[4:]) and len(replies) == 10
+    assert all(x.startswith("rejected: ") for x in replies[4:]) and len(replies) == 9
     assert any("replaced the target" in x for x in replies)
     assert any("did not execute" in x for x in replies)
     assert any("non-deterministic" in x for x in replies)

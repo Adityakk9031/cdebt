@@ -41,7 +41,7 @@ for rel in files:
         with3=sum(1 for v in c.values() if v >= 3),
         questions=len(probes),
         seconds=round(time.monotonic() - t0),
-        notes=[x[:140] for x in notes][-4:],
+        notes=[x[:300] for x in notes][-6:],
     )
     rows.append(row)
     print(json.dumps(row), flush=True)

@@ -42,11 +42,14 @@ def build_server(session_dir: Path) -> MCPServer:
         line: int | None = None,
         variable: str | None = None,
         name: str | None = None,
+        world: dict[str, Any] | None = None,
     ) -> str:
         """Submit one question about `target` (an id from get_targets). kind is one of
         return_value, branch_taken, variable_at_line, which_test_fails, what_calls,
-        constant_value. A proposal with harness_code must also give `question` (the scenario).
-        Returns 'accepted' or 'rejected: <reason>' (never the answer)."""
+        constant_value, net_requests, commands_run, files_written, stdout_text. `world` is the
+        fake world to run in: {env, files, http, commands, now}. A proposal with harness_code
+        must also give `question` (the scenario). Returns 'accepted' or 'rejected: <reason>'
+        (never the answer)."""
         t = sess.target(target)
         if t is None:
             return "rejected: unknown target id (use an id from get_targets)"
@@ -63,6 +66,7 @@ def build_server(session_dir: Path) -> MCPServer:
             "line": line,
             "variable": variable,
             "name": name,
+            "world": world,
         }
         try:
             prop: Proposal = parse_proposal(raw)

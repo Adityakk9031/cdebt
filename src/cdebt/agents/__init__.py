@@ -8,10 +8,12 @@ from __future__ import annotations
 
 import importlib.util
 import os
+import re
 import signal
 import subprocess
 import sys
 import time
+from collections import Counter
 from pathlib import Path
 
 from cdebt.agents import adapters
@@ -59,6 +61,16 @@ def _run_agent(
                 p.kill()
         out, _ = p.communicate()
         return None, f"timed out after {timeout:.0f} s"
+
+
+def _reason_summary(recs: list[dict[str, object]], top: int = 3) -> str:
+    """The most common reasons proposals were rejected ("" when none were), numbers masked."""
+    why = Counter(
+        re.sub(r"\d+", "N", str(r["why"]))[:90] for r in recs if not r["accepted"] and r["why"]
+    )
+    if not why:
+        return ""
+    return "; rejected: " + ", ".join(f"{n}x {w}" for w, n in why.most_common(top))
 
 
 def _one_round(
@@ -115,6 +127,7 @@ def _one_round(
         notes.append(
             f"agent {choice.name}: {len(recs)} proposals, {accepted} accepted, "
             f"{len(probes)} verified questions in {time.monotonic() - t0:.0f} s"
+            + _reason_summary(recs)
         )
         return probes, notes
     finally:

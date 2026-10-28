@@ -88,3 +88,25 @@ per mode**. Questions differ from run to run, so treat the gap as indicative, no
   libraries that load through `ctypes` at import are blocked on purpose. So code that needs such
   packages (numpy, and likely pandas and similar) cannot be quizzed by execution today. Allowing
   them would be a sandbox change that needs a security review; it was not made.
+
+## Full fake world on a third-party monorepo (measured 2026-10-28, one run)
+
+Repo: AMFS (raia-live/amfs, Apache 2.0), a copy with only tracked files, 101 library files, 1,454
+functions and methods. Agent: Claude Code CLI, defaults (batches of 6, 2 rounds). One run, so
+treat the numbers as indicative.
+
+- **Built-in generator (no agent), all 101 files:** 57 of 1,555 extracted units got >= 1 verified
+  question (3.7%); unchanged by the fake world, because the built-in generator only handles plain,
+  typed, top-level functions. Most skips: missing type hints / `Any`, and third-party packages not
+  installed in cdebt's Python (fastapi, yaml, watchdog, psycopg).
+- **Agent + fake world, 5 files with HTTP, file, async and background-task code (109 targets):**
+  >= 1 verified question for 80 (73%), >= 3 for 28 (26%). Two files got 0 (24 targets): every
+  proposal failed on `ModuleNotFoundError` (`watchdog`, `yaml`). Without those two files: 80 of
+  85 (94%) with >= 1, 28 of 85 (33%) with >= 3.
+- **Same 5 files again with `--project-python` pointing at a venv holding AMFS's third-party
+  packages (wheels only):** >= 1 verified question for 98 of 109 (90%), >= 3 for 32 (29%), 232
+  questions, about 27 minutes of agent time. The two files that got 0 now get 14/17 and 7/7 with
+  >= 1. Built-in generator on all 101 files: 73 of 1,555 units (4.7%, was 3.7%). Remaining
+  rejections are mostly "the harness never ran the real target", a harness that opened a socket
+  or wrote outside the scratch copy, and return values that are not simple literals.
+- Not measured: question quality, other repos, Docker. One run per setting.

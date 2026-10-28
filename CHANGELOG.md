@@ -2,6 +2,27 @@
 
 ## Unreleased
 
+- **`--project-python` (or `CDEBT_PROJECT_PYTHON`).** Probes run with a Python you name, for
+  example the project's `venv/bin/python`, so code that imports the project's own third-party
+  packages (fastapi, yaml, watchdog, ...) can be run. It is your choice only, never read from the
+  repo, and is passed on to the agent's helper process. Strict Seatbelt gets read access to that
+  interpreter's folders; Docker is refused (its image has no project packages). Sibling `src`
+  folders of a monorepo are now importable too. A `.pth` file in the chosen environment runs
+  before the audit guard (the OS layer still applies): only point it at an environment you trust.
+
+- **Full fake world and scenarios.** Nothing is skipped for touching the network, shell, files,
+  clock, randomness or environment any more: the function runs for real in the sandbox against a
+  scenario the agent may propose (`world`: env, files, HTTP rules, command rules, clock; data
+  only, never code). HTTP (urllib, http.client, requests, httpx), subprocess/`os.system`/
+  `os.popen`, UUIDs and secrets are faked in-process; files are written to a scratch copy that is
+  reset between the two determinism runs; async functions run. New execution-verified question
+  kinds about what the run did: `net_requests`, `commands_run`, `files_written`, `stdout_text`.
+  The static pre-screen is gone in this path: what cannot run is rejected with the real error
+  (fail closed: a missing package, an event-loop need or a blocked escape never becomes an
+  answer). Question text names each fake the run touched. New sandbox policy `world`: scratch
+  writes only, no real processes, 16 MB per file, 256 MB per run. Red-team:
+  tests/test_world_redteam.py. Docker scratch-write path UNVERIFIED (no Docker available).
+
 - **Fake world in the sandbox.** Functions that read the clock (`time`, `datetime`), random numbers
   or environment variables/paths (`os.environ`, `os.getenv`, `os.path`) can now be run for real: the
   clock is frozen at 2020-01-01 00:00:00 UTC, `time.sleep` returns at once, `random` is seeded with

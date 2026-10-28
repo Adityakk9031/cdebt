@@ -49,8 +49,28 @@ def _main(
         bool,
         typer.Option("--version", callback=_version, is_eager=True, help="Show the version."),
     ] = False,
+    project_python: Annotated[
+        Path | None,
+        typer.Option(
+            "--project-python",
+            envvar="CDEBT_PROJECT_PYTHON",
+            help="A Python (for example the project's venv/bin/python) that has the project's own "
+            "dependencies installed. Probes run with it instead of cdebt's Python. You choose it; "
+            "it is never read from the repository (a repo-controlled interpreter would run code "
+            "before the sandbox starts). Not available with Docker isolation.",
+        ),
+    ] = None,
 ) -> None:
     """cdebt: comprehension-debt toolkit."""
+    if project_python is not None:
+        from cdebt import sandbox
+
+        os.environ[sandbox.PROJECT_PYTHON_ENV] = str(project_python)
+        try:
+            sandbox.project_python()
+        except sandbox.SandboxUnavailable as e:
+            typer.echo(f"error: {e}", err=True)
+            raise typer.Exit(2) from None
 
 
 TrustedOpt = Annotated[

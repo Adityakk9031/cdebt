@@ -10,13 +10,9 @@ from pathlib import Path
 
 from cdebt.models import CodeUnit, Probe
 from cdebt.probes.base import copy_tree, probe_id, shuffled, temp_root
-from cdebt.sandbox import (
-    fake_world_uses,
-    run_in_sandbox,
-    screen_function,
-    screen_module_level,
-    world_note,
-)
+from cdebt.sandbox import FAKE_EPOCH, FAKE_RANDOM_SEED, run_in_sandbox
+from cdebt.world import World, relevant_uses, runner_spec
+from cdebt.world import note as world_note
 
 WORDS = ["ab", "hello", "x", "", "Cat", "a b", "zed"]
 EXC = ["ValueError", "TypeError", "KeyError", "ZeroDivisionError", "IndexError"]
@@ -98,6 +94,21 @@ def distractors(v: object, rng: random.Random) -> list[str]:
     return list(dict.fromkeys(out))
 
 
+_SKIP_DIRS = {"node_modules", "venv", "site-packages", "__pycache__", "build", "dist"}
+
+
+def _monorepo_roots(repo: Path, limit: int = 40) -> list[str]:
+    """Other `src` folders in the repository (packages/*/src, libs/*/src, ...), so a module can
+    import its sibling packages. Only the repo's own code: nothing outside the repo is added."""
+    found: list[str] = []
+    for pat in ("*/src", "*/*/src", "*/*/*/src"):
+        for p in sorted(repo.glob(pat)):
+            rel = p.relative_to(repo)
+            if p.is_dir() and not any(x.startswith(".") or x in _SKIP_DIRS for x in rel.parts):
+                found.append(str(rel))
+    return found[:limit]
+
+
 def module_info(repo: Path, rel: str) -> tuple[str, list[str]]:
     """(dotted module name, sys.path roots relative to repo) via __init__.py climbing."""
     p = Path(rel)
@@ -106,7 +117,7 @@ def module_info(repo: Path, rel: str) -> tuple[str, list[str]]:
     while (repo / d / "__init__.py").exists() and str(d) != ".":
         parts.insert(0, d.name)
         d = d.parent
-    roots = [str(d), "src", "."]
+    roots = [str(d), "src", ".", *_monorepo_roots(repo)]
     return ".".join(parts), list(dict.fromkeys(roots))
 
 
@@ -120,9 +131,6 @@ def generate(
 ) -> tuple[list[Probe], list[str]]:
     """Returns (probes, skip reasons). Every answer is computed by sandboxed execution."""
     skips: list[str] = []
-    why = screen_module_level(source)
-    if why:
-        return [], [f"{rel}: skipped runtime probes ({'; '.join(why[:3])})"]
     by_sym = {u.symbol: u for u in units}
     funcs = [f for f in _functions(source) if f.name in by_sym]
     if not funcs:
@@ -135,15 +143,10 @@ def generate(
         (root / rel).write_text(source)  # exercise exactly the text we hashed
         rng = random.Random(seed)
         for fn in funcs:
-            fn_why = screen_function(source, fn.name, fake_world=True)
-            if fn_why:
-                skips.append(f"{rel}::{fn.name}: skipped ({'; '.join(fn_why[:3])})")
-                continue
             a = fn.args
             if a.vararg or a.kwarg or a.kwonlyargs or a.posonlyargs or fn.returns is None:
                 skips.append(f"{rel}::{fn.name}: unsupported signature")
                 continue
-            uses = fake_world_uses(source, fn.name)
             got = 0
             tries = 0
             while got < per_unit and tries < per_unit * 3:
@@ -163,9 +166,11 @@ def generate(
                         "args_repr": args_repr,
                         "sys_path": [str(root / r) for r in roots],
                         "fake_world": True,
+                        "world": runner_spec(World()),
                     },
                     root=root,
                     timeout=10,
+                    policy="world",
                 )
                 pl = res.payload or {}
                 if res.timed_out or res.violations or "error" in pl or "results" not in pl:
@@ -178,6 +183,7 @@ def generate(
                 if r1 != r2:
                     skips.append(f"{rel}::{fn.name}: nondeterministic")
                     break
+                uses = relevant_uses(source, list(pl.get("world_used", [])))  # type: ignore[call-overload]
                 kind, value = r1
                 if kind == "ok":
                     try:
@@ -196,7 +202,8 @@ def generate(
                 if len(opts) < 2:
                     skips.append(f"{rel}::{fn.name}: could not build distractors")
                     break
-                q = f"What does `{call}` evaluate to?{world_note(uses)}"
+                note = world_note(uses, World(), FAKE_EPOCH, FAKE_RANDOM_SEED)
+                q = f"What does `{call}` evaluate to?{note}"
                 probes.append(
                     Probe(
                         id=probe_id("runtime", rel, fn.name, q, seed),

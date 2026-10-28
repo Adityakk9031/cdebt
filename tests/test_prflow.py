@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import json
 import os
+import shlex
 import shutil
 import stat
 import subprocess
@@ -42,7 +43,8 @@ def _wrapper(tmp: Path) -> Path:
     """A `cdebt` executable for the hook (the package may not be installed on PATH)."""
     w = tmp / "bin" / "cdebt"
     w.parent.mkdir(exist_ok=True)
-    w.write_text(f'#!/bin/sh\nexec {sys.executable} -c "from cdebt.cli import app; app()" "$@"\n')
+    py = shlex.quote(sys.executable)
+    w.write_text(f'#!/bin/sh\nexec {py} -c "from cdebt.cli import app; app()" "$@"\n')
     w.chmod(w.stat().st_mode | stat.S_IXUSR)
     return w
 

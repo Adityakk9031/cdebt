@@ -96,6 +96,10 @@ class Probe(BaseModel):
         "return_value",
         "branch_taken",
         "variable_at_line",
+        "net_requests",
+        "commands_run",
+        "files_written",
+        "stdout_text",
     ]
     path: str
     symbol: str

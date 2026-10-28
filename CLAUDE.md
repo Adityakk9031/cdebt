@@ -33,8 +33,10 @@ exists and code a human has verifiably understood. Full plan: `docs/PLAN.md`.
   session and discarded. Nothing stores or reports suspicion about a person; status reasons
   describe the CODE record, never a person.
 - **Sandbox all execution** (isolated subprocess, temp cwd, timeout, no network,
-  resource limits; Docker if available). Skip code with file/network/time/randomness
-  side effects. Never run dangerous payloads outside the sandbox.
+  resource limits; Docker if available). Code with file/network/time/randomness/
+  subprocess side effects runs against a fake world (`src/cdebt/world.py`): nothing real is
+  contacted or spawned, writes go to a scratch copy. Never run dangerous payloads outside the
+  sandbox.
 - **Deterministic first.** Rules decide pass/fail. Core works with no API key and
   no network.
 - **Report uncertainty.** Wilson intervals for rates; always show n.
