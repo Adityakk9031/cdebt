@@ -110,3 +110,46 @@ treat the numbers as indicative.
   rejections are mostly "the harness never ran the real target", a harness that opened a socket
   or wrote outside the scratch copy, and return values that are not simple literals.
 - Not measured: question quality, other repos, Docker. One run per setting.
+
+## Three third-party repos, after the sandbox and question fixes (measured 2026-10-28 to 2026-10-30)
+
+Setup: Claude Code agent, strict Seatbelt, `--project-python` pointing at a venv with each repo's
+own dependencies, one run per repo. Batch size and retry rounds were tuned while the runs
+went on (final defaults: batches of 4, up to 3 rounds), so not every file ran with the final ones. "Functions" excludes `@overload`
+stubs. Constants at module level are not counted. One run each: treat as indicative.
+
+| repo | functions | >= 1 verified question | >= 3 verified questions |
+|---|---|---|---|
+| inspect-robots | 481 | 458 (95%) | 234 (49%) |
+| xai-sdk-python | 363 | 356 (98%) | 150 (41%) |
+| AMFS (older run, before the latest fixes) | 1,454 | 1,133 (78%) | about 36% |
+| **all three** | **2,298** | **1,947 (85%)** | |
+
+- **AMFS rerun was stopped part way.** After the fixes, 4 AMFS files were rerun: 412 of 418
+  functions (99%) got >= 1 question and 389 (93%) got >= 3. The other files were not rerun, so the
+  AMFS row stays the older figure. The older AMFS count may be high by up to 1 per file (it
+  counted module constants under a function name; fixed for the other two repos).
+- **What still fails:** functions that need a running event loop, a real database or a raw
+  socket; harnesses that mocked the function instead of calling it; and call-graph questions on a
+  repo with no SCIP index. GPU, hardware and live-service code was not targeted.
+- **TypeScript:** on one TypeScript repo (leadtype) the built-in path reached 65 of 1,337 functions
+  (4.9%). Not improved in this round.
+- A per-file sweep of 181 files across the three repos found no file that failed to import in the
+  sandbox.
+
+### Question quality (same files, older rules vs current rules, one run each)
+
+Audited from the saved questions; a second run with the latest wrong-option rule (values the
+function itself returns) was not made.
+
+| | older rules | current rules |
+|---|---|---|
+| True/False questions | 22% | 14% |
+| answer visible in the question | 14% | 0% |
+| wrong options a reader would dismiss at once | 19% | 9% (part of this run used older code) |
+| "always pick the longest option" scores | 8% | 6% |
+| "always pick the shortest option" scores | 13% | 22% |
+
+Blind guessing scores about 25% on four options. In a replay over the saved answers with the final
+rule, always-longest scored 19%, always-shortest 13% and blind 26%; the test suite checks that no
+length strategy beats a blind guess (`tests/test_question_quality.py`).

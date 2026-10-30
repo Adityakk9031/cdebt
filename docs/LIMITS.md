@@ -70,6 +70,14 @@
   available when it was built); the fake HTTP layer covers the libraries above only, so a
   function using another client fails closed (blocked socket, rejected). An answer is true in the
   fake world; it is not a claim about what the real service would do.
+  Files outside the repository do not exist in the fake world, writes outside it fail as on a
+  read-only disk (`OSError`), shared-memory modules are absent and `TMPDIR` is the scratch folder;
+  the question says so when the run touched any of these.
+- **Question quality is filtered, not proven.** Questions whose answer is visible in the question,
+  that depend on a hash or random value, or whose result has no stable printed form are refused;
+  wrong options are near misses and sibling values; one True/False question per function. These
+  rules were checked on saved questions from three repos (docs/AGENT_BENCHMARK.md), not by a study
+  with people, so a question can still be easy to guess.
 - Call-graph probes need a fresh SCIP index (`cdebt index`, needs node and network for the
   indexers). Dynamic dispatch, reflection and string-based calls are invisible to SCIP; an
   approximate answer is never used as quiz ground truth.

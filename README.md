@@ -50,7 +50,9 @@ git push                             # on a feature branch: the hook quizzes you
 2. **Your coding agent writes the questions**, or the built-in generator does. The agent never
    sees an answer.
 3. **cdebt runs every question in a sandbox** to get the true answer and grades yours by a plain
-   rule. No AI grades you.
+   rule. No AI grades you. Code that touches files, the network, shell commands, the clock or
+   randomness runs against a fake world, so nothing real is contacted, spawned or written.
+   Questions it cannot answer by running the code are thrown away, never guessed.
 4. **The result travels with the push** as a git note, bound to a hash of that exact code. Change
    the code and the understanding expires.
 5. **On the pull request**, the GitHub Action re-checks every recorded answer in CI and posts one
@@ -70,6 +72,15 @@ git push                             # on a feature branch: the hook quizzes you
   15 seconds [src: src/cdebt/adaptive.py]. Right and in time: understood. Wrong or too slow: NOT
   UNDERSTOOD. This raises the effort of pasting into an AI; it does not prove anything, and timing
   is never stored or reported about anyone.
+
+**What makes a question.** A proposal is kept only if running it gives a stable answer twice.
+It is refused when the answer appears in the question, when the value comes from a hash or a
+random draw, when the call fails before the function even runs, or when the result is an object
+with no stable printed form. The wrong options are believable: near misses of the real answer
+(one segment dropped, a number off by one, a list one element longer) and other values the
+function itself can return, with lengths mixed so that picking the longest or shortest option
+does no better than a blind guess. Each function gets at most one True/False question
+[src: src/cdebt/agents/probes.py, src/cdebt/agents/mcp_server.py].
 
 ## Status (read this before using it)
 
@@ -163,7 +174,16 @@ not covered at all (6%)
 [src: docs/case_studies/space_chassis.coverage.json, docs/case_studies/agent-meta.coverage.json, docs/case_studies/hive.coverage-ts.json].
 Re-measured on 2026-10-22, `space_chassis` gives 9% for the same settings [src: docs/case_studies/space_chassis.coverage.2026-10-22.json] (the top-25 selection moves with the date, so treat these as examples, not constants).
 In the 12 highest-debt Python files of two of these repos, the built-in generator could quiz 1 of 565 AI-written functions and the real Claude Code agent added 40 (7.1%) [src: docs/case_studies/agent_benchmark.summary.json]; 55 of its 130 proposals were verified by execution, and all 22 answers that could be compared agreed with a second sandbox path ([docs/AGENT_BENCHMARK.md](https://github.com/Adityakk9031/cdebt/blob/main/docs/AGENT_BENCHMARK.md)).
-Runtime probes need typed, side-effect-free functions and, for TypeScript, modules plain Node can
+**Sandbox reach on three third-party Python repos (one run each, Claude Code agent plus the fake
+world, measured 2026-10-28 to 2026-10-30, not a benchmark):** about 85% of 2,298 functions got at
+least one execution-verified question: inspect-robots 458 of 481 (95%), xai-sdk 356 of 363
+(98%), AMFS 1,133 of 1,454 (78%, an older run before the latest sandbox fixes; a partial rerun of
+4 AMFS files after the fixes gave 412 of 418). Three or more questions (what a quiz needs): 49%,
+41% and 36%. What still fails: code that needs a real database, network or a running event loop,
+and functions the agent kept calling with the wrong arguments. GPU and hardware code was not
+targeted. TypeScript reach is much lower (about 5% on one repo). Details:
+[docs/AGENT_BENCHMARK.md](https://github.com/Adityakk9031/cdebt/blob/main/docs/AGENT_BENCHMARK.md).
+The built-in generator alone (no agent) still needs typed, side-effect-free functions and, for TypeScript, modules plain Node can
 resolve; call-graph probes need a SCIP index. Run `cdebt coverage` before trusting any gate.
 
 ## How a team uses it
@@ -308,8 +328,10 @@ at**. Read the [threat model](https://github.com/Adityakk9031/cdebt/blob/main/do
   your home directory, cannot signal other processes). If neither is available cdebt refuses and
   says why. `--trusted` or `CDEBT_TRUSTED=1`, set by the person running cdebt, switches to the host
   sandbox; trust is never read from a file in the repository.
-- Probes skip code with file, network, time or randomness side effects, and mutation probes (which
-  run a project's own tests) need `--trusted`.
+- Code with file, network, shell, time or randomness side effects runs against a fake world:
+  HTTP and shell commands are answered by fakes, the clock and random numbers are fixed, writes go
+  to a scratch copy, files outside the repository do not exist and writes outside it fail as on a
+  read-only disk. Mutation probes (which run a project's own tests) need `--trusted`.
 - The sandbox targets accidental and AI-written side effects, not a determined attacker with
   native-code exploits. On Windows, anything that executes code is unsupported and says so.
 - Your coding agent (if you connect one) only sees the code of functions being quizzed and two
