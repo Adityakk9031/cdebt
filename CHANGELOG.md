@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 1.1.0rc12
 
 - **More functions run, better questions.** In the fake world, files outside the repository do not
   exist, writes outside it fail as on a read-only disk, shared-memory modules are absent and
