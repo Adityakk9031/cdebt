@@ -2,6 +2,20 @@
 
 ## Unreleased
 
+- **More functions run, better questions.** In the fake world, files outside the repository do not
+  exist, writes outside it fail as on a read-only disk, shared-memory modules are absent and
+  `TMPDIR` points at the scratch folder, so code that touches the system runs on instead of being
+  blocked. Block messages now name the path or module. Rejection reasons are clearer (call failed
+  before the function ran; object with a memory address has no stable printed form). Question
+  quality: wrong options are believable near misses and values the function itself can return;
+  option lengths give no pattern; answers that appear in the question, hashes and random values
+  are refused; one True/False question per function; `@overload` stubs are skipped; scratch paths
+  show as `<repo>`. The agent covers every function first and retries up to 3 rounds. Measured on
+  one run each (not a benchmark): about 85% of 2,298 functions in three Python repos got at least
+  one execution-verified question (inspect-robots 95%, xai-sdk 98%, AMFS about 78% from an older
+  run; the AMFS rerun was stopped part way). TypeScript support is narrow (about 5% on one repo).
+  The source package no longer picks up unrelated folders in the working directory.
+
 - **`--project-python` (or `CDEBT_PROJECT_PYTHON`).** Probes run with a Python you name, for
   example the project's `venv/bin/python`, so code that imports the project's own third-party
   packages (fastapi, yaml, watchdog, ...) can be run. It is your choice only, never read from the

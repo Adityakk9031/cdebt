@@ -25,10 +25,10 @@ from cdebt.models import Probe
 from cdebt.store import Store
 
 DEFAULT_PER_TARGET = 8
-DEFAULT_TIMEOUT = 90.0
-DEFAULT_BATCH = 6  # targets per agent run
+DEFAULT_TIMEOUT = 150.0
+DEFAULT_BATCH = 4  # targets per agent run
 MIN_QUESTIONS = 3  # verified questions a function needs before it stops being retried
-MAX_ROUNDS = 2
+MAX_ROUNDS = 3
 
 
 def _run_agent(
@@ -71,6 +71,20 @@ def _reason_summary(recs: list[dict[str, object]], top: int = 3) -> str:
     if not why:
         return ""
     return "; rejected: " + ", ".join(f"{n}x {w}" for w, n in why.most_common(top))
+
+
+def _stuck(recs: list[dict[str, object]], targets: list[Target], probes: list[Probe]) -> list[str]:
+    """One `stuck:` note per target that got no verified question this round: why its last
+    proposal was rejected (or that none was made). Describes the CODE, never a person."""
+    done = {p.symbol for p in probes}
+    out: list[str] = []
+    for t in targets:
+        if t.symbol in done:
+            continue
+        why = [str(r["why"]) for r in recs if r["target_id"] == t.id and not r["accepted"]]
+        reason = re.sub(r"\d+", "N", why[-1])[:160] if why else "no proposal was made"
+        out.append(f"stuck: {t.id} :: {reason}")
+    return out
 
 
 def _one_round(
@@ -129,6 +143,7 @@ def _one_round(
             f"{len(probes)} verified questions in {time.monotonic() - t0:.0f} s"
             + _reason_summary(recs)
         )
+        notes += _stuck(recs, targets, probes)
         return probes, notes
     finally:
         sess.close()

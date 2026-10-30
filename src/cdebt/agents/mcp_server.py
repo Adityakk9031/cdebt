@@ -70,14 +70,19 @@ def build_server(session_dir: Path) -> MCPServer:
         }
         try:
             prop: Proposal = parse_proposal(raw)
-            execute(repo, t.path, prop, cfg, proposer=f"agent:{sess.data.agent}")
+            probe = execute(repo, t.path, prop, cfg, proposer=f"agent:{sess.data.agent}")
+            is_bool = probe.answer in ("True", "False")
+            if is_bool and sess.accepted_marked(target, "bool"):
+                raise Rejected(
+                    "this target already has a True/False question; ask for a richer value"
+                )
         except Rejected as e:
             sess.record(target, raw, False, str(e))
             return f"rejected: {e}"
         except Exception as e:  # never let a proposal crash the server or leak a traceback
             sess.record(target, raw, False, type(e).__name__)
             return f"rejected: internal error ({type(e).__name__})"
-        sess.record(target, raw, True, "")
+        sess.record(target, raw, True, "bool" if is_bool else "")
         return "accepted"
 
     return server

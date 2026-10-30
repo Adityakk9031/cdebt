@@ -46,6 +46,13 @@ interesting paths: success, failure statuses, missing files, a command that fail
 else you may supply harness_code defining `def probe():` that calls the REAL target
 (target_module.<name>) and returns what the question asks; never replace the target itself. A
 harness_code proposal MUST also include `question`: one sentence describing the scenario.
+Cover EVERY target: first propose one plain return_value (or stdout_text / effect) question
+for each target, then add more. When a proposal is rejected, read the reason and send a fixed
+one: a harness must call the real target (never a mock or a copy of it); `line` must be a code
+line inside the target's own body; for a method, build the object in harness_code and call the
+method on it; call_inputs must match the function's signature; for a value that is a big
+object (or one whose repr shows a memory address), return one field of it instead. Writes
+outside the repository fail as on a read-only disk, and files outside it do not exist.
 cdebt runs every proposal and works out the answers itself; you will only be told accepted or
 rejected with a reason. Do not try to find or compute answers, and do not edit anything.
 When done, reply with one short line."""

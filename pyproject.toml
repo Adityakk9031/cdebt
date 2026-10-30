@@ -51,6 +51,9 @@ Issues = "https://github.com/Adityakk9031/cdebt/issues"
 [project.scripts]
 cdebt = "cdebt.cli:app"
 
+[tool.hatch.build.targets.sdist]
+exclude = ["amfs-main", "inspect-robots-main", "xai-sdk-python-main", "leadtype-main", ".DS_Store"]
+
 [tool.hatch.build.targets.wheel]
 packages = ["src/cdebt"]
 

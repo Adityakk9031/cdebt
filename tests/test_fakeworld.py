@@ -89,6 +89,6 @@ def test_runtime_probes_run_with_the_fake_world(make_repo) -> None:  # type: ign
     # process spawning is faked too (nothing is spawned: the fake exits 0)
     assert by["run"].answer == str(int(by["run"].question.split("run(")[1].split(")")[0]))
     assert by["run"].evidence["fake_world"] == ["commands"]
-    # a write outside the scratch copy is still blocked, so that function is skipped
-    assert "remove" not in by
-    assert any("remove" in s and "blocked" in s for s in skips)
+    # outside the scratch copy the fake world is a read-only disk: the delete fails with an
+    # OSError (a fact about the code that can be asked), and nothing real is touched
+    assert by["remove"].answer == "raises OSError"

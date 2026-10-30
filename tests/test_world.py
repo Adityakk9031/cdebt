@@ -5,6 +5,7 @@ is contacted or spawned. No network and no real agent."""
 from __future__ import annotations
 
 import ast
+from pathlib import Path
 
 import pytest
 
@@ -178,10 +179,10 @@ def test_scenario_files_exist_before_the_call(make_repo) -> None:  # type: ignor
     assert not (r.path / "conf").exists()
 
 
-def test_uuid_is_seeded(make_repo) -> None:  # type: ignore[no-untyped-def]
+def test_random_values_are_not_asked(make_repo) -> None:  # type: ignore[no-untyped-def]
     r = _repo(make_repo)
-    p = _run(r, target="new_id", kind="return_value")
-    assert len(ast.literal_eval(p.answer)) == 36 and "seeded" in p.question
+    with pytest.raises(Rejected, match="hash or randomness"):
+        _run(r, target="new_id", kind="return_value")
 
 
 def test_async_function_runs_without_waiting(make_repo) -> None:  # type: ignore[no-untyped-def]
@@ -203,11 +204,18 @@ def test_nothing_to_ask_is_rejected(make_repo) -> None:  # type: ignore[no-untyp
             _run(r, target="quiet", kind=kind, call_inputs={"args": [1]})
 
 
-@pytest.mark.parametrize("target", ["dial", "spawn", "escape"])
-def test_real_network_processes_and_outside_writes_stay_blocked(make_repo, target) -> None:  # type: ignore[no-untyped-def]
+@pytest.mark.parametrize("target", ["dial", "spawn"])
+def test_real_network_and_processes_stay_blocked(make_repo, target) -> None:  # type: ignore[no-untyped-def]
     r = _repo(make_repo)
     with pytest.raises(Rejected, match="blocked by the sandbox|could not execute"):
         _run(r, target=target, kind="return_value")
+
+
+def test_outside_writes_fail_and_never_land(make_repo) -> None:  # type: ignore[no-untyped-def]
+    r = _repo(make_repo)
+    p = _run(r, target="escape", kind="return_value")
+    assert p.answer == "raises OSError"  # a read-only disk outside the scratch copy
+    assert not Path("/tmp/cdebt-world-escape.txt").exists()
 
 
 def test_scenario_cannot_replace_code_or_escape_the_repo(make_repo) -> None:  # type: ignore[no-untyped-def]

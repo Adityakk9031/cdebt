@@ -69,7 +69,9 @@ def test_short_functions_get_a_second_round_only(
     repo: Repo, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     calls = _stub(monkeypatch, {"f2": 1, "f5": 2})  # others reach 3 on the first try
-    probes, notes = agents.propose_with_agent(repo.path, "pkg/m.py", Config(), CHOICE, batch=10)
+    probes, notes = agents.propose_with_agent(
+        repo.path, "pkg/m.py", Config(), CHOICE, batch=10, rounds=2
+    )
     assert calls[0] == [f"f{i}" for i in range(7)]
     assert calls[1:] == [["f2", "f5"]]  # one retry round, only the short ones
     got = {s: sum(1 for p in probes if p.symbol == s) for s in ("f2", "f5", "f0")}

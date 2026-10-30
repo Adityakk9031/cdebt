@@ -16,6 +16,7 @@ from typing import Any
 
 from pydantic import BaseModel, Field
 
+from cdebt.agents.probes import shadowed
 from cdebt.config import Config
 from cdebt.models import CodeUnit
 from cdebt.store import Store
@@ -80,8 +81,9 @@ def targets_for_file(repo: Path, rel: str, cfg: Config, store: Store | None = No
     source = (repo / rel).read_text()
     store = store or Store(repo)
     out: list[Target] = []
-    for u in extract_units(rel, source):
-        if u.symbol.startswith("<") or store.status(u) == "verified":
+    units = extract_units(rel, source)
+    for u in units:
+        if u.symbol.startswith("<") or shadowed(units, u) or store.status(u) == "verified":
             continue
         out.append(
             Target(
@@ -127,6 +129,11 @@ class Session:
             if rec["target_id"] == target_id:
                 n += 1
         return n
+
+    def accepted_marked(self, target_id: str, mark: str) -> bool:
+        return any(
+            r["target_id"] == target_id and r["accepted"] and r["why"] == mark for r in self.read()
+        )
 
     def record(self, target_id: str, spec: dict[str, Any], accepted: bool, why: str) -> None:
         line = json.dumps(

@@ -159,6 +159,10 @@ def note(used: list[str], w: World, fake_epoch: float, seed: int) -> str:
         rules = "; ".join(f"`{c.cmd}` -> exit {c.returncode}" for c in w.commands)
         tail = f"{rules}; anything else" if rules else "every command"
         parts.append(f"shell commands are faked ({tail} exits 0 with no output)")
+    if "outside" in used:
+        parts.append("files outside the repository do not exist")
+    if "readonly" in used:
+        parts.append("writes outside the repository fail (read-only disk)")
     if "listing" in used:
         parts.append("directory listings show a scratch copy holding only the repo's tracked files")
     if w.files:

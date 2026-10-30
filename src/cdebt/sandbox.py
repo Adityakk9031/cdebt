@@ -300,6 +300,8 @@ def _run():
     _lstat, _readlink, _getcwd, _fsdecode = os.lstat, os.readlink, os.getcwd, os.fsdecode
     _S_ISLNK, _S_ISREG = stat.S_ISLNK, stat.S_ISREG
     _violations = []
+    _outside = []  # reads of files outside the repo, answered "no such file" in the fake world
+    _readonly = []  # writes outside the repo, refused as a read-only disk in the fake world
 
     def realpath(p):
         # Own implementation bound to captured primitives: user code that monkeypatches
@@ -359,6 +361,7 @@ def _run():
             "/dev/tty", "/private/var/db/timezone"}) if r)
         _O_WRITE = os.O_WRONLY | os.O_RDWR | os.O_CREAT | os.O_APPEND | os.O_TRUNC
         _PathLike = os.PathLike
+        _fspath = os.fspath
         _sep = os.sep
 
         def read_ok(p, _any=any, _isinstance=isinstance, _str=str, _bytes=bytes):
@@ -414,7 +417,12 @@ def _run():
             if event in _TAMPER:
                 deny(event, "introspection that could tamper with the sandbox")
             if event == "import" and args and _str(args[0]) in _NO_IMPORT:
-                deny(event, "module not allowed in the sandbox")
+                if POLICY == "world":
+                    # In the fake world these modules simply are not there (as on a platform without
+                    # shared memory): libraries that import them optionally (multiprocessing.managers
+                    # does) carry on, and nothing can map memory shared with another process.
+                    raise ModuleNotFoundError("No module named " + repr(_str(args[0])))
+                deny(event, "module not allowed in the sandbox: " + _str(args[0]))
             if event == "sqlite3.connect" and args and _str(args[0]) not in (":memory:", ""):
                 deny(event, "sqlite3 would open a file in C, outside the audited open()")
             if event == "open":
@@ -425,15 +433,33 @@ def _run():
                 if _isinstance(mode, _str) and _any(c in mode for c in "wax+"):
                     write = True
                 if write and not (POLICY in ("tests", "world") and inside(path)):
-                    deny(event, "file write")
+                    if POLICY == "world" and _isinstance(path, (_str, _bytes, _PathLike)):
+                        # Outside the scratch copy the fake world is a read-only disk: nothing is
+                        # written, and code that handles a failed write carries on. An OSError,
+                        # not a PermissionError, so the run records it as a fact about the code.
+                        _readonly.append(1)
+                        raise OSError(30, "read-only file system in the fake world", _str(path))
+                    deny(event, "file write: " + _str(path)[:80])
                 if not write and not read_ok(path):
-                    deny(event, "file read outside the sandbox")
+                    if POLICY == "world" and _isinstance(path, (_str, _bytes, _PathLike)):
+                        # The fake world holds only the repo (and the interpreter): a file outside
+                        # it does not exist there. Nothing real is read, and code that probes
+                        # system files (/etc/mime.types, cgroup limits) sees what it handles.
+                        _outside.append(1)
+                        raise FileNotFoundError(2, "no such file in the fake world", _str(path))
+                    deny(event, "file read outside the sandbox: " + _str(path)[:80])
             elif event in ("os.listdir", "os.scandir"):
                 if not read_ok(args[0] if args else None):
-                    deny(event, "directory listing outside the sandbox")
+                    if POLICY == "world" and args and _isinstance(args[0], (_str, _bytes, _PathLike)):
+                        _outside.append(1)
+                        raise FileNotFoundError(2, "no such directory in the fake world", _str(args[0]))
+                    deny(event, "directory listing outside the sandbox: " + _str(args[0] if args else "")[:80])
             elif event.startswith(_FS):
                 paths = [a for a in args if _isinstance(a, (_str, _bytes, _PathLike))]
                 if not (POLICY in ("tests", "world") and paths and _all(inside(p) for p in paths)):
+                    if POLICY == "world" and paths:
+                        _readonly.append(1)
+                        raise OSError(30, "read-only file system in the fake world", _str(paths[0]))
                     deny(event, "file mutation")
 
         _sys.addaudithook(hook)
@@ -522,6 +548,8 @@ def _run():
         import inspect
         return _drive(r) if inspect.iscoroutine(r) else r
 
+    _ERRS = []  # exception messages: never an answer, only explains a rejected proposal
+
     def _outcome(f):
         try:
             return ("ok", repr(_settle(f())))
@@ -532,6 +560,7 @@ def _run():
                 raise  # a limit of the fake world, not a fact about the code
             return ("raises", "RuntimeError")
         except BaseException as e:
+            _ERRS.append(type(e).__name__ + ": " + str(e)[:160])  # for rejection reasons only
             return ("raises", type(e).__name__)
 
     try:
@@ -539,6 +568,14 @@ def _run():
         if spec.get("fake_world"):
             import time as _t, datetime as _dt, random as _r, uuid as _u, secrets as _s
             import base64 as _b64
+            import socket as _sock
+            # urllib3 (so `requests`) opens a throwaway IPv6 socket at import just to test whether
+            # IPv6 exists; the fake world has no network, so say it does not and skip the probe.
+            _sock.has_ipv6 = False
+            # mimetypes stats then opens /etc/mime.types and friends at first use; outside files do
+            # not exist in the fake world, so start from its built-in table only.
+            import mimetypes as _mt
+            _mt.knownfiles = []
             _E = spec["fake_epoch"]
             _use = lambda k, v: (_USED.add(k), v)[1]
             _gm, _lt, _sf = _t.gmtime, _t.localtime, _t.strftime
@@ -599,12 +636,17 @@ def _run():
             import subprocess as _sp
             import asyncio as _aio
             _envw = dict(_W.get("env") or {})
+            _TMP = os.path.join(spec["root"], "tmp")
 
             class _Env(dict):
                 def __getitem__(s, k):
                     _USED.add("env")
                     return dict.__getitem__(s, k)
                 def get(s, k, d=None):
+                    if k == "TMPDIR" and not dict.__contains__(s, k):
+                        # tempfile probes /tmp with a test write unless TMPDIR names a writable
+                        # directory: answer with the scratch one, unlisted and not an env read.
+                        return _TMP
                     _USED.add("env")
                     return dict.get(s, k, d)
                 def __contains__(s, k):
@@ -732,6 +774,8 @@ def _run():
                 return {"returncode": 0, "stdout": "", "stderr": ""}
 
             class _FPopen:
+                __class_getitem__ = classmethod(lambda c, i: c)  # Popen[str] in annotations
+
                 def __init__(s, args, bufsize=-1, executable=None, stdin=None, stdout=None,
                              stderr=None, *a, **k):
                     cmd = args if isinstance(args, str) else " ".join(str(x) for x in args)
@@ -906,6 +950,7 @@ def _run():
             mod = importlib.import_module(spec["module"])
             fn = getattr(mod, spec["func"])
             _USED.clear()  # report only what the call itself touches, not imports
+            del _outside[:], _readonly[:]
             import ast
             args = ast.literal_eval(spec["args_repr"])
             results = []
@@ -946,6 +991,7 @@ def _run():
                     return _resolve(mod, spec["qual"])(*a, **k)
 
             _USED.clear()  # report only what the call itself touches, not imports
+            del _outside[:], _readonly[:]
             runs = []
             for ph in range(2):  # determinism check; line/variable data come from both runs
                 _begin()
@@ -954,6 +1000,7 @@ def _run():
                 _TR["phase"] = -1
                 _end()
             out["results"] = runs
+            out["errors"] = _ERRS[:2]
             out["same_target"] = _resolve(mod, spec["qual"]) is orig
             out["lines"] = [sorted(x) for x in _TR["lines"]]
             out["real_calls"] = _TR["calls"]
@@ -961,7 +1008,9 @@ def _run():
         elif spec["mode"] == "exec":
             exec(compile(spec["code"], "<sandbox>", "exec"), {"__name__": "__sandbox__"})
         out["effects"] = _EFF
-        out["world_used"] = sorted(_USED)
+        out["world_used"] = sorted(
+            _USED | ({"outside"} if _outside else set()) | ({"readonly"} if _readonly else set())
+        )
         out["stdout"] = _sys.stdout.getvalue()[:10000]
     except BaseException as e:
         out["error"] = type(e).__name__ + ": " + str(e)[:500]

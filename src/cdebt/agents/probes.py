@@ -13,7 +13,9 @@ from __future__ import annotations
 import ast
 import hashlib
 import random
+import re
 import shutil
+import textwrap
 from pathlib import Path
 from typing import Any, Literal
 
@@ -120,13 +122,209 @@ def _call_text(symbol: str, args: list[Any], kwargs: dict[str, Any]) -> str:
     return f"{symbol}({', '.join(parts)})"
 
 
-def _options(value_repr: str, rng: random.Random) -> list[str] | None:
+def _tweak(x: object) -> object | None:
+    """A plausible-but-wrong version of one value: a near miss, never a cosmetic change."""
+    if isinstance(x, bool):
+        return not x
+    if isinstance(x, int):
+        return x + 1
+    if isinstance(x, float):
+        return x + 1.0
+    if isinstance(x, str):
+        bumped = re.sub(r"\d+", lambda m: str(int(m.group()) + 1), x, count=1)
+        if bumped != x:
+            return bumped
+        words = x.split(" ")
+        if len(words) > 1:
+            return " ".join(words[:-1])
+        return x[:-1] if len(x) > 1 else None
+    return None
+
+
+_SEP = re.compile(r"([/_.,:; -]+)")
+
+
+def _text_misses(v: str) -> list[str | None]:
+    """Near misses of a text, cut at its natural separators (spaces, `/`, `_`, `.`, `-`, ...):
+    one segment dropped, repeated or swapped; never the whole text doubled."""
+    parts = _SEP.split(v)
+    segs, seps = parts[::2], parts[1::2]
+    if len(segs) < 2 or not all(segs[1:-1]):
+        return [v[:-1].rstrip() or None, f"{v}s" if v[-1:].isalpha() else None]
+
+    def join(ss: list[str], ps: list[str]) -> str:
+        return "".join(x for pair in zip(ss, [*ps, ""], strict=False) for x in pair)
+
+    return [
+        join(segs[:-1], seps[:-1]),  # last segment dropped
+        join(segs[1:], seps[1:]),  # first segment dropped
+        join(segs + segs[-1:], seps + seps[-1:]),  # last segment repeated
+        join(segs[:-2] + [segs[-1], segs[-2]], seps),  # last two swapped
+    ]
+
+
+def _near_misses(v: object) -> list[object]:
+    """Wrong answers a reader could really believe, both shorter and longer than the right one
+    (so length is no hint). No upper-cased, reversed or `+x` strings, which are easy to rule out
+    without understanding the code."""
+    out: list[object] = []
+    if isinstance(v, bool) or v is None:
+        return [x for x in ([not v] if isinstance(v, bool) else [0, "", [], False, "None", {}])]
+    if isinstance(v, str):
+        out = [_tweak(v), *_text_misses(v)]
+    elif isinstance(v, (list, tuple)) and v:
+        t = type(v)
+        items = list(v)
+        out = [
+            t(items[:-1]),
+            t(items[1:]),
+            t(items[::-1]) if len(items) > 1 else None,
+            t(items + items[-1:]),
+            t(items[:1] + items),
+        ]
+        for i in (0, len(items) - 1):
+            w = _tweak(items[i])
+            if w is not None:
+                out.append(t(items[:i] + [w] + items[i + 1 :]))
+                out.append(t(items + [w]))
+    elif isinstance(v, dict) and v:
+        keys = list(v)
+        out = [dict(list(v.items())[:-1]), dict(list(v.items())[1:])]
+        for k in (keys[0], keys[-1]):
+            w = _tweak(v[k])
+            if w is not None:
+                out.append({**v, k: w})
+            if isinstance(k, str):
+                out.append({**v, f"{k}_2": v[k]})  # one key too many: a longer near miss
+    elif isinstance(v, (int, float)):
+        out = [ast.literal_eval(x) for x in distractors(v, random.Random(0))]
+        out += [v * 10 if v else 10, -v * 10 if v else -10]
+        if isinstance(v, int) and abs(v) >= 10:
+            out += [v // 10, v % 10]  # a dropped digit: shorter
+    else:
+        return [ast.literal_eval(x) for x in distractors(v, random.Random(0))]
+    return [x for x in out if x is not None and x != v]
+
+
+def _balanced(answer: str, wrong: list[str], rng: random.Random) -> list[str]:
+    """Up to three wrong options with no length hint: same-length ones first (length says nothing
+    then), and for the rest, how many are longer vs shorter than the answer is drawn at random."""
+    longer = [w for w in wrong if len(w) > len(answer)]
+    shorter = [w for w in wrong if len(w) < len(answer)]
+    same = [w for w in wrong if len(w) == len(answer)]
+    for pool in (longer, shorter, same):
+        rng.shuffle(pool)
+    picked = same[:3]
+    need = 3 - len(picked)
+    feasible = [j for j in range(need + 1) if len(longer) >= j and len(shorter) >= need - j]
+    j = rng.choice(feasible) if feasible else min(need, len(longer))
+    picked += longer[:j] + shorter[: need - j]
+    for w in longer[j:] + shorter[need - j :]:
+        if len(picked) >= 3:
+            break
+        picked.append(w)
+    return picked
+
+
+_ADDRESS = re.compile(r"0x[0-9a-fA-F]{6,}")
+_UNSTABLE = (
+    "the result is an object with no stable printed form (its repr holds a memory address); "
+    "ask about one of its fields or a method result in harness_code instead"
+)
+
+
+def body_literals(body: str) -> list[object]:
+    """String and number literals the function itself uses (not its docstring, f-string pieces
+    or dict keys): the values it could have returned instead, so the most believable wrong
+    answers. Picking the right one means knowing which branch runs."""
+    try:
+        tree = ast.parse(textwrap.dedent(body))
+    except SyntaxError:
+        return []
+    skip: set[int] = set()
+    for node in ast.walk(tree):
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)) and node.body:
+            first = node.body[0]
+            if isinstance(first, ast.Expr) and isinstance(first.value, ast.Constant):
+                skip.add(id(first.value))
+        elif isinstance(node, ast.JoinedStr):
+            skip.update(id(v) for v in node.values)
+        elif isinstance(node, ast.Dict):
+            skip.update(id(k) for k in node.keys if k is not None)
+        elif isinstance(node, ast.Subscript):
+            skip.add(id(node.slice))
+    out: list[object] = []
+    for node in ast.walk(tree):
+        if not isinstance(node, ast.Constant) or id(node) in skip:
+            continue
+        v = node.value
+        if isinstance(v, bool) or v is None or not isinstance(v, (str, int, float)):
+            continue
+        if isinstance(v, str) and (not v.strip() or len(v) > 60):
+            continue
+        if v not in out:
+            out.append(v)
+    return out
+
+
+def _options(
+    value_repr: str, rng: random.Random, pool: list[object] | None = None
+) -> list[str] | None:
     try:
         v = ast.literal_eval(value_repr)
-    except (ValueError, SyntaxError):
-        return None
-    opts = shuffled([value_repr, *distractors(v, rng)[:3]], rng)
+    except (ValueError, SyntaxError, MemoryError, RecursionError):
+        return _repr_options(value_repr, rng)
+    same_type = [
+        repr(x)
+        for x in pool or []
+        if type(x) is type(v) and repr(x) != value_repr and not isinstance(v, bool)
+    ]
+    rng.shuffle(same_type)
+    sibling = same_type[:2]  # other values the code itself could produce: up to two of them
+    wrong = list(
+        dict.fromkeys(
+            r for r in (repr(x) for x in _near_misses(v)) if r != value_repr and r not in sibling
+        )
+    )
+    opts = shuffled(
+        [value_repr, *sibling, *_balanced(value_repr, wrong, rng)[: 3 - len(sibling)]], rng
+    )
     return opts if len(opts) >= 2 else None
+
+
+def _repr_options(text: str, rng: random.Random) -> list[str] | None:
+    """Options for a value that is not a plain literal (a Path, a dataclass, an enum member): the
+    question is about its printed form, `repr(result)`, which the run produced. Refused when the
+    text holds a memory address (it would change between runs) or is too long to read."""
+    if _ADDRESS.search(text) or len(text) > 300 or not text.strip():
+        return None
+    m = re.search(r"(['\"])(.+?)\1", text)
+    if m:  # PosixPath('a/b'), Point(name='x'): change what is inside the quotes, keep the shape
+        a, b = m.span(2)
+        wrong = [text[:a] + str(x) + text[b:] for x in _near_misses(m.group(2)) if x != m.group(2)]
+    else:  # Point(x=0, y=2): change one number at a time, never the shape
+        wrong = []
+        for num in re.finditer(r"-?\d+", text):
+            n = int(num.group())
+            for alt in (n + 1, n - 1, n * 10 if n else 10):
+                wrong.append(text[: num.start()] + str(alt) + text[num.end() :])
+    wrong = list(dict.fromkeys(w for w in wrong if w.strip()))
+    opts = shuffled([text, *_balanced(text, wrong, rng)], rng)
+    return opts if len(opts) >= 3 else None
+
+
+_UNREADABLE = re.compile(r"\b(hashlib|crc32|md5|sha\d*|blake2\w*|hash)\b|\buuid\d?\b|\brandom\b")
+
+
+def _check_quality(kind: str, q: str, answer: str, body: str) -> None:
+    """Reject questions a person could answer without understanding the code (the answer is in the
+    question) or could never answer by reading it (hashes, randomness)."""
+    if kind != "branch_taken":
+        bare = answer.strip("'\"")
+        if len(bare) >= 4 and bare in q:
+            raise Rejected("the answer appears in the question; ask for something not given away")
+    if kind in ("return_value", "variable_at_line") and _UNREADABLE.search(body):
+        raise Rejected("the value comes from a hash or randomness; a reader cannot work it out")
 
 
 def _flip(s: str, kind: str) -> str:
@@ -152,9 +350,29 @@ def _effect_options(truth: list[str], kind: str, rng: random.Random) -> list[str
     return shuffled([repr(truth), *opts], rng) if opts else None
 
 
+def runtime_name(symbol: str) -> str:
+    """`file#4` (the 4th definition of `file`) is bound at runtime as plain `file`."""
+    return re.sub(r"#\d+", "", symbol)
+
+
+def shadowed(units: list[CodeUnit], unit: CodeUnit) -> bool:
+    """An earlier definition (an @overload stub or a redefinition) never runs: the last one wins."""
+    base = runtime_name(unit.symbol)
+    last = max(
+        (u for u in units if runtime_name(u.symbol) == base),
+        key=lambda u: min(a for a, _ in u.ranges),
+    )
+    return last is not unit
+
+
 def _unit(units: list[CodeUnit], symbol: str) -> CodeUnit:
     for u in units:
         if u.symbol == symbol and not u.symbol.startswith("<"):
+            if shadowed(units, u):
+                raise Rejected(
+                    f"{symbol!r} is an @overload stub or redefined later; only the last "
+                    f"definition of {runtime_name(symbol)!r} runs, ask about that one"
+                )
             return u
     raise Rejected(f"no function or method named {symbol!r} in this file")
 
@@ -233,6 +451,23 @@ def _execute(
     return _trace_probe(repo, rel, prop, source, unit, branches, rng, proposer, text, seed)
 
 
+def _unscratch(obj: Any, root: Path) -> Any:
+    """Results that mention the sandbox's scratch copy (a random temp path) show `<repo>` instead:
+    the reader sees the repository, and the answer does not change from one run to the next."""
+    roots = sorted({str(root), str(Path(root).resolve())}, key=len, reverse=True)
+    if isinstance(obj, str):
+        for r in roots:
+            obj = obj.replace(r, "<repo>")
+        return obj
+    if isinstance(obj, list):
+        return [_unscratch(x, root) for x in obj]
+    if isinstance(obj, tuple):
+        return tuple(_unscratch(x, root) for x in obj)
+    if isinstance(obj, dict):
+        return {k: _unscratch(v, root) for k, v in obj.items()}
+    return obj
+
+
 def _trace_probe(
     repo: Path,
     rel: str,
@@ -249,7 +484,8 @@ def _trace_probe(
     world = prop.world or World()
     if any(f.lower().endswith((".py", ".pyc", ".pth")) for f in world.files):
         raise Rejected("scenario files are data: a .py file would replace code under test")
-    leaf = unit.symbol.split(".")[-1]
+    qual = runtime_name(unit.symbol)
+    leaf = qual.split(".")[-1]
     harness = prop.harness_code
     if harness is not None:
         if len(harness) > MAX_HARNESS:
@@ -294,7 +530,7 @@ def _trace_probe(
             {
                 "mode": "trace",
                 "module": mod,
-                "qual": unit.symbol,
+                "qual": qual,
                 "func": leaf,
                 "first": lo,
                 "last": hi,
@@ -315,7 +551,7 @@ def _trace_probe(
         )
     finally:
         shutil.rmtree(root, ignore_errors=True)
-    pl: dict[str, Any] = res.payload or {}
+    pl: dict[str, Any] = _unscratch(res.payload or {}, root)
     if res.timed_out:
         raise Rejected("timed out in the sandbox")
     if res.violations:
@@ -327,6 +563,14 @@ def _trace_probe(
     calls = pl["real_calls"]
     executed = [{n for n in run if lo <= n <= hi} for run in pl["lines"]]
     if min(calls) < 1 or not executed[0]:
+        errs = [str(e) for e in pl.get("errors", [])]
+        if not harness and errs and errs[0].startswith("TypeError"):
+            head = src_lines[min(a for a, _ in unit.ranges) - 1].strip()[:120]
+            raise Rejected(
+                f"the call failed before {unit.symbol} ran ({errs[0][:120]}); send arguments "
+                f"that match its signature `{head}` (a method needs harness_code that builds "
+                "the object first)"
+            )
         raise Rejected(
             "the real target's own lines did not execute (the harness tested a mock or never "
             "called the target)"
@@ -337,6 +581,8 @@ def _trace_probe(
         or executed[0] != executed[1]
         or effects[0] != effects[1]
     ):
+        if any(_ADDRESS.search(str(r[1])) for r in pl["results"]):
+            raise Rejected(_UNSTABLE)
         raise Rejected("non-deterministic: two runs differed (mock time, randomness and I/O)")
     call = _call_text(unit.symbol, args, kwargs)
     uses = relevant_uses(source, list(pl.get("world_used", [])))
@@ -352,7 +598,10 @@ def _trace_probe(
     if prop.world is not None:
         ev["world"] = prop.world.model_dump(exclude_defaults=True)
 
+    body = "\n".join(src_lines[n - 1] for n in unit.lines() if 0 < n <= len(src_lines))
+
     def build(kind: str, q: str, opts: list[str], answer: str) -> Probe:
+        _check_quality(kind, q.replace(note, ""), answer, body)
         p = Probe(
             id=probe_id(kind, rel, unit.symbol, q, seed),
             kind=kind,
@@ -386,8 +635,10 @@ def _trace_probe(
     if prop.kind == "return_value":
         kind_, value = pl["results"][0]
         if kind_ == "ok":
-            opts = _options(value, rng)
+            opts = _options(value, rng, body_literals(body))
             if opts is None:
+                if _ADDRESS.search(value):
+                    raise Rejected(_UNSTABLE)
                 raise Rejected("return value is not a simple literal; cannot build answer options")
             answer = value
         else:
@@ -413,7 +664,7 @@ def _trace_probe(
         raise Rejected(
             f"`{prop.variable}` was not bound (or not stable) before line {prop.line} ran"
         )
-    opts = _options(seen[0], rng)
+    opts = _options(seen[0], rng, body_literals(body))
     if opts is None:
         raise Rejected("that variable's value is not a simple literal")
     shown = src_lines[prop.line - 1].strip()
